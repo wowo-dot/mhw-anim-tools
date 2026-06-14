@@ -9,6 +9,7 @@ from bpy_extras.io_utils import ImportHelper
 
 from ..blender_adapter.actions import import_lmt_action_to_armature
 from ..blender_adapter.lmt_session import build_file_summary
+from ..blender_adapter.timl_actions import import_attached_timl_to_action
 from ..core.formats.lmt.reader import read_lmt_bytes
 from ..core.formats.lmt.reader import read_lmt_file
 from ..core.formats.lmt.validation import validate_lmt
@@ -33,6 +34,9 @@ class MHWANIMTOOLS_OT_inspect_lmt(bpy.types.Operator, ImportHelper):
         scene_props = context.scene.mhw_anim_tools
         clear_diagnostics(scene_props)
         scene_props.lmt_entries.clear()
+        scene_props.last_imported_action_name = ""
+        scene_props.last_imported_timl_action_name = ""
+        scene_props.last_imported_timl_object_name = ""
         action_summaries = build_file_summary(lmt, source_bytes=source_bytes)
         for action_summary in action_summaries:
             item = scene_props.lmt_entries.add()
@@ -140,6 +144,72 @@ class MHWANIMTOOLS_OT_import_selected_lmt_action(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class MHWANIMTOOLS_OT_import_selected_attached_timl(bpy.types.Operator):
+    bl_idname = "mhw_anim_tools.import_selected_attached_timl"
+    bl_label = "Import Attached TIML"
+    bl_description = "Create a Blender Action on a dedicated TIML controller object from the attached TIML payload"
+
+    def execute(self, context):
+        scene_props = context.scene.mhw_anim_tools
+        clear_diagnostics(scene_props)
+        scene_props.last_imported_timl_action_name = ""
+        scene_props.last_imported_timl_object_name = ""
+        if not scene_props.last_lmt_path:
+            scene_props.last_status = "Inspect an LMT file before importing attached TIML."
+            add_diagnostic(scene_props, "ERROR", "session", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        if not scene_props.lmt_entries:
+            scene_props.last_status = "No LMT entries are loaded in the current session."
+            add_diagnostic(scene_props, "ERROR", "session", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        entry = scene_props.lmt_entries[min(scene_props.selected_entry_index, len(scene_props.lmt_entries) - 1)]
+        if not entry.has_timl:
+            scene_props.last_status = f"Entry {entry.entry_id:03d} does not contain an attached TIML payload."
+            add_diagnostic(scene_props, "ERROR", "timl", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        if entry.timl_parse_error:
+            scene_props.last_status = f"Entry {entry.entry_id:03d} attached TIML could not be parsed."
+            add_diagnostic(scene_props, "ERROR", "timl", f"{scene_props.last_status} {entry.timl_parse_error}")
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        source_bytes = Path(scene_props.last_lmt_path).read_bytes()
+        lmt = read_lmt_bytes(source_bytes, source_name=scene_props.last_lmt_path)
+        result = import_attached_timl_to_action(
+            lmt,
+            scene_props.selected_entry_index,
+            source_path=scene_props.last_lmt_path,
+            source_bytes=source_bytes,
+            target_armature=scene_props.target_armature,
+        )
+        for diagnostic in result.diagnostics:
+            add_diagnostic(scene_props, diagnostic.level, diagnostic.source, diagnostic.message)
+        if result.error_count:
+            scene_props.last_status = (
+                f"TIML import failed: {result.error_count} error(s), {result.warning_count} warning(s)."
+            )
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        scene_props.last_imported_timl_action_name = result.action_name
+        scene_props.last_imported_timl_object_name = result.carrier_name
+        if result.frame_end:
+            context.scene.frame_start = min(int(context.scene.frame_start), 0)
+            context.scene.frame_end = max(int(context.scene.frame_end), result.frame_end)
+        scene_props.last_status = (
+            f"Imported {result.action_name} on {result.carrier_name}: "
+            f"transforms={result.imported_transform_count}, "
+            f"skipped={result.skipped_transform_count}, "
+            f"warnings={result.warning_count}"
+        )
+        self.report({"INFO"}, scene_props.last_status)
+        return {"FINISHED"}
+
+
 class MHWANIMTOOLS_OT_clear_lmt_session(bpy.types.Operator):
     bl_idname = "mhw_anim_tools.clear_lmt_session"
     bl_label = "Clear Session"
@@ -161,6 +231,8 @@ class MHWANIMTOOLS_OT_clear_lmt_session(bpy.types.Operator):
         scene_props.last_warning_count = 0
         scene_props.last_error_count = 0
         scene_props.last_imported_action_name = ""
+        scene_props.last_imported_timl_action_name = ""
+        scene_props.last_imported_timl_object_name = ""
         scene_props.export_action = None
         scene_props.last_export_action_name = ""
         scene_props.last_export_track_count = 0
@@ -177,6 +249,7 @@ class MHWANIMTOOLS_OT_clear_lmt_session(bpy.types.Operator):
 classes = (
     MHWANIMTOOLS_OT_inspect_lmt,
     MHWANIMTOOLS_OT_import_selected_lmt_action,
+    MHWANIMTOOLS_OT_import_selected_attached_timl,
     MHWANIMTOOLS_OT_clear_lmt_session,
 )
 

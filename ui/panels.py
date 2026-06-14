@@ -119,6 +119,16 @@ class MHWANIMTOOLS_PT_workspace(bpy.types.Panel):
                                 timl_box.label(text=entry.timl_data_type_breakdown)
                             if entry.timl_timeline_breakdown:
                                 timl_box.label(text=entry.timl_timeline_breakdown)
+                            import_timl_row = timl_box.row(align=True)
+                            import_timl_row.scale_y = 1.1
+                            import_timl_row.operator("mhw_anim_tools.import_selected_attached_timl", icon="NODETREE")
+                            if scene_props.last_imported_timl_action_name:
+                                timl_box.label(
+                                    text=(
+                                        f"Last TIML import: {scene_props.last_imported_timl_action_name} "
+                                        f"on {scene_props.last_imported_timl_object_name}"
+                                    )
+                                )
                             panel_body.template_list(
                                 "MHWANIMTOOLS_UL_timl_transforms",
                                 "",
