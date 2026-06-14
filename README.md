@@ -77,6 +77,11 @@ Useful smoke scripts:
 - `tools/smoke_sample_export_action.py`
 - `tools/smoke_write_lmt_roundtrip.py`
 
+Useful corpus scans:
+
+- `tools/scan_lmt_export_safety.py`
+- `tools/scan_lmt_writer_readiness.py`
+
 ## Legacy reference
 
 Use `D:\Freehkwowo\Old Base` as the reference implementation/spec for:

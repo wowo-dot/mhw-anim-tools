@@ -305,3 +305,55 @@ def reconstruct_sampled_action(
         frame_end=int(frame_end),
         tracks=tracks,
     )
+
+
+def reconstruct_decoded_action(
+    decoded_action,
+    *,
+    action_name: str | None = None,
+) -> LmtReconstructedAction:
+    """Convert decoded source samples directly into reconstructed export-prep data.
+
+    This path is intentionally loss-minimizing:
+    - basis values stay at frame 0
+    - decoded sparse keyframes are copied through unchanged
+    - root tail semantics are preserved exactly as decoded
+
+    It is useful for read-only readiness scans that want to ask whether the
+    current writer stack can represent source LMT actions without involving any
+    Blender sampling or editing layers.
+    """
+
+    reconstructed_tracks = []
+    for track in getattr(decoded_action, "tracks", ()):
+        if getattr(track, "decode_error", None):
+            continue
+        reconstructed_tracks.append(
+            LmtReconstructedTrack(
+                bone_id=int(track.bone_id),
+                usage=int(track.usage),
+                basis_value=tuple(float(component) for component in track.basis_value),
+                keyframes=tuple(
+                    LmtReconstructedKeyframe(
+                        frame=int(sample.frame),
+                        value=tuple(float(component) for component in sample.value),
+                    )
+                    for sample in track.keyframes
+                ),
+                tail_frame=int(track.tail_frame) if track.tail_frame is not None else None,
+                tail_value=tuple(float(component) for component in track.tail_value)
+                if track.tail_value is not None
+                else None,
+            )
+        )
+
+    resolved_name = action_name
+    if resolved_name is None:
+        resolved_name = f"LMT::{int(getattr(decoded_action, 'action_id', 0))}"
+
+    return LmtReconstructedAction(
+        action_name=str(resolved_name),
+        frame_start=0,
+        frame_end=int(getattr(decoded_action, "frame_count", 0)),
+        tracks=tuple(reconstructed_tracks),
+    )

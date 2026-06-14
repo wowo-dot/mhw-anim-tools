@@ -3,6 +3,10 @@ from __future__ import annotations
 import unittest
 
 from core.animation.transforms import nlerp_quaternion_wxyz
+from core.formats.lmt.decoded import LmtDecodedAction
+from core.formats.lmt.decoded import LmtDecodedSample
+from core.formats.lmt.decoded import LmtDecodedTrack
+from core.formats.lmt.reconstruction import reconstruct_decoded_action
 from core.formats.lmt.reconstruction import reconstruct_sampled_action
 from core.formats.lmt.reconstruction import reconstruct_track_samples
 
@@ -213,6 +217,47 @@ class LmtReconstructionTests(unittest.TestCase):
         self.assertEqual([key.frame for key in track.keyframes], [1, 4])
         self.assertEqual(track.keyframes[0].value, (1.02, 0.01, 0.0, 0.0))
         self.assertEqual(track.keyframes[1].value, (0.97, 0.05, 0.0, 0.0))
+
+    def test_reconstruct_decoded_action_preserves_sparse_source_semantics(self):
+        decoded = LmtDecodedAction(
+            action_id=12,
+            frame_count=40,
+            loop_frame=-1,
+            tracks=(
+                LmtDecodedTrack(
+                    track_index=0,
+                    bone_id=3,
+                    usage=1,
+                    buffer_type=5,
+                    basis_value=(0.0, 0.0, 0.0),
+                    keyframes=(
+                        LmtDecodedSample(frame=1, delta_to_next=2, value=(1.0, 0.0, 0.0)),
+                        LmtDecodedSample(frame=3, delta_to_next=38, value=(2.0, 0.0, 0.0)),
+                    ),
+                ),
+                LmtDecodedTrack(
+                    track_index=1,
+                    bone_id=-1,
+                    usage=4,
+                    buffer_type=3,
+                    basis_value=(0.0, 0.0, 0.0),
+                    keyframes=(),
+                    tail_frame=41,
+                    tail_value=(3.0, 0.0, 0.0),
+                ),
+            ),
+        )
+
+        reconstructed = reconstruct_decoded_action(decoded, action_name="DecodedMirror")
+
+        self.assertEqual(reconstructed.action_name, "DecodedMirror")
+        self.assertEqual(reconstructed.frame_start, 0)
+        self.assertEqual(reconstructed.frame_end, 40)
+        self.assertEqual(reconstructed.track_count, 2)
+        self.assertEqual([key.frame for key in reconstructed.tracks[0].keyframes], [1, 3])
+        self.assertEqual(reconstructed.tracks[0].keyframes[1].value, (2.0, 0.0, 0.0))
+        self.assertEqual(reconstructed.tracks[1].tail_frame, 41)
+        self.assertEqual(reconstructed.tracks[1].tail_value, (3.0, 0.0, 0.0))
 
 
 if __name__ == "__main__":
