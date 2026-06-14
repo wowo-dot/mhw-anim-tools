@@ -96,6 +96,10 @@ def _shared_source_action_ids(source_lmt, source_offset: int) -> tuple[int, ...]
     )
 
 
+def shared_source_action_ids(source_lmt, source_offset: int) -> tuple[int, ...]:
+    return _shared_source_action_ids(source_lmt, source_offset)
+
+
 def _payload_signature(payload, rebase_offsets) -> tuple[bytes, tuple[int, ...]]:
     return (bytes(payload), tuple(int(offset) for offset in rebase_offsets))
 
@@ -228,7 +232,7 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
     controller_names = sorted(controller_name for controller_name, _action_name in chosen_names)
     action_names = sorted(action_name for _controller_name, action_name in chosen_names if action_name)
     source_offset = int(changed_payloads[0][4])
-    shared_action_ids = _shared_source_action_ids(source_lmt, source_offset)
+    shared_action_ids = shared_source_action_ids(source_lmt, source_offset)
     if len(shared_action_ids) > 1:
         shared_labels = ", ".join(f"{action_id:03d}" for action_id in shared_action_ids)
         result.add(

@@ -6,7 +6,12 @@ import json
 import bpy
 
 from ..core.formats.timl.model import timl_data_type_name
+from .timl_labels import count_timl_edit_policies
 from .timl_labels import count_timl_writeback_statuses
+from .timl_labels import timl_edit_policy_code
+from .timl_labels import timl_edit_policy_label
+from .timl_labels import timl_edit_policy_reason_label
+from .timl_labels import timl_payload_scope_label
 from .timl_labels import timl_writeback_reason_label
 from .timl_labels import timl_writeback_status_label
 
@@ -95,6 +100,9 @@ class MhwAnimToolsTimlControllerTransformItem(bpy.types.PropertyGroup):
     last_frame: bpy.props.FloatProperty(name="Last Frame", default=0.0)
     first_value_preview: bpy.props.StringProperty(name="First Value", default="")
     interpolation_summary: bpy.props.StringProperty(name="Interpolation", default="")
+    edit_policy_code: bpy.props.StringProperty(name="Edit Policy Code", default="")
+    edit_policy_label: bpy.props.StringProperty(name="Edit Policy", default="")
+    edit_policy_reason: bpy.props.StringProperty(name="Edit Policy Reason", default="")
     writeback_status_code: bpy.props.StringProperty(name="Writeback Status Code", default="")
     writeback_status_label: bpy.props.StringProperty(name="Writeback Status", default="")
     writeback_reason: bpy.props.StringProperty(name="Writeback Reason", default="")
@@ -278,6 +286,14 @@ def _populate_timl_controller_transform_items(scene_props, sampled_result=None, 
             status_code = str(getattr(plan_item, "status", "") or "")
             reason = str(getattr(plan_item, "reason", "") or "")
             source_advanced = bool(getattr(plan_item, "source_advanced", False))
+            policy_code = timl_edit_policy_code(
+                source_advanced=source_advanced,
+                status=status_code,
+                reason=reason,
+            )
+            item.edit_policy_code = policy_code
+            item.edit_policy_label = timl_edit_policy_label(policy_code)
+            item.edit_policy_reason = timl_edit_policy_reason_label(policy_code)
             item.writeback_status_code = status_code
             item.writeback_status_label = timl_writeback_status_label(status_code)
             item.writeback_reason = timl_writeback_reason_label(
@@ -308,6 +324,10 @@ def clear_timl_analysis(scene_props):
     scene_props.last_timl_writeback_patch_values_count = 0
     scene_props.last_timl_writeback_rebuild_count = 0
     scene_props.last_timl_writeback_blocked_count = 0
+    scene_props.last_timl_edit_value_only_count = 0
+    scene_props.last_timl_edit_rebuild_capable_count = 0
+    scene_props.last_timl_edit_blocked_count = 0
+    scene_props.last_timl_payload_scope = ""
     scene_props.timl_controller_transforms.clear()
     scene_props.selected_timl_controller_transform_index = 0
 
@@ -319,6 +339,25 @@ def set_timl_writeback_summary(scene_props, statuses):
     scene_props.last_timl_writeback_patch_values_count = counts["patch_source_values"]
     scene_props.last_timl_writeback_rebuild_count = counts["rewrite_preview"]
     scene_props.last_timl_writeback_blocked_count = counts["unsupported_rebuild"]
+
+
+def set_timl_edit_policy_summary(scene_props, plan_items):
+    policies = [
+        timl_edit_policy_code(
+            source_advanced=bool(getattr(item, "source_advanced", False)),
+            status=str(getattr(item, "status", "") or ""),
+            reason=str(getattr(item, "reason", "") or ""),
+        )
+        for item in plan_items
+    ]
+    counts = count_timl_edit_policies(policies)
+    scene_props.last_timl_edit_value_only_count = counts["value_only"]
+    scene_props.last_timl_edit_rebuild_capable_count = counts["rebuild_capable"]
+    scene_props.last_timl_edit_blocked_count = counts["blocked"]
+
+
+def set_timl_payload_scope_summary(scene_props, action_ids):
+    scene_props.last_timl_payload_scope = timl_payload_scope_label(action_ids)
 
 
 class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
@@ -411,6 +450,25 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
         name="TIML Blocked Count",
         default=0,
         min=0,
+    )
+    last_timl_edit_value_only_count: bpy.props.IntProperty(
+        name="TIML Value-Only Count",
+        default=0,
+        min=0,
+    )
+    last_timl_edit_rebuild_capable_count: bpy.props.IntProperty(
+        name="TIML Rebuild-Capable Count",
+        default=0,
+        min=0,
+    )
+    last_timl_edit_blocked_count: bpy.props.IntProperty(
+        name="TIML Edit-Blocked Count",
+        default=0,
+        min=0,
+    )
+    last_timl_payload_scope: bpy.props.StringProperty(
+        name="TIML Payload Scope",
+        default="",
     )
     last_export_action_name: bpy.props.StringProperty(
         name="Last Export Action",

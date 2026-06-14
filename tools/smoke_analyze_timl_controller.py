@@ -181,6 +181,10 @@ def main():
             "writeback_patch_values_count": int(scene_props.last_timl_writeback_patch_values_count),
             "writeback_rebuild_count": int(scene_props.last_timl_writeback_rebuild_count),
             "writeback_blocked_count": int(scene_props.last_timl_writeback_blocked_count),
+            "edit_policy_value_only_count": int(scene_props.last_timl_edit_value_only_count),
+            "edit_policy_rebuild_capable_count": int(scene_props.last_timl_edit_rebuild_capable_count),
+            "edit_policy_blocked_count": int(scene_props.last_timl_edit_blocked_count),
+            "payload_scope": str(scene_props.last_timl_payload_scope),
             "controller_transform_items": len(scene_props.timl_controller_transforms),
             "diagnostics": [
                 {
@@ -216,6 +220,13 @@ def main():
             )
             if summarized != len(scene_props.timl_controller_transforms):
                 raise SystemExit("TIML writeback summary counts do not match inspector transform items.")
+            policy_summarized = (
+                int(scene_props.last_timl_edit_value_only_count)
+                + int(scene_props.last_timl_edit_rebuild_capable_count)
+                + int(scene_props.last_timl_edit_blocked_count)
+            )
+            if policy_summarized != len(scene_props.timl_controller_transforms):
+                raise SystemExit("TIML edit policy counts do not match inspector transform items.")
     finally:
         addon.unregister()
 

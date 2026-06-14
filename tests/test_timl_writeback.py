@@ -16,6 +16,7 @@ from blender_adapter.timl_sampling import TimlControllerMetadata
 from blender_adapter.timl_sampling import TimlSamplingResult
 from blender_adapter.timl_writeback import build_matching_timl_writeback
 from blender_adapter.timl_writeback import matching_timl_controllers_for_export_action
+from blender_adapter.timl_writeback import shared_source_action_ids
 from tests.test_timl_reader import _build_embedded_timl_source_bytes
 
 
@@ -70,6 +71,18 @@ class _FakeSourceLmt:
 
 
 class TimlWritebackTests(unittest.TestCase):
+    def test_shared_source_action_ids_collect_all_matching_actions(self):
+        source_lmt = _FakeSourceLmt(
+            "sample.lmt",
+            [
+                _FakeSourceAction(7, 224),
+                _FakeSourceAction(8, 224),
+                _FakeSourceAction(9, 0),
+            ],
+        )
+
+        self.assertEqual(shared_source_action_ids(source_lmt, 224), (7, 8))
+
     def test_unchanged_controller_preserves_raw_payload_without_rewrite(self):
         export_action = _FakeAction(
             "LMT::sample::000",

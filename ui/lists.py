@@ -3,6 +3,7 @@
 
 import bpy
 
+from .timl_labels import timl_edit_policy_icon
 from .timl_labels import timl_writeback_status_icon
 
 
@@ -138,7 +139,9 @@ class MHWANIMTOOLS_UL_timl_controller_transforms(bpy.types.UIList):
             row.label(text=f"T{item.type_index:02d}:{item.transform_index:02d}")
             row.label(text=item.data_type_name or "?")
             row.label(text=f"{item.keyframe_count} keys")
-            if item.writeback_status_label:
+            if item.edit_policy_label:
+                row.label(text=item.edit_policy_label, icon=timl_edit_policy_icon(item.edit_policy_code))
+            elif item.writeback_status_label:
                 row.label(text=item.writeback_status_label, icon=timl_writeback_status_icon(item.writeback_status_code))
         elif self.layout_type == "GRID":
             layout.alignment = "CENTER"

@@ -13,6 +13,7 @@ from ..integration.model_editor import bonefunction_count
 from ..integration.model_editor import get_workspace_summary
 from ..integration.model_editor import mhbone_count
 from .timl_labels import timl_writeback_status_icon
+from .timl_labels import timl_edit_policy_icon
 
 
 def _timl_controller_for_object_panel(context):
@@ -32,6 +33,23 @@ def _draw_timl_writeback_counts(layout, scene_props):
     counts_box.label(text=f"Patch Values: {scene_props.last_timl_writeback_patch_values_count}")
     counts_box.label(text=f"Rebuild Preview: {scene_props.last_timl_writeback_rebuild_count}")
     counts_box.label(text=f"Blocked: {scene_props.last_timl_writeback_blocked_count}")
+
+
+def _draw_timl_edit_policy_counts(layout, scene_props):
+    counts_box = layout.box()
+    counts_box.label(text="Edit Policies", icon="KEYFRAMES")
+    counts_box.label(text=f"Value Only: {scene_props.last_timl_edit_value_only_count}")
+    counts_box.label(text=f"Rebuild OK: {scene_props.last_timl_edit_rebuild_capable_count}")
+    if scene_props.last_timl_edit_blocked_count:
+        counts_box.label(text=f"Blocked: {scene_props.last_timl_edit_blocked_count}")
+
+
+def _draw_timl_payload_scope(layout, scene_props):
+    if not scene_props.last_timl_payload_scope:
+        return
+    scope_box = layout.box()
+    scope_box.label(text="Payload Scope", icon="LINKED")
+    scope_box.label(text=scene_props.last_timl_payload_scope)
 
 
 class MHWANIMTOOLS_PT_workspace(bpy.types.Panel):
@@ -299,7 +317,9 @@ class MHWANIMTOOLS_PT_workspace(bpy.types.Panel):
                     analysis_box.label(text=f"Warnings: {scene_props.last_timl_analysis_warning_count}")
                     analysis_box.label(text=f"Errors: {scene_props.last_timl_analysis_error_count}")
                     if scene_props.last_timl_writeback_available:
+                        _draw_timl_edit_policy_counts(analysis_box, scene_props)
                         _draw_timl_writeback_counts(analysis_box, scene_props)
+                        _draw_timl_payload_scope(analysis_box, scene_props)
                 panel_body.label(text="Deep TIML details live in Object Properties > TIML Inspector.", icon="PROPERTIES")
             else:
                 panel_body.label(text="No TIML controller selected yet.", icon="INFO")
@@ -406,7 +426,9 @@ class MHWANIMTOOLS_PT_timl_inspector(bpy.types.Panel):
             analysis_box.label(text=f"Warnings: {scene_props.last_timl_analysis_warning_count}")
             analysis_box.label(text=f"Errors: {scene_props.last_timl_analysis_error_count}")
             if scene_props.last_timl_writeback_available:
+                _draw_timl_edit_policy_counts(analysis_box, scene_props)
                 _draw_timl_writeback_counts(analysis_box, scene_props)
+                _draw_timl_payload_scope(analysis_box, scene_props)
             else:
                 analysis_box.label(text="Source-backed writeback modes are not available for this controller yet.", icon="INFO")
         else:
@@ -447,6 +469,13 @@ class MHWANIMTOOLS_PT_timl_inspector(bpy.types.Panel):
                     details.label(text=f"First value: {transform.first_value_preview}")
                 if transform.interpolation_summary:
                     details.label(text=f"Interpolation: {transform.interpolation_summary}")
+                if transform.edit_policy_label:
+                    details.label(
+                        text=f"Edit policy: {transform.edit_policy_label}",
+                        icon=timl_edit_policy_icon(transform.edit_policy_code),
+                    )
+                if transform.edit_policy_reason:
+                    details.label(text=transform.edit_policy_reason)
                 if transform.writeback_status_label:
                     details.label(
                         text=f"Writeback: {transform.writeback_status_label}",

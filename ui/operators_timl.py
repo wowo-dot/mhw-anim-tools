@@ -5,13 +5,17 @@ from pathlib import Path
 
 import bpy
 
+from ..blender_adapter.timl_writeback import shared_source_action_ids
 from ..blender_adapter.timl_sampling import is_imported_timl_controller
 from ..blender_adapter.timl_sampling import sample_timl_controller_action
 from ..blender_adapter.timl_writeback_plan import plan_timl_controller_writeback
+from ..core.formats.lmt.reader import read_lmt_bytes
 from .properties import add_diagnostic
 from .properties import clear_diagnostics
 from .properties import clear_timl_analysis
 from .properties import _populate_timl_controller_transform_items
+from .properties import set_timl_edit_policy_summary
+from .properties import set_timl_payload_scope_summary
 from .properties import set_timl_writeback_summary
 
 
@@ -48,22 +52,33 @@ def _set_active_controller(context, controller):
     context.view_layer.objects.active = controller
 
 
-def _build_source_backed_writeback_plan(controller, metadata):
+def _build_source_backed_writeback_plan(controller, metadata, *, source_bytes: bytes):
     if metadata is None:
         return None
     source_lmt = str(getattr(metadata, "source_lmt", "") or "")
     if not source_lmt:
         return None
-    source_path = Path(source_lmt)
-    if not source_path.is_file():
-        raise FileNotFoundError(f"TIML source LMT is missing: {source_lmt}")
     return plan_timl_controller_writeback(
         controller,
-        source_bytes=source_path.read_bytes(),
+        source_bytes=source_bytes,
         source_name=f"{source_lmt}#timl",
         entry_id=int(getattr(metadata, "entry_id", 0)),
         source_offset=int(getattr(metadata, "source_offset", 0)),
     )
+
+
+def _load_source_context(metadata):
+    if metadata is None:
+        return None, None
+    source_lmt = str(getattr(metadata, "source_lmt", "") or "")
+    if not source_lmt:
+        return None, None
+    source_path = Path(source_lmt)
+    if not source_path.is_file():
+        raise FileNotFoundError(f"TIML source LMT is missing: {source_lmt}")
+    source_bytes = source_path.read_bytes()
+    source_lmt_file = read_lmt_bytes(source_bytes, source_name=str(source_path))
+    return source_bytes, source_lmt_file
 
 
 class MHWANIMTOOLS_OT_analyze_timl_controller(bpy.types.Operator):
@@ -98,9 +113,17 @@ class MHWANIMTOOLS_OT_analyze_timl_controller(bpy.types.Operator):
         scene_props.last_timl_analysis_warning_count = result.warning_count
         scene_props.last_timl_analysis_error_count = result.error_count
         writeback_plan = None
+        source_lmt = None
+        source_bytes = None
         if not result.error_count:
             try:
-                writeback_plan = _build_source_backed_writeback_plan(controller, metadata)
+                source_bytes, source_lmt = _load_source_context(metadata)
+                if source_bytes is not None:
+                    writeback_plan = _build_source_backed_writeback_plan(
+                        controller,
+                        metadata,
+                        source_bytes=source_bytes,
+                    )
             except OSError as exc:
                 add_diagnostic(
                     scene_props,
@@ -122,6 +145,15 @@ class MHWANIMTOOLS_OT_analyze_timl_controller(bpy.types.Operator):
                 scene_props,
                 [item.status for item in writeback_plan.transform_plans],
             )
+            set_timl_edit_policy_summary(
+                scene_props,
+                writeback_plan.transform_plans,
+            )
+            if source_lmt is not None and metadata is not None:
+                set_timl_payload_scope_summary(
+                    scene_props,
+                    shared_source_action_ids(source_lmt, int(getattr(metadata, "source_offset", 0))),
+                )
         _populate_timl_controller_transform_items(
             scene_props,
             sampled_result=result,
