@@ -3,6 +3,8 @@
 
 import bpy
 
+from .timl_labels import timl_writeback_status_icon
+
 
 class MHWANIMTOOLS_UL_lmt_entries(bpy.types.UIList):
     bl_idname = "MHWANIMTOOLS_UL_lmt_entries"
@@ -116,11 +118,39 @@ class MHWANIMTOOLS_UL_diagnostics(bpy.types.UIList):
             layout.label(text=item.level[:1])
 
 
+class MHWANIMTOOLS_UL_timl_controller_transforms(bpy.types.UIList):
+    bl_idname = "MHWANIMTOOLS_UL_timl_controller_transforms"
+
+    def draw_item(
+        self,
+        context,
+        layout,
+        data,
+        item,
+        icon,
+        active_data,
+        active_propname,
+        index,
+    ):
+        del context, data, icon, active_data, active_propname, index
+        if self.layout_type in {"DEFAULT", "COMPACT"}:
+            row = layout.row(align=True)
+            row.label(text=f"T{item.type_index:02d}:{item.transform_index:02d}")
+            row.label(text=item.data_type_name or "?")
+            row.label(text=f"{item.keyframe_count} keys")
+            if item.writeback_status_label:
+                row.label(text=item.writeback_status_label, icon=timl_writeback_status_icon(item.writeback_status_code))
+        elif self.layout_type == "GRID":
+            layout.alignment = "CENTER"
+            layout.label(text=f"{item.type_index}:{item.transform_index}")
+
+
 classes = (
     MHWANIMTOOLS_UL_lmt_entries,
     MHWANIMTOOLS_UL_lmt_tracks,
     MHWANIMTOOLS_UL_timl_transforms,
     MHWANIMTOOLS_UL_diagnostics,
+    MHWANIMTOOLS_UL_timl_controller_transforms,
 )
 
 

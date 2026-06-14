@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Scene properties for milestone one."""
+"""Scene properties for the Blender UI surfaces."""
 
 import json
 
 import bpy
 
+from ..core.formats.timl.model import timl_data_type_name
+from .timl_labels import count_timl_writeback_statuses
+from .timl_labels import timl_writeback_reason_label
+from .timl_labels import timl_writeback_status_label
 
 class MhwAnimToolsLmtEntryItem(bpy.types.PropertyGroup):
     entry_id: bpy.props.IntProperty(name="Entry ID", default=0)
@@ -74,6 +78,27 @@ class MhwAnimToolsTimlTransformItem(bpy.types.PropertyGroup):
     first_value_preview: bpy.props.StringProperty(name="First Value", default="")
     interpolation_summary: bpy.props.StringProperty(name="Interpolation", default="")
     easing_summary: bpy.props.StringProperty(name="Easing", default="")
+
+
+class MhwAnimToolsTimlControllerTransformItem(bpy.types.PropertyGroup):
+    type_index: bpy.props.IntProperty(name="Type Index", default=0, min=0)
+    transform_index: bpy.props.IntProperty(name="Transform Index", default=0, min=0)
+    property_name: bpy.props.StringProperty(name="Property Name", default="")
+    timeline_display: bpy.props.StringProperty(name="Timeline Hash", default="")
+    datatype_display: bpy.props.StringProperty(name="Datatype Hash", default="")
+    data_type_name: bpy.props.StringProperty(name="Data Type", default="")
+    value_kind: bpy.props.StringProperty(name="Value Kind", default="")
+    control_kind: bpy.props.StringProperty(name="Control Kind", default="")
+    component_labels: bpy.props.StringProperty(name="Components", default="")
+    keyframe_count: bpy.props.IntProperty(name="Keyframes", default=0, min=0)
+    first_frame: bpy.props.FloatProperty(name="First Frame", default=0.0)
+    last_frame: bpy.props.FloatProperty(name="Last Frame", default=0.0)
+    first_value_preview: bpy.props.StringProperty(name="First Value", default="")
+    interpolation_summary: bpy.props.StringProperty(name="Interpolation", default="")
+    writeback_status_code: bpy.props.StringProperty(name="Writeback Status Code", default="")
+    writeback_status_label: bpy.props.StringProperty(name="Writeback Status", default="")
+    writeback_reason: bpy.props.StringProperty(name="Writeback Reason", default="")
+    source_advanced: bpy.props.BoolProperty(name="Advanced Source", default=False)
 
 
 class MhwAnimToolsDiagnosticItem(bpy.types.PropertyGroup):
@@ -181,6 +206,90 @@ def _populate_timl_transform_items(scene_props):
         )
 
 
+def _preview_value_text(value) -> str:
+    if not value:
+        return ""
+    if len(value) == 1:
+        return f"{float(value[0]):.4f}"
+    return ", ".join(f"{float(component):.4f}" for component in value)
+
+
+def _interpolation_summary_for_sampled_transform(transform) -> str:
+    counts: dict[str, int] = {}
+    for keyframe in getattr(transform, "keyframes", ()):
+        label = str(getattr(keyframe, "interpolation", "") or "")
+        counts[label] = counts.get(label, 0) + 1
+    return ", ".join(
+        f"{label}={count}"
+        for label, count in sorted(counts.items(), key=lambda item: (item[0], item[1]))
+    )
+
+
+def _populate_timl_controller_transform_items(scene_props, sampled_result=None, writeback_plan=None):
+    scene_props.timl_controller_transforms.clear()
+    scene_props.selected_timl_controller_transform_index = 0
+
+    sampled_map = {}
+    if sampled_result is not None:
+        sampled_map = {
+            (int(transform.type_index), int(transform.transform_index)): transform
+            for transform in getattr(sampled_result, "sampled_transforms", ())
+        }
+    plan_map = {}
+    plan_items = []
+    if writeback_plan is not None:
+        plan_items = list(getattr(writeback_plan, "transform_plans", ()))
+        plan_map = {
+            (int(item.type_index), int(item.transform_index)): item
+            for item in plan_items
+        }
+
+    if plan_items:
+        identities = sorted(plan_map)
+    else:
+        identities = sorted(sampled_map)
+
+    for identity in identities:
+        sampled_transform = sampled_map.get(identity)
+        plan_item = plan_map.get(identity)
+        item = scene_props.timl_controller_transforms.add()
+        item.type_index = int(identity[0])
+        item.transform_index = int(identity[1])
+
+        if sampled_transform is not None:
+            item.property_name = str(getattr(sampled_transform, "property_name", "") or "")
+            item.timeline_display = f"0x{int(getattr(sampled_transform, 'timeline_parameter_hash', 0)) & 0xFFFFFFFF:08X}"
+            item.datatype_display = f"0x{int(getattr(sampled_transform, 'datatype_hash', 0)) & 0xFFFFFFFF:08X}"
+            item.data_type_name = str(getattr(sampled_transform, "data_type_name", "") or "")
+            item.value_kind = str(getattr(sampled_transform, "value_kind", "") or "")
+            item.control_kind = str(getattr(sampled_transform, "control_kind", "") or "")
+            item.component_labels = ", ".join(str(label) for label in getattr(sampled_transform, "component_labels", ()))
+            keyframes = tuple(getattr(sampled_transform, "keyframes", ()))
+            item.keyframe_count = len(keyframes)
+            if keyframes:
+                item.first_frame = float(keyframes[0].frame)
+                item.last_frame = float(keyframes[-1].frame)
+                item.first_value_preview = _preview_value_text(getattr(keyframes[0], "value", ()))
+            item.interpolation_summary = _interpolation_summary_for_sampled_transform(sampled_transform)
+        elif plan_item is not None:
+            item.data_type_name = timl_data_type_name(int(getattr(plan_item, "data_type", 0)))
+
+        if plan_item is not None:
+            status_code = str(getattr(plan_item, "status", "") or "")
+            reason = str(getattr(plan_item, "reason", "") or "")
+            source_advanced = bool(getattr(plan_item, "source_advanced", False))
+            item.writeback_status_code = status_code
+            item.writeback_status_label = timl_writeback_status_label(status_code)
+            item.writeback_reason = timl_writeback_reason_label(
+                status_code,
+                reason=reason,
+                source_advanced=source_advanced,
+            )
+            item.source_advanced = source_advanced
+        else:
+            item.writeback_reason = "Source-backed writeback analysis is not available for this controller yet."
+
+
 def selected_entry_update(self, _context):
     _populate_track_items(self)
     _populate_timl_transform_items(self)
@@ -194,6 +303,22 @@ def clear_timl_analysis(scene_props):
     scene_props.last_timl_analysis_frame_end = 0
     scene_props.last_timl_analysis_warning_count = 0
     scene_props.last_timl_analysis_error_count = 0
+    scene_props.last_timl_writeback_available = False
+    scene_props.last_timl_writeback_preserve_raw_count = 0
+    scene_props.last_timl_writeback_patch_values_count = 0
+    scene_props.last_timl_writeback_rebuild_count = 0
+    scene_props.last_timl_writeback_blocked_count = 0
+    scene_props.timl_controller_transforms.clear()
+    scene_props.selected_timl_controller_transform_index = 0
+
+
+def set_timl_writeback_summary(scene_props, statuses):
+    counts = count_timl_writeback_statuses(statuses)
+    scene_props.last_timl_writeback_available = any(counts.values())
+    scene_props.last_timl_writeback_preserve_raw_count = counts["preserve_raw"]
+    scene_props.last_timl_writeback_patch_values_count = counts["patch_source_values"]
+    scene_props.last_timl_writeback_rebuild_count = counts["rewrite_preview"]
+    scene_props.last_timl_writeback_blocked_count = counts["unsupported_rebuild"]
 
 
 class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
@@ -260,6 +385,30 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
     )
     last_timl_analysis_error_count: bpy.props.IntProperty(
         name="TIML Error Count",
+        default=0,
+        min=0,
+    )
+    last_timl_writeback_available: bpy.props.BoolProperty(
+        name="TIML Writeback Available",
+        default=False,
+    )
+    last_timl_writeback_preserve_raw_count: bpy.props.IntProperty(
+        name="TIML Preserve Raw Count",
+        default=0,
+        min=0,
+    )
+    last_timl_writeback_patch_values_count: bpy.props.IntProperty(
+        name="TIML Patch Values Count",
+        default=0,
+        min=0,
+    )
+    last_timl_writeback_rebuild_count: bpy.props.IntProperty(
+        name="TIML Rebuild Preview Count",
+        default=0,
+        min=0,
+    )
+    last_timl_writeback_blocked_count: bpy.props.IntProperty(
+        name="TIML Blocked Count",
         default=0,
         min=0,
     )
@@ -350,6 +499,12 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
         min=0,
     )
     timl_transforms: bpy.props.CollectionProperty(type=MhwAnimToolsTimlTransformItem)
+    selected_timl_controller_transform_index: bpy.props.IntProperty(
+        name="Selected TIML Controller Transform",
+        default=0,
+        min=0,
+    )
+    timl_controller_transforms: bpy.props.CollectionProperty(type=MhwAnimToolsTimlControllerTransformItem)
     selected_diagnostic_index: bpy.props.IntProperty(
         name="Selected Diagnostic",
         default=0,
@@ -362,6 +517,7 @@ classes = (
     MhwAnimToolsLmtEntryItem,
     MhwAnimToolsLmtTrackItem,
     MhwAnimToolsTimlTransformItem,
+    MhwAnimToolsTimlControllerTransformItem,
     MhwAnimToolsDiagnosticItem,
     MhwAnimToolsSceneProperties,
 )

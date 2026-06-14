@@ -8,9 +8,30 @@ import bpy
 
 from ..blender_adapter.armature import summarize_track_binding
 from ..blender_adapter.space import uses_mhw_model_editor_space_adapter
+from ..blender_adapter.timl_sampling import is_imported_timl_controller
 from ..integration.model_editor import bonefunction_count
 from ..integration.model_editor import get_workspace_summary
 from ..integration.model_editor import mhbone_count
+from .timl_labels import timl_writeback_status_icon
+
+
+def _timl_controller_for_object_panel(context):
+    active_object = getattr(context, "active_object", None)
+    if is_imported_timl_controller(active_object):
+        return active_object
+    controller = context.scene.mhw_anim_tools.timl_controller
+    if is_imported_timl_controller(controller) and active_object == controller:
+        return controller
+    return None
+
+
+def _draw_timl_writeback_counts(layout, scene_props):
+    counts_box = layout.box()
+    counts_box.label(text="Writeback Modes", icon="FILE_REFRESH")
+    counts_box.label(text=f"Preserve Raw: {scene_props.last_timl_writeback_preserve_raw_count}")
+    counts_box.label(text=f"Patch Values: {scene_props.last_timl_writeback_patch_values_count}")
+    counts_box.label(text=f"Rebuild Preview: {scene_props.last_timl_writeback_rebuild_count}")
+    counts_box.label(text=f"Blocked: {scene_props.last_timl_writeback_blocked_count}")
 
 
 class MHWANIMTOOLS_PT_workspace(bpy.types.Panel):
@@ -230,16 +251,14 @@ class MHWANIMTOOLS_PT_workspace(bpy.types.Panel):
             else:
                 panel_body.label(text="No LMT session loaded yet.", icon="INFO")
 
-        panel_header, panel_body = layout.panel(
-            idname="MHWANIMTOOLS_PT_timl_controller_section",
-            default_closed=False,
-        )
-        panel_header.label(text="TIML Controller")
+        panel_header, panel_body = layout.panel(idname="MHWANIMTOOLS_PT_timl_controller_section", default_closed=False)
+        panel_header.label(text="TIML Workflow")
         if panel_body is not None:
             panel_body.prop(scene_props, "timl_controller")
             analyze_row = panel_body.row(align=True)
             analyze_row.scale_y = 1.1
-            analyze_row.operator("mhw_anim_tools.analyze_timl_controller", icon="FCURVE")
+            analyze_row.operator("mhw_anim_tools.select_timl_controller", icon="RESTRICT_SELECT_OFF", text="Select")
+            analyze_row.operator("mhw_anim_tools.analyze_timl_controller", icon="FCURVE", text="Analyze")
             if scene_props.last_imported_timl_action_name and scene_props.last_imported_timl_object_name:
                 panel_body.label(
                     text=(
@@ -279,6 +298,9 @@ class MHWANIMTOOLS_PT_workspace(bpy.types.Panel):
                     analysis_box.label(text=f"Frame end: {scene_props.last_timl_analysis_frame_end}")
                     analysis_box.label(text=f"Warnings: {scene_props.last_timl_analysis_warning_count}")
                     analysis_box.label(text=f"Errors: {scene_props.last_timl_analysis_error_count}")
+                    if scene_props.last_timl_writeback_available:
+                        _draw_timl_writeback_counts(analysis_box, scene_props)
+                panel_body.label(text="Deep TIML details live in Object Properties > TIML Inspector.", icon="PROPERTIES")
             else:
                 panel_body.label(text="No TIML controller selected yet.", icon="INFO")
 
@@ -329,7 +351,119 @@ class MHWANIMTOOLS_PT_workspace(bpy.types.Panel):
                 stats_box.label(text=f"Errors: {scene_props.last_export_error_count}")
 
 
-classes = (MHWANIMTOOLS_PT_workspace,)
+class MHWANIMTOOLS_PT_timl_inspector(bpy.types.Panel):
+    bl_label = "TIML Inspector"
+    bl_idname = "MHWANIMTOOLS_PT_timl_inspector"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "object"
+
+    @classmethod
+    def poll(cls, context):
+        del cls
+        return _timl_controller_for_object_panel(context) is not None
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        scene_props = context.scene.mhw_anim_tools
+        controller = _timl_controller_for_object_panel(context)
+        if controller is None:
+            layout.label(text="Select an imported TIML controller to inspect it.", icon="INFO")
+            return
+
+        summary_box = layout.box()
+        summary_box.label(text=controller.name, icon="EMPTY_DATA")
+        scene_props.timl_controller = controller
+        action = controller.animation_data.action if controller.animation_data else None
+        if action is not None:
+            summary_box.label(text=f"Action: {action.name}", icon="ACTION")
+        else:
+            summary_box.label(text="No active TIML action on this controller", icon="ERROR")
+        source_path = str(controller.get("mhw_anim_tools_timl_source_lmt", ""))
+        if source_path:
+            summary_box.label(text=f"Source: {os.path.basename(source_path)}", icon="CURRENT_FILE")
+        entry_id = controller.get("mhw_anim_tools_timl_entry_id")
+        if entry_id is not None:
+            summary_box.label(text=f"Entry: {int(entry_id):03d}")
+        source_offset = controller.get("mhw_anim_tools_timl_source_offset")
+        if source_offset is not None:
+            summary_box.label(text=f"Offset: 0x{int(source_offset):X}")
+
+        action_row = layout.row(align=True)
+        action_row.scale_y = 1.1
+        action_row.operator("mhw_anim_tools.select_timl_controller", icon="RESTRICT_SELECT_OFF")
+        action_row.operator("mhw_anim_tools.analyze_timl_controller", icon="FCURVE")
+
+        if scene_props.last_timl_analysis_controller_name == controller.name:
+            analysis_box = layout.box()
+            analysis_box.label(text="Controller Summary", icon="CHECKMARK")
+            analysis_box.label(text=f"Transforms: {scene_props.last_timl_analysis_transform_count}")
+            analysis_box.label(text=f"Keyframes: {scene_props.last_timl_analysis_keyframe_count}")
+            analysis_box.label(text=f"Frame end: {scene_props.last_timl_analysis_frame_end}")
+            analysis_box.label(text=f"Warnings: {scene_props.last_timl_analysis_warning_count}")
+            analysis_box.label(text=f"Errors: {scene_props.last_timl_analysis_error_count}")
+            if scene_props.last_timl_writeback_available:
+                _draw_timl_writeback_counts(analysis_box, scene_props)
+            else:
+                analysis_box.label(text="Source-backed writeback modes are not available for this controller yet.", icon="INFO")
+        else:
+            layout.label(text="Run Analyze TIML Controller to refresh writeback status.", icon="INFO")
+
+        if scene_props.timl_controller_transforms:
+            layout.template_list(
+                "MHWANIMTOOLS_UL_timl_controller_transforms",
+                "",
+                scene_props,
+                "timl_controller_transforms",
+                scene_props,
+                "selected_timl_controller_transform_index",
+                rows=8,
+            )
+            if 0 <= scene_props.selected_timl_controller_transform_index < len(scene_props.timl_controller_transforms):
+                transform = scene_props.timl_controller_transforms[scene_props.selected_timl_controller_transform_index]
+                details = layout.box()
+                details.label(
+                    text=f"TIML Transform {transform.type_index:02d}:{transform.transform_index:02d}",
+                    icon="IPO_BEZIER",
+                )
+                if transform.property_name:
+                    details.label(text=f"Property: {transform.property_name}")
+                if transform.timeline_display:
+                    details.label(text=f"Timeline: {transform.timeline_display}")
+                if transform.datatype_display:
+                    details.label(text=f"Datatype: {transform.datatype_display}")
+                details.label(text=f"Data type: {transform.data_type_name or '?'}")
+                if transform.value_kind or transform.control_kind:
+                    details.label(text=f"Value/control: {transform.value_kind or '?'} / {transform.control_kind or '?'}")
+                if transform.component_labels:
+                    details.label(text=f"Components: {transform.component_labels}")
+                details.label(text=f"Keyframes: {transform.keyframe_count}")
+                if transform.keyframe_count:
+                    details.label(text=f"Frame span: {transform.first_frame:.3f} -> {transform.last_frame:.3f}")
+                if transform.first_value_preview:
+                    details.label(text=f"First value: {transform.first_value_preview}")
+                if transform.interpolation_summary:
+                    details.label(text=f"Interpolation: {transform.interpolation_summary}")
+                if transform.writeback_status_label:
+                    details.label(
+                        text=f"Writeback: {transform.writeback_status_label}",
+                        icon=timl_writeback_status_icon(transform.writeback_status_code),
+                    )
+                if transform.source_advanced:
+                    details.label(text="Source uses advanced interpolation/easing semantics.", icon="INFO")
+                if transform.writeback_reason:
+                    details.label(text=transform.writeback_reason)
+        else:
+            layout.label(text="No sampled TIML transforms are available yet.", icon="INFO")
+
+
+classes = (
+    MHWANIMTOOLS_PT_workspace,
+    MHWANIMTOOLS_PT_timl_inspector,
+)
 
 
 def register():

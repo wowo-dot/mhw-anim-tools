@@ -176,6 +176,12 @@ def main():
             "frame_end": scene_props.last_timl_analysis_frame_end,
             "warning_count": scene_props.last_timl_analysis_warning_count,
             "error_count": scene_props.last_timl_analysis_error_count,
+            "writeback_available": bool(scene_props.last_timl_writeback_available),
+            "writeback_preserve_raw_count": int(scene_props.last_timl_writeback_preserve_raw_count),
+            "writeback_patch_values_count": int(scene_props.last_timl_writeback_patch_values_count),
+            "writeback_rebuild_count": int(scene_props.last_timl_writeback_rebuild_count),
+            "writeback_blocked_count": int(scene_props.last_timl_writeback_blocked_count),
+            "controller_transform_items": len(scene_props.timl_controller_transforms),
             "diagnostics": [
                 {
                     "level": item.level,
@@ -199,6 +205,17 @@ def main():
             raise SystemExit("TIML analysis did not find an active controller action.")
         if scene_props.last_timl_analysis_transform_count <= 0:
             raise SystemExit("TIML analysis did not sample any controller transforms.")
+        if len(scene_props.timl_controller_transforms) <= 0:
+            raise SystemExit("TIML analysis did not populate controller inspector transform items.")
+        if scene_props.last_timl_writeback_available:
+            summarized = (
+                int(scene_props.last_timl_writeback_preserve_raw_count)
+                + int(scene_props.last_timl_writeback_patch_values_count)
+                + int(scene_props.last_timl_writeback_rebuild_count)
+                + int(scene_props.last_timl_writeback_blocked_count)
+            )
+            if summarized != len(scene_props.timl_controller_transforms):
+                raise SystemExit("TIML writeback summary counts do not match inspector transform items.")
     finally:
         addon.unregister()
 
