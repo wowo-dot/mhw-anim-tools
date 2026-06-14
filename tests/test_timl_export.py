@@ -56,7 +56,7 @@ class TimlExportReadinessTests(unittest.TestCase):
         self.assertEqual(report.warning_count, 0)
         self.assertEqual(report.diagnostics[0].code, "lmt.export.timl_edit_unsupported")
 
-    def test_matching_timl_controller_action_warns_that_edits_are_ignored(self):
+    def test_non_timl_action_is_not_blocked_by_matching_controller_metadata(self):
         export_action = _action(
             name="LMT::sample::005",
             import_kind="lmt_action",
@@ -74,8 +74,7 @@ class TimlExportReadinessTests(unittest.TestCase):
         report = assess_timl_export_readiness(export_action, [export_action, imported_timl])
 
         self.assertEqual(report.error_count, 0)
-        self.assertEqual(report.warning_count, 1)
-        self.assertEqual(report.diagnostics[0].code, "lmt.export.timl_edits_ignored")
+        self.assertEqual(report.warning_count, 0)
 
     def test_non_timl_action_with_no_matching_controller_is_clear(self):
         export_action = _action(

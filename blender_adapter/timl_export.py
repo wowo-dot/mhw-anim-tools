@@ -63,8 +63,6 @@ def assess_timl_export_readiness(action_like, candidate_actions) -> Report:
 
     Current policy:
     - standalone TIML controller actions cannot be exported back yet
-    - skeletal LMT action export preserves raw source TIML unchanged, so matching
-      imported TIML controller edits should produce an explicit warning
     """
 
     report = Report()
@@ -78,28 +76,4 @@ def assess_timl_export_readiness(action_like, candidate_actions) -> Report:
             ),
         )
         return report
-
-    if not metadata.source_has_timl or not metadata.source_lmt:
-        return report
-
-    matching_timl_actions = []
-    for candidate in candidate_actions:
-        candidate_meta = extract_action_timl_metadata(candidate)
-        if candidate_meta.import_kind != "attached_timl":
-            continue
-        if candidate_meta.source_lmt != metadata.source_lmt:
-            continue
-        if candidate_meta.entry_id != metadata.entry_id:
-            continue
-        matching_timl_actions.append(candidate_meta.name or f"TIML entry {candidate_meta.entry_id:03d}")
-
-    if matching_timl_actions:
-        joined_names = ", ".join(sorted(matching_timl_actions))
-        report.add_warning(
-            "lmt.export.timl_edits_ignored",
-            (
-                f"Found imported TIML controller action(s) for this source entry ({joined_names}). "
-                "Current LMT export preserves the raw source TIML payload unchanged and ignores edited TIML controller curves."
-            ),
-        )
     return report

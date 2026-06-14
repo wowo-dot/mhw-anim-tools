@@ -9,6 +9,8 @@ from bpy_extras.io_utils import ExportHelper
 
 from ..blender_adapter.export_sampling import sample_action_for_lmt_export
 from ..blender_adapter.timl_export import assess_timl_export_readiness
+from ..blender_adapter.timl_writeback import build_matching_timl_writeback
+from ..blender_adapter.timl_writeback import matching_timl_controllers_for_export_action
 from ..core.diagnostics.errors import BinaryFormatError
 from ..core.diagnostics.errors import ValidationError
 from ..core.diagnostics.reports import Report
@@ -74,6 +76,7 @@ def _default_export_metadata():
         "export_mode": "standalone",
         "preserve_source_track_identities": frozenset(),
         "raw_quaternion_source_identities": frozenset(),
+        "replacement_timl_payloads": {},
     }
 
 
@@ -137,6 +140,14 @@ def _analyze_for_export(scene_props):
     for diagnostic in result.diagnostics:
         add_diagnostic(scene_props, diagnostic.level, diagnostic.source, diagnostic.message)
     metadata, metadata_report = _resolve_source_action_export_metadata(scene_props, action)
+    timl_matches = matching_timl_controllers_for_export_action(action, bpy.data.objects) if action is not None else ()
+    if metadata["export_mode"] != "merge" and timl_matches:
+        joined_names = ", ".join(getattr(item, "name", "") for item in timl_matches)
+        message = (
+            f"Found imported TIML controller(s) for this source entry ({joined_names}), "
+            "but the current export is falling back to standalone mode and will ignore edited TIML data."
+        )
+        metadata_report.add_warning("lmt.export.timl", message)
     if metadata["source_lmt"] is not None:
         source_action = None
         for candidate in metadata["source_lmt"].actions:
@@ -174,6 +185,15 @@ def _analyze_for_export(scene_props):
                             "motion-equivalent normalized rebuilds may use denser keys than the source track structure."
                         ),
                     )
+        timl_writeback = build_matching_timl_writeback(
+            action,
+            bpy.data.objects,
+            source_lmt=metadata["source_lmt"],
+            source_bytes=metadata["source_bytes"],
+        )
+        metadata["replacement_timl_payloads"] = dict(timl_writeback.replacement_payloads)
+        for diagnostic in timl_writeback.diagnostics:
+            metadata_report.add(diagnostic.level.lower(), diagnostic.source, diagnostic.message)
     reconstructed = reconstruct_sampled_action(
         action_name=result.action_name,
         frame_start=result.frame_start,
@@ -395,6 +415,7 @@ class MHWANIMTOOLS_OT_export_lmt_action(bpy.types.Operator, ExportHelper):
                     track_metadata_by_identity=metadata["track_metadata_by_identity"],
                     preserve_source_identities=metadata["preserve_source_track_identities"],
                     raw_quaternion_source_identities=metadata["raw_quaternion_source_identities"],
+                    replacement_timl_payloads=metadata["replacement_timl_payloads"],
                 )
             else:
                 output_path = write_lmt_file(

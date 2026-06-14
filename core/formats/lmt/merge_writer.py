@@ -9,7 +9,7 @@ This writer replaces one action inside a parsed source LMT while preserving:
 It deliberately stays conservative:
 - only the selected action is regenerated from reconstructed samples
 - sibling actions are copied from parsed source data
-- TIML subtrees are preserved raw rather than rewritten
+- TIML subtrees are preserved raw unless a validated replacement payload is supplied
 """
 
 from __future__ import annotations
@@ -347,9 +347,12 @@ def write_merged_lmt_bytes(
     track_metadata_by_identity: dict[tuple[int, int], dict[str, object]] | None = None,
     preserve_source_identities: frozenset[tuple[int, int]] | set[tuple[int, int]] | None = None,
     raw_quaternion_source_identities: frozenset[tuple[int, int]] | set[tuple[int, int]] | None = None,
+    replacement_timl_payloads: dict[int, object] | None = None,
 ) -> bytes:
     source_action = _action_by_id(source_lmt, action_id)
-    raw_timl_payloads = extract_raw_timl_payload_layouts(source_lmt, source_bytes)
+    timl_payloads = dict(extract_raw_timl_payload_layouts(source_lmt, source_bytes))
+    if replacement_timl_payloads:
+        timl_payloads.update({int(offset): payload for offset, payload in replacement_timl_payloads.items()})
 
     action_records_by_id: dict[int, _SerializedAction] = {}
     source_actions_by_id = {int(action.id): action for action in source_lmt.actions}
@@ -397,8 +400,8 @@ def write_merged_lmt_bytes(
 
     timl_offsets: dict[int, int] = {}
     cursor = _align(cursor, 16)
-    for timl_source_offset in timl_payload_order:
-        payload = raw_timl_payloads.get(timl_source_offset)
+    for payload_index, timl_source_offset in enumerate(timl_payload_order):
+        payload = timl_payloads.get(timl_source_offset)
         if payload is None:
             raise ValidationError(
                 f"Could not preserve TIML payload at source offset {timl_source_offset} from '{source_lmt.source_name}'."
@@ -406,7 +409,8 @@ def write_merged_lmt_bytes(
         cursor = _align(cursor, 16)
         timl_offsets[timl_source_offset] = cursor
         cursor += len(payload.payload)
-        cursor = _align(cursor, 16)
+        if payload_index + 1 < len(timl_payload_order):
+            cursor = _align(cursor, 16)
 
     data = bytearray()
     data.extend(
@@ -436,8 +440,8 @@ def write_merged_lmt_bytes(
             )
         )
 
-    for timl_source_offset in timl_payload_order:
-        payload = raw_timl_payloads[timl_source_offset]
+    for payload_index, timl_source_offset in enumerate(timl_payload_order):
+        payload = timl_payloads[timl_source_offset]
         payload_offset = timl_offsets[timl_source_offset]
         if len(data) < payload_offset:
             data.extend(b"\x00" * (payload_offset - len(data)))
@@ -448,7 +452,8 @@ def write_merged_lmt_bytes(
                 target_offset=int(payload_offset),
             )
         )
-        _pad_to(data, 16)
+        if payload_index + 1 < len(timl_payload_order):
+            _pad_to(data, 16)
 
     return bytes(data)
 
