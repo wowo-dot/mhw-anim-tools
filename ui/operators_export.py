@@ -8,6 +8,7 @@ import bpy
 from bpy_extras.io_utils import ExportHelper
 
 from ..blender_adapter.export_sampling import sample_action_for_lmt_export
+from ..blender_adapter.timl_export import assess_timl_export_readiness
 from ..core.diagnostics.errors import BinaryFormatError
 from ..core.diagnostics.errors import ValidationError
 from ..core.diagnostics.reports import Report
@@ -112,18 +113,25 @@ def _fallback_source_context_from_action(action) -> LmtSourceActionExportContext
 
 
 def _analyze_for_export(scene_props):
+    action = _effective_export_action(scene_props)
+    readiness_report = assess_timl_export_readiness(action, bpy.data.actions) if action is not None else Report()
+    for diagnostic in readiness_report.diagnostics:
+        add_diagnostic(scene_props, diagnostic.level.upper(), diagnostic.code, diagnostic.message)
+    if readiness_report.error_count:
+        scene_props.last_status = "Selected action cannot be exported with the current TIML writer coverage."
+        return None, None, None, None, None, readiness_report
+
     if scene_props.target_armature is None:
         message = "Choose a target armature before analyzing export data."
         add_diagnostic(scene_props, "ERROR", "armature", message)
         scene_props.last_status = message
-        return None, None, None, None, None, 0
+        return None, None, None, None, None, readiness_report
 
-    action = _effective_export_action(scene_props)
     if action is None:
         message = "Choose a Blender Action before analyzing export data."
         add_diagnostic(scene_props, "ERROR", "action", message)
         scene_props.last_status = message
-        return None, None, None, None, None, 0
+        return None, None, None, None, None, readiness_report
 
     result = sample_action_for_lmt_export(action, scene_props.target_armature)
     for diagnostic in result.diagnostics:
@@ -183,6 +191,7 @@ def _analyze_for_export(scene_props):
     )
     for diagnostic in plan.diagnostics:
         add_diagnostic(scene_props, diagnostic.level, diagnostic.source, diagnostic.message)
+    metadata_report.diagnostics.extend(readiness_report.diagnostics)
     return action, result, reconstructed, plan, metadata, metadata_report
 
 
@@ -293,7 +302,7 @@ class MHWANIMTOOLS_OT_analyze_export_action(bpy.types.Operator):
     def execute(self, context):
         scene_props = context.scene.mhw_anim_tools
         clear_diagnostics(scene_props)
-        action, result, reconstructed, plan, _metadata, metadata_report = _analyze_for_export(scene_props)
+        action, result, reconstructed, plan, metadata, metadata_report = _analyze_for_export(scene_props)
         if action is None:
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
