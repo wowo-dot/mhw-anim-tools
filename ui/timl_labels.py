@@ -47,6 +47,8 @@ def timl_writeback_reason_label(status: str, *, reason: str = "", source_advance
     if status == "unsupported_rebuild":
         if reason.endswith("_mismatch"):
             return "Controller binding metadata no longer matches the imported TIML source transform, so export is blocked."
+        if reason == "advanced_source_rebuild":
+            return "This transform uses source-only easing/interpolation semantics, so structural edits are blocked for now. Value-only edits remain safe."
         return "This transform needs a structural rebuild, but current preview interpolation is unsupported. Use CONSTANT or LINEAR for now."
     return ""
 

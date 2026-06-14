@@ -23,6 +23,10 @@ class TimlUiLabelTests(unittest.TestCase):
         message = timl_writeback_reason_label("unsupported_rebuild", reason="timeline_hash_mismatch")
         self.assertIn("binding metadata", message.lower())
 
+    def test_reason_label_mentions_source_semantics_for_advanced_rebuild_block(self):
+        message = timl_writeback_reason_label("unsupported_rebuild", reason="advanced_source_rebuild")
+        self.assertIn("source-only easing/interpolation semantics", message)
+
     def test_status_counter_tracks_each_writeback_mode(self):
         counts = count_timl_writeback_statuses(
             [

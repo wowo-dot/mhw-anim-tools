@@ -127,17 +127,29 @@ def _first_matching_fcurve(action, *, property_name: str, array_index: int):
     return None
 
 
-def _apply_bezier_edit(controller, action):
+def _apply_structural_linear_edit(controller, action):
     bindings = _load_timl_bindings(controller)
     for binding in bindings:
         property_name = str(binding.get("property_name", ""))
         fcurve = _first_matching_fcurve(action, property_name=property_name, array_index=0)
         if fcurve is None or not fcurve.keyframe_points:
             continue
-        fcurve.keyframe_points[0].interpolation = "BEZIER"
+        first = fcurve.keyframe_points[0]
+        first_frame = float(first.co[0])
+        first_value = float(first.co[1])
+        insert_frame = first_frame + 12.0
+        insert_value = first_value + 1.0
+        inserted = fcurve.keyframe_points.insert(insert_frame, insert_value, options={"FAST"})
+        inserted.interpolation = "LINEAR"
+        for point in fcurve.keyframe_points:
+            point.interpolation = "LINEAR"
         fcurve.update()
-        return binding
-    raise SystemExit("Could not find a TIML controller fcurve to switch to BEZIER.")
+        return {
+            "binding": binding,
+            "insert_frame": insert_frame,
+            "insert_value": insert_value,
+        }
+    raise SystemExit("Could not find a TIML controller fcurve to apply a structural edit.")
 
 
 def main():
@@ -145,9 +157,9 @@ def main():
     lmt_path = Path(args.get("lmt", ""))
     mod3_path = Path(args.get("mod3", ""))
     if not lmt_path.is_file():
-        raise SystemExit("Provide --lmt <path-to-lmt> for the BEZIER TIML merge-export smoke test.")
+        raise SystemExit("Provide --lmt <path-to-lmt> for the structural TIML merge-export smoke test.")
     if not mod3_path.is_file():
-        raise SystemExit("Provide --mod3 <path-to-mod3> for the BEZIER TIML merge-export smoke test.")
+        raise SystemExit("Provide --mod3 <path-to-mod3> for the structural TIML merge-export smoke test.")
 
     repo_root = Path(__file__).resolve().parents[1]
     addon = _register_addon(repo_root)
@@ -166,7 +178,7 @@ def main():
         if controller is None or controller.animation_data is None or controller.animation_data.action is None:
             raise SystemExit("TIML import did not create a usable controller action.")
         timl_action = controller.animation_data.action
-        binding = _apply_bezier_edit(controller, timl_action)
+        edit_info = _apply_structural_linear_edit(controller, timl_action)
 
         lmt_action = bpy.data.actions.get(scene_props.last_imported_action_name)
         if lmt_action is None:
@@ -183,7 +195,7 @@ def main():
             "import_timl_result": _operator_status(import_timl_result),
             "export_result": _operator_status(export_result),
             "status": scene_props.last_status,
-            "binding": binding,
+            "edit_info": edit_info,
             "diagnostics": [
                 {
                     "level": item.level,
@@ -197,17 +209,12 @@ def main():
         print(json.dumps(payload, indent=2))
 
         if "FINISHED" not in inspect_result or "FINISHED" not in import_lmt_result or "FINISHED" not in import_timl_result:
-            raise SystemExit("Source import path did not finish successfully before BEZIER TIML merge export.")
+            raise SystemExit("Source import path did not finish successfully before structural TIML merge export.")
         if "CANCELLED" not in export_result:
-            raise SystemExit("BEZIER TIML merge export should have been rejected cleanly.")
+            raise SystemExit("Advanced-source structural TIML merge export should have been rejected cleanly.")
         messages = "\n".join(item["message"] for item in payload["diagnostics"])
-        if "BEZIER" not in messages:
-            raise SystemExit("Expected a clear BEZIER coverage warning during TIML export analysis.")
-        if (
-            "unsupported preview interpolation" not in messages
-            and "Structural rebuild is blocked" not in messages
-        ):
-            raise SystemExit("Expected a clear writeback failure reason for BEZIER TIML export.")
+        if "Structural rebuild is blocked" not in messages:
+            raise SystemExit("Expected a clear advanced-source structural rebuild diagnostic.")
     finally:
         addon.unregister()
 

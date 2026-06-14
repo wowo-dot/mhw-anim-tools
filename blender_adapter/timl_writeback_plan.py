@@ -295,6 +295,22 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
                     )
                 )
                 continue
+            # Most real embedded TIML transforms use source-only easing/interpolation
+            # semantics Blender preview curves cannot reconstruct faithfully. Once the
+            # keyed structure changes, a rebuild would silently flatten or alter those
+            # source semantics, so keep advanced-source transforms value-patch only.
+            if source_advanced:
+                transform_plans.append(
+                    TimlTransformWritebackPlan(
+                        type_index=type_index,
+                        transform_index=transform_index,
+                        status="unsupported_rebuild",
+                        data_type=int(source_transform.data_type),
+                        source_advanced=source_advanced,
+                        reason="advanced_source_rebuild",
+                    )
+                )
+                continue
             if _has_unsupported_rebuild_interpolation(sampled_transform):
                 transform_plans.append(
                     TimlTransformWritebackPlan(
@@ -332,11 +348,6 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
         for item in plan.transform_plans
         if item.source_advanced and item.status == "patch_source_values"
     )
-    rebuilt_advanced = tuple(
-        item
-        for item in plan.transform_plans
-        if item.source_advanced and item.status == "rewrite_preview"
-    )
     unsupported = tuple(item for item in plan.transform_plans if item.status == "unsupported_rebuild")
 
     if patched_advanced:
@@ -346,12 +357,26 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
             "Edited TIML transform(s) %s will keep their original source interpolation/easing semantics while writing updated values."
             % _unsupported_labels(patched_advanced, status="patch_source_values"),
         )
-    if rebuilt_advanced:
+    simple_rebuild = tuple(
+        item
+        for item in plan.transform_plans
+        if not item.source_advanced and item.status == "rewrite_preview"
+    )
+    if simple_rebuild:
         plan.add(
-            "WARNING",
+            "INFO",
             "timl.writeback",
-            "Edited TIML transform(s) %s changed their preview keyframe structure; merge export will rebuild them from the current preview curves."
-            % _unsupported_labels(rebuilt_advanced, status="rewrite_preview"),
+            "Edited TIML transform(s) %s changed preview keyframe structure and will be rebuilt from the current Blender keys."
+            % _unsupported_labels(simple_rebuild, status="rewrite_preview"),
+        )
+    blocked_advanced_rebuild = tuple(item for item in unsupported if item.reason == "advanced_source_rebuild")
+    if blocked_advanced_rebuild:
+        plan.add(
+            "ERROR",
+            "timl.writeback",
+            "Edited TIML transform(s) %s changed keyframe structure, but their source payload uses advanced interpolation/easing semantics. "
+            "Structural rebuild is blocked for now; keep advanced-source edits value-only."
+            % _unsupported_labels(blocked_advanced_rebuild, status="unsupported_rebuild"),
         )
     unsupported_interpolation = tuple(item for item in unsupported if item.reason == "unsupported_interpolation")
     if unsupported_interpolation:

@@ -69,6 +69,17 @@ def _build_embedded_timl_source_bytes() -> tuple[bytes, int]:
     return source_bytes, timl_offset
 
 
+def _build_simple_embedded_timl_source_bytes() -> tuple[bytes, int]:
+    timl_offset = 224
+    payload = bytearray(144)
+    DATA_STRUCT.pack_into(payload, 0, timl_offset + 48, 1, 0, 0, 10.0, 2.0, 0, 0x12345678)
+    TYPE_STRUCT.pack_into(payload, 48, timl_offset + 80, 1, 0x11223344, 0)
+    TRANSFORM_STRUCT.pack_into(payload, 80, timl_offset + 112, 1, 0x55667788, 2)
+    FLOAT_KEYFRAME_STRUCT.pack_into(payload, 112, 3.5, 0.0, 0.0, 12.0, 1, 0)
+    source_bytes = (b"\x00" * timl_offset) + bytes(payload)
+    return source_bytes, timl_offset
+
+
 class TimlReaderTests(unittest.TestCase):
     def test_parse_minimal_timl(self):
         timl = read_timl_bytes(_build_minimal_timl_bytes(), source_name="minimal.timl")
