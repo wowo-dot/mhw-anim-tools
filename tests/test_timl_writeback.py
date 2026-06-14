@@ -15,6 +15,7 @@ from blender_adapter.timl_sampling import SampledTimlTransform
 from blender_adapter.timl_sampling import TimlControllerMetadata
 from blender_adapter.timl_sampling import TimlSamplingResult
 from blender_adapter.timl_writeback import build_matching_timl_writeback
+from tests.test_timl_reader import _build_embedded_timl_source_bytes
 
 
 class _FakeAnimationData:
@@ -73,9 +74,10 @@ class TimlWritebackTests(unittest.TestCase):
             "LMT::sample::000",
             mhw_anim_tools_import_kind="lmt_action",
             mhw_anim_tools_source_lmt="sample.lmt",
-            mhw_anim_tools_entry_id=0,
+            mhw_anim_tools_entry_id=7,
             mhw_anim_tools_source_has_timl=True,
         )
+        source_bytes, source_offset = _build_embedded_timl_source_bytes()
         raw_signature = imported_preview_signature_json(
             [
                 _ImportedTransform(
@@ -83,8 +85,7 @@ class TimlWritebackTests(unittest.TestCase):
                     transform_index=0,
                     data_type=2,
                     keyframes=(
-                        _ImportedKeyframe(frame=0.0, value=(1.0,), interpolation=3),
-                        _ImportedKeyframe(frame=10.0, value=(2.0,), interpolation=3),
+                        _ImportedKeyframe(frame=12.0, value=(3.5,), interpolation=1),
                     ),
                 )
             ]
@@ -95,25 +96,25 @@ class TimlWritebackTests(unittest.TestCase):
             action=controller_action,
             **{
                 TIML_SOURCE_LMT_KEY: "sample.lmt",
-                TIML_ENTRY_ID_KEY: 0,
-                TIML_SOURCE_OFFSET_KEY: 0x1234,
+                TIML_ENTRY_ID_KEY: 7,
+                TIML_SOURCE_OFFSET_KEY: source_offset,
                 TIML_ACTION_NAME_KEY: controller_action.name,
                 TIML_BINDINGS_KEY: "[]",
                 TIML_IMPORTED_PREVIEW_SIGNATURE_KEY: raw_signature,
             },
         )
-        source_lmt = _FakeSourceLmt("sample.lmt", [_FakeSourceAction(0, 0x1234)])
+        source_lmt = _FakeSourceLmt("sample.lmt", [_FakeSourceAction(7, source_offset)])
         sampled = TimlSamplingResult(
             metadata=TimlControllerMetadata(
                 carrier_name=controller.name,
                 action_name=controller_action.name,
                 source_lmt="sample.lmt",
-                entry_id=0,
-                source_offset=0x1234,
+                entry_id=7,
+                source_offset=source_offset,
                 transform_count=1,
             ),
             sampled_transform_count=1,
-            keyframe_count=2,
+            keyframe_count=1,
             sampled_transforms=(
                 SampledTimlTransform(
                     property_name="timl_float",
@@ -127,19 +128,18 @@ class TimlWritebackTests(unittest.TestCase):
                     control_kind="float",
                     component_labels=("value",),
                     keyframes=(
-                        SampledTimlKeyframe(frame=0.0, value=(1.0,), interpolation="LINEAR"),
-                        SampledTimlKeyframe(frame=10.0, value=(2.0,), interpolation="LINEAR"),
+                        SampledTimlKeyframe(frame=12.0, value=(3.5,), interpolation="LINEAR"),
                     ),
                 ),
             ),
         )
 
-        with patch("blender_adapter.timl_writeback.sample_timl_controller_action", return_value=sampled):
+        with patch("blender_adapter.timl_writeback_plan.sample_timl_controller_action", return_value=sampled):
             result = build_matching_timl_writeback(
                 export_action,
                 [controller],
                 source_lmt=source_lmt,
-                source_bytes=b"",
+                source_bytes=source_bytes,
             )
 
         self.assertEqual(result.replacement_payloads, {})
