@@ -33,6 +33,8 @@ def _sorted_count_dict(counter: Counter) -> dict[str, int]:
 def build_transform_summary(
     transform,
     *,
+    type_index: int,
+    transform_index: int,
     timeline_parameter_hash: int,
     timeline_parameter_names: dict[int, str] | None = None,
     datatype_hash_names: dict[int, str] | None = None,
@@ -47,6 +49,8 @@ def build_transform_summary(
     fractional_key_count = sum(1 for value in frame_timings if not _is_integral_frame(value))
     value_preview = _format_value_preview(transform.keyframes[0].value) if transform.keyframes else ""
     return {
+        "type_index": int(type_index),
+        "transform_index": int(transform_index),
         "datatype_hash": int(transform.datatype_hash),
         "datatype_label": format_hash_label(int(transform.datatype_hash), datatype_hash_names),
         "timeline_parameter_hash": int(timeline_parameter_hash),
@@ -77,14 +81,17 @@ def build_data_entry_summary(
     transform_summaries = [
         build_transform_summary(
             transform,
+            type_index=type_index,
+            transform_index=transform_index,
             timeline_parameter_hash=type_entry.timeline_parameter_hash,
             timeline_parameter_names=timeline_parameter_names,
             datatype_hash_names=datatype_hash_names,
         )
-        for type_entry in entry.types
-        for transform in type_entry.transforms
+        for type_index, type_entry in enumerate(entry.types)
+        for transform_index, transform in enumerate(type_entry.transforms)
     ]
     data_type_counts = Counter(summary["data_type_name"] for summary in transform_summaries)
+    timeline_counts = Counter(summary["timeline_parameter_label"] for summary in transform_summaries)
     return {
         "entry_id": int(entry.id),
         "type_count": len(entry.types),
@@ -97,6 +104,7 @@ def build_data_entry_summary(
         "data_index_a": int(entry.data_index_a),
         "data_index_b": int(entry.data_index_b),
         "data_type_counts": _sorted_count_dict(data_type_counts),
+        "timeline_counts": _sorted_count_dict(timeline_counts),
         "transform_payload": transform_summaries,
     }
 

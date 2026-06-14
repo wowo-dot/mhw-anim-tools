@@ -196,6 +196,17 @@ def read_timl_bytes(data: bytes, source_name: str = "<memory>") -> TimlFile:
     )
 
 
+def read_timl_data_bytes(
+    data: bytes,
+    *,
+    data_offset: int = 0,
+    source_name: str = "<memory>",
+    entry_id: int = 0,
+) -> TimlData:
+    reader = BinaryReader(data, source_name=source_name)
+    return _read_data(reader, entry_id, int(data_offset))
+
+
 def read_timl_file(path: str | Path) -> TimlFile:
     file_path = Path(path)
     data = file_path.read_bytes()

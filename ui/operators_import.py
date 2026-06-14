@@ -2,17 +2,20 @@
 """Milestone-one import/inspection operators."""
 
 import os
+from pathlib import Path
 
 import bpy
 from bpy_extras.io_utils import ImportHelper
 
 from ..blender_adapter.actions import import_lmt_action_to_armature
 from ..blender_adapter.lmt_session import build_file_summary
+from ..core.formats.lmt.reader import read_lmt_bytes
 from ..core.formats.lmt.reader import read_lmt_file
 from ..core.formats.lmt.validation import validate_lmt
 from .properties import add_diagnostic
 from .properties import clear_diagnostics
 from .properties import _populate_track_items
+from .properties import _populate_timl_transform_items
 
 
 class MHWANIMTOOLS_OT_inspect_lmt(bpy.types.Operator, ImportHelper):
@@ -24,12 +27,14 @@ class MHWANIMTOOLS_OT_inspect_lmt(bpy.types.Operator, ImportHelper):
     filter_glob: bpy.props.StringProperty(default="*.lmt", options={"HIDDEN"}, maxlen=255)
 
     def execute(self, context):
-        lmt = read_lmt_file(self.filepath)
+        source_bytes = Path(self.filepath).read_bytes()
+        lmt = read_lmt_bytes(source_bytes, source_name=self.filepath)
         report = validate_lmt(lmt)
         scene_props = context.scene.mhw_anim_tools
         clear_diagnostics(scene_props)
         scene_props.lmt_entries.clear()
-        for action_summary in build_file_summary(lmt):
+        action_summaries = build_file_summary(lmt, source_bytes=source_bytes)
+        for action_summary in action_summaries:
             item = scene_props.lmt_entries.add()
             item.entry_id = action_summary["entry_id"]
             item.frame_count = action_summary["frame_count"]
@@ -42,8 +47,22 @@ class MHWANIMTOOLS_OT_inspect_lmt(bpy.types.Operator, ImportHelper):
             item.rotation_preview = action_summary["rotation_preview"]
             item.track_breakdown = action_summary["track_breakdown"]
             item.track_payload = action_summary["track_payload"]
+            item.timl_source_offset_display = (
+                f"0x{int(action_summary['timl_source_offset']):X}" if action_summary["timl_source_offset"] else ""
+            )
+            item.timl_type_count = int(action_summary["timl_type_count"])
+            item.timl_transform_count = int(action_summary["timl_transform_count"])
+            item.timl_keyframe_count = int(action_summary["timl_keyframe_count"])
+            item.timl_animation_length = float(action_summary["timl_animation_length"])
+            item.timl_loop_start_point = float(action_summary["timl_loop_start_point"])
+            item.timl_loop_control = int(action_summary["timl_loop_control"])
+            item.timl_data_type_breakdown = action_summary["timl_data_type_breakdown"]
+            item.timl_timeline_breakdown = action_summary["timl_timeline_breakdown"]
+            item.timl_transform_payload = action_summary["timl_transform_payload"]
+            item.timl_parse_error = action_summary["timl_parse_error"]
         scene_props.selected_entry_index = 0
         _populate_track_items(scene_props)
+        _populate_timl_transform_items(scene_props)
         scene_props.last_lmt_path = self.filepath
         scene_props.last_entry_count = lmt.header.entry_count
         scene_props.last_action_count = lmt.action_count
@@ -60,6 +79,14 @@ class MHWANIMTOOLS_OT_inspect_lmt(bpy.types.Operator, ImportHelper):
             add_diagnostic(scene_props, "WARNING", "validation", f"LMT validation reported {report.warning_count} warning(s).")
         if report.error_count:
             add_diagnostic(scene_props, "ERROR", "validation", f"LMT validation reported {report.error_count} error(s).")
+        for action_summary in action_summaries:
+            if action_summary["timl_parse_error"]:
+                add_diagnostic(
+                    scene_props,
+                    "WARNING",
+                    "timl",
+                    f"Entry {int(action_summary['entry_id']):03d} attached TIML could not be parsed: {action_summary['timl_parse_error']}",
+                )
         self.report({"INFO"}, scene_props.last_status)
         return {"FINISHED"}
 
@@ -123,8 +150,10 @@ class MHWANIMTOOLS_OT_clear_lmt_session(bpy.types.Operator):
         clear_diagnostics(scene_props)
         scene_props.lmt_entries.clear()
         scene_props.lmt_tracks.clear()
+        scene_props.timl_transforms.clear()
         scene_props.selected_entry_index = 0
         scene_props.selected_track_index = 0
+        scene_props.selected_timl_transform_index = 0
         scene_props.last_lmt_path = ""
         scene_props.last_entry_count = 0
         scene_props.last_action_count = 0

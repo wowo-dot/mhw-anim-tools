@@ -103,6 +103,55 @@ class MHWANIMTOOLS_PT_workspace(bpy.types.Panel):
                     details.label(text=f"Action translation: {entry.translation_preview}")
                     details.label(text=f"Action rotation basis: {entry.rotation_preview}")
                     details.label(text="TIML attached" if entry.has_timl else "No TIML attached")
+                    if entry.has_timl:
+                        timl_box = details.box()
+                        timl_box.label(text=f"Attached TIML @ {entry.timl_source_offset_display or 'unknown'}", icon="NODETREE")
+                        if entry.timl_parse_error:
+                            timl_box.label(text=f"Parse issue: {entry.timl_parse_error}", icon="ERROR")
+                        else:
+                            timl_box.label(text=f"Types: {entry.timl_type_count}")
+                            timl_box.label(text=f"Transforms: {entry.timl_transform_count}")
+                            timl_box.label(text=f"Keyframes: {entry.timl_keyframe_count}")
+                            timl_box.label(text=f"Anim length: {entry.timl_animation_length:.3f}")
+                            timl_box.label(text=f"Loop start: {entry.timl_loop_start_point:.3f}")
+                            timl_box.label(text=f"Loop control: {entry.timl_loop_control}")
+                            if entry.timl_data_type_breakdown:
+                                timl_box.label(text=entry.timl_data_type_breakdown)
+                            if entry.timl_timeline_breakdown:
+                                timl_box.label(text=entry.timl_timeline_breakdown)
+                            panel_body.template_list(
+                                "MHWANIMTOOLS_UL_timl_transforms",
+                                "",
+                                scene_props,
+                                "timl_transforms",
+                                scene_props,
+                                "selected_timl_transform_index",
+                                rows=6,
+                            )
+                            if 0 <= scene_props.selected_timl_transform_index < len(scene_props.timl_transforms):
+                                timl_transform = scene_props.timl_transforms[scene_props.selected_timl_transform_index]
+                                timl_transform_box = panel_body.box()
+                                timl_transform_box.label(
+                                    text=f"TIML Transform {timl_transform.type_index:02d}:{timl_transform.transform_index:02d}",
+                                    icon="IPO_BEZIER",
+                                )
+                                timl_transform_box.label(text=f"Timeline: {timl_transform.timeline_parameter_label}")
+                                timl_transform_box.label(text=f"Datatype hash: {timl_transform.datatype_label}")
+                                timl_transform_box.label(text=f"Data type: {timl_transform.data_type_name}")
+                                timl_transform_box.label(text=f"Value/control: {timl_transform.value_kind} / {timl_transform.control_kind}")
+                                timl_transform_box.label(text=f"Keyframes: {timl_transform.keyframe_count}")
+                                timl_transform_box.label(text=f"Frame span: {timl_transform.first_frame:.3f} -> {timl_transform.last_frame:.3f}")
+                                if timl_transform.fractional_key_count:
+                                    timl_transform_box.label(
+                                        text=f"Fractional frames: {timl_transform.fractional_key_count}",
+                                        icon="INFO",
+                                    )
+                                if timl_transform.first_value_preview:
+                                    timl_transform_box.label(text=f"First value: {timl_transform.first_value_preview}")
+                                if timl_transform.interpolation_summary:
+                                    timl_transform_box.label(text=f"Interpolation: {timl_transform.interpolation_summary}")
+                                if timl_transform.easing_summary:
+                                    timl_transform_box.label(text=f"Easing: {timl_transform.easing_summary}")
                     details.label(text=entry.track_breakdown or "No track breakdown")
                     target = scene_props.target_armature
                     if target is not None and entry.track_payload:

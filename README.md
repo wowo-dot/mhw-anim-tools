@@ -14,6 +14,7 @@ Milestone 1 focuses on:
 - an original, Blender-independent read-only LMT parser
 - a decoded-sample core for LMT track buffers
 - a session browser UI that can inspect `.lmt` actions and tracks with readable diagnostics
+- attached TIML parsing for inspected `.lmt` actions, with a first transform/keyframe browser in the LMT session UI
 - unit tests for the new core
 - the first narrow Blender Action importer for a selected LMT entry and selected target armature
 - the first narrow reverse-path sampler from a selected Blender Action back into normalized MHW track space
@@ -52,6 +53,7 @@ Current export-prep scope:
 - synthetic and live MOD3 writer roundtrip smoke coverage against decoded LMT source samples
 - the first standalone TIML core reader / validator with typed data-entry, transform, and keyframe models
 - standalone TIML semantics / summary helpers plus a real-corpus profiler for timeline/datatype usage
+- LMT-side attached TIML subtree parsing and browser summaries for inspected actions
 
 Quaternion note:
 

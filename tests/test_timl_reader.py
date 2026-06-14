@@ -4,6 +4,7 @@ import struct
 import unittest
 
 from core.formats.timl.model import timl_data_type_name
+from core.formats.timl.reader import read_timl_data_bytes
 from core.formats.timl.reader import read_timl_bytes
 
 
@@ -57,6 +58,17 @@ def _build_color_timl_bytes() -> bytes:
     return bytes(blob)
 
 
+def _build_embedded_timl_source_bytes() -> tuple[bytes, int]:
+    timl_offset = 224
+    payload = bytearray(144)
+    DATA_STRUCT.pack_into(payload, 0, timl_offset + 48, 1, 0, 0, 10.0, 2.0, 3, 0x87654321)
+    TYPE_STRUCT.pack_into(payload, 48, timl_offset + 80, 1, 0x11223344, 0)
+    TRANSFORM_STRUCT.pack_into(payload, 80, timl_offset + 112, 1, 0x55667788, 2)
+    FLOAT_KEYFRAME_STRUCT.pack_into(payload, 112, 3.5, 0.0, 0.0, 12.0, 1, 2)
+    source_bytes = (b"\x00" * timl_offset) + bytes(payload)
+    return source_bytes, timl_offset
+
+
 class TimlReaderTests(unittest.TestCase):
     def test_parse_minimal_timl(self):
         timl = read_timl_bytes(_build_minimal_timl_bytes(), source_name="minimal.timl")
@@ -97,6 +109,23 @@ class TimlReaderTests(unittest.TestCase):
         self.assertEqual(keyframe.frame_timing, 8.0)
         self.assertEqual(keyframe.interpolation, 3)
         self.assertEqual(keyframe.easing, 4)
+
+    def test_parse_embedded_timl_data_subtree(self):
+        source_bytes, timl_offset = _build_embedded_timl_source_bytes()
+        data_entry = read_timl_data_bytes(
+            source_bytes,
+            data_offset=timl_offset,
+            source_name="embedded.lmt#timl",
+            entry_id=7,
+        )
+        self.assertEqual(data_entry.id, 7)
+        self.assertEqual(data_entry.type_count, 1)
+        self.assertEqual(data_entry.animation_length, 10.0)
+        self.assertEqual(data_entry.loop_start_point, 2.0)
+        transform = data_entry.types[0].transforms[0]
+        self.assertEqual(transform.data_type, 2)
+        self.assertEqual(transform.keyframes[0].value, 3.5)
+        self.assertEqual(transform.keyframes[0].frame_timing, 12.0)
 
     def test_data_type_name_helper(self):
         self.assertEqual(timl_data_type_name(2), "float")

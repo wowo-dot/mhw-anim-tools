@@ -18,6 +18,17 @@ class MhwAnimToolsLmtEntryItem(bpy.types.PropertyGroup):
     rotation_preview: bpy.props.StringProperty(name="Rotation", default="")
     track_breakdown: bpy.props.StringProperty(name="Track Breakdown", default="")
     track_payload: bpy.props.StringProperty(name="Track Payload", default="", options={"HIDDEN"})
+    timl_source_offset_display: bpy.props.StringProperty(name="TIML Offset", default="")
+    timl_type_count: bpy.props.IntProperty(name="TIML Type Count", default=0, min=0)
+    timl_transform_count: bpy.props.IntProperty(name="TIML Transform Count", default=0, min=0)
+    timl_keyframe_count: bpy.props.IntProperty(name="TIML Keyframe Count", default=0, min=0)
+    timl_animation_length: bpy.props.FloatProperty(name="TIML Animation Length", default=0.0)
+    timl_loop_start_point: bpy.props.FloatProperty(name="TIML Loop Start", default=0.0)
+    timl_loop_control: bpy.props.IntProperty(name="TIML Loop Control", default=0)
+    timl_data_type_breakdown: bpy.props.StringProperty(name="TIML Data Types", default="")
+    timl_timeline_breakdown: bpy.props.StringProperty(name="TIML Timelines", default="")
+    timl_transform_payload: bpy.props.StringProperty(name="TIML Transform Payload", default="", options={"HIDDEN"})
+    timl_parse_error: bpy.props.StringProperty(name="TIML Parse Error", default="")
 
 
 class MhwAnimToolsLmtTrackItem(bpy.types.PropertyGroup):
@@ -46,6 +57,23 @@ class MhwAnimToolsLmtTrackItem(bpy.types.PropertyGroup):
     decode_error: bpy.props.StringProperty(name="Decode Error", default="")
     unknown_tag: bpy.props.IntProperty(name="Unknown Tag", default=0)
     joint_type: bpy.props.IntProperty(name="Joint Type", default=0)
+
+
+class MhwAnimToolsTimlTransformItem(bpy.types.PropertyGroup):
+    type_index: bpy.props.IntProperty(name="Type Index", default=0, min=0)
+    transform_index: bpy.props.IntProperty(name="Transform Index", default=0, min=0)
+    timeline_parameter_label: bpy.props.StringProperty(name="Timeline Parameter", default="")
+    datatype_label: bpy.props.StringProperty(name="Datatype", default="")
+    data_type_name: bpy.props.StringProperty(name="Data Type", default="")
+    value_kind: bpy.props.StringProperty(name="Value Kind", default="")
+    control_kind: bpy.props.StringProperty(name="Control Kind", default="")
+    keyframe_count: bpy.props.IntProperty(name="Keyframes", default=0, min=0)
+    fractional_key_count: bpy.props.IntProperty(name="Fractional Keyframes", default=0, min=0)
+    first_frame: bpy.props.FloatProperty(name="First Frame", default=0.0)
+    last_frame: bpy.props.FloatProperty(name="Last Frame", default=0.0)
+    first_value_preview: bpy.props.StringProperty(name="First Value", default="")
+    interpolation_summary: bpy.props.StringProperty(name="Interpolation", default="")
+    easing_summary: bpy.props.StringProperty(name="Easing", default="")
 
 
 class MhwAnimToolsDiagnosticItem(bpy.types.PropertyGroup):
@@ -112,8 +140,46 @@ def _populate_track_items(scene_props):
         item.joint_type = int(track.get("joint_type", 0))
 
 
+def _populate_timl_transform_items(scene_props):
+    scene_props.timl_transforms.clear()
+    scene_props.selected_timl_transform_index = 0
+    if not scene_props.lmt_entries:
+        return
+    entry_index = min(scene_props.selected_entry_index, len(scene_props.lmt_entries) - 1)
+    entry = scene_props.lmt_entries[entry_index]
+    if not entry.timl_transform_payload:
+        return
+    try:
+        transform_items = json.loads(entry.timl_transform_payload)
+    except json.JSONDecodeError:
+        return
+    for transform in transform_items:
+        item = scene_props.timl_transforms.add()
+        item.type_index = int(transform.get("type_index", 0))
+        item.transform_index = int(transform.get("transform_index", 0))
+        item.timeline_parameter_label = transform.get("timeline_parameter_label", "")
+        item.datatype_label = transform.get("datatype_label", "")
+        item.data_type_name = transform.get("data_type_name", "")
+        item.value_kind = transform.get("value_kind", "")
+        item.control_kind = transform.get("control_kind", "")
+        item.keyframe_count = int(transform.get("keyframe_count", 0))
+        item.fractional_key_count = int(transform.get("fractional_key_count", 0))
+        item.first_frame = float(transform.get("first_frame", 0.0) or 0.0)
+        item.last_frame = float(transform.get("last_frame", 0.0) or 0.0)
+        item.first_value_preview = transform.get("first_value_preview", "")
+        item.interpolation_summary = ", ".join(
+            f"{str(label)}={int(value)}"
+            for label, value in dict(transform.get("interpolation_counts", {})).items()
+        )
+        item.easing_summary = ", ".join(
+            f"{str(label)}={int(value)}"
+            for label, value in dict(transform.get("easing_counts", {})).items()
+        )
+
+
 def selected_entry_update(self, _context):
     _populate_track_items(self)
+    _populate_timl_transform_items(self)
 
 
 class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
@@ -217,6 +283,12 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
         min=0,
     )
     lmt_tracks: bpy.props.CollectionProperty(type=MhwAnimToolsLmtTrackItem)
+    selected_timl_transform_index: bpy.props.IntProperty(
+        name="Selected TIML Transform",
+        default=0,
+        min=0,
+    )
+    timl_transforms: bpy.props.CollectionProperty(type=MhwAnimToolsTimlTransformItem)
     selected_diagnostic_index: bpy.props.IntProperty(
         name="Selected Diagnostic",
         default=0,
@@ -228,6 +300,7 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
 classes = (
     MhwAnimToolsLmtEntryItem,
     MhwAnimToolsLmtTrackItem,
+    MhwAnimToolsTimlTransformItem,
     MhwAnimToolsDiagnosticItem,
     MhwAnimToolsSceneProperties,
 )

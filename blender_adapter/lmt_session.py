@@ -10,11 +10,15 @@ try:
     from ..core.formats.lmt.semantics import get_buffer_semantics
     from ..core.formats.lmt.semantics import get_usage_semantics
     from ..core.formats.lmt.semantics import raw_key_count
+    from ..core.formats.timl.reader import read_timl_data_bytes
+    from ..core.formats.timl.summary import build_data_entry_summary
 except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.lmt.decoder import decode_action_tracks
     from core.formats.lmt.semantics import get_buffer_semantics
     from core.formats.lmt.semantics import get_usage_semantics
     from core.formats.lmt.semantics import raw_key_count
+    from core.formats.timl.reader import read_timl_data_bytes
+    from core.formats.timl.summary import build_data_entry_summary
 
 
 def _format_vector(values):
@@ -63,12 +67,80 @@ def _track_breakdown(track_summaries):
     return ", ".join(parts) if parts else "No tracks"
 
 
-def build_action_summary(action):
+def _attached_timl_breakdown(counts: dict[str, int]) -> str:
+    if not counts:
+        return "No TIML transforms"
+    return ", ".join(f"{int(value)} {str(label)}" for label, value in counts.items())
+
+
+def _load_attached_timl_summary(lmt, action, source_bytes: bytes | None, cache: dict[int, dict[str, object]]) -> dict[str, object]:
+    default_summary = {
+        "timl_source_offset": int(action.header.timl_offset),
+        "timl_type_count": 0,
+        "timl_transform_count": 0,
+        "timl_keyframe_count": 0,
+        "timl_animation_length": 0.0,
+        "timl_loop_start_point": 0.0,
+        "timl_loop_control": 0,
+        "timl_data_type_breakdown": "",
+        "timl_timeline_breakdown": "",
+        "timl_transform_payload": "[]",
+        "timl_parse_error": "",
+    }
+    if not action.has_timl or source_bytes is None:
+        return default_summary
+
+    timl_offset = int(action.header.timl_offset)
+    if timl_offset not in cache:
+        try:
+            timl_data = read_timl_data_bytes(
+                source_bytes,
+                data_offset=timl_offset,
+                source_name=f"{lmt.source_name}#timl@0x{timl_offset:X}",
+                entry_id=0,
+            )
+            data_summary = build_data_entry_summary(timl_data)
+            cache[timl_offset] = {
+                "timl_source_offset": timl_offset,
+                "timl_type_count": int(data_summary["type_count"]),
+                "timl_transform_count": int(data_summary["transform_count"]),
+                "timl_keyframe_count": int(data_summary["keyframe_count"]),
+                "timl_animation_length": float(data_summary["animation_length"]),
+                "timl_loop_start_point": float(data_summary["loop_start_point"]),
+                "timl_loop_control": int(data_summary["loop_control"]),
+                "timl_data_type_breakdown": _attached_timl_breakdown(data_summary["data_type_counts"]),
+                "timl_timeline_breakdown": _attached_timl_breakdown(data_summary["timeline_counts"]),
+                "timl_transform_payload": json.dumps(data_summary["transform_payload"]),
+                "timl_parse_error": "",
+            }
+        except Exception as exc:  # pragma: no cover - surfaced via diagnostics/UI
+            cache[timl_offset] = {
+                **default_summary,
+                "timl_parse_error": str(exc),
+            }
+    return cache[timl_offset]
+
+
+def build_action_summary(action, *, lmt=None, source_bytes: bytes | None = None, attached_timl_cache: dict[int, dict[str, object]] | None = None):
     decoded_action = decode_action_tracks(action, strict=False)
     track_summaries = [
         build_track_summary(track, decoded_track)
         for track, decoded_track in zip(action.tracks, decoded_action.tracks)
     ]
+    cache = attached_timl_cache if attached_timl_cache is not None else {}
+    timl_summary = _load_attached_timl_summary(lmt, action, source_bytes, cache) if lmt is not None else {
+        "timl_source_offset": int(action.header.timl_offset),
+        "timl_type_count": 0,
+        "timl_transform_count": 0,
+        "timl_keyframe_count": 0,
+        "timl_animation_length": 0.0,
+        "timl_loop_start_point": 0.0,
+        "timl_loop_control": 0,
+        "timl_data_type_breakdown": "",
+        "timl_timeline_breakdown": "",
+        "timl_transform_payload": "[]",
+        "timl_parse_error": "",
+    }
     return {
         "entry_id": action.id,
         "frame_count": action.header.frame_count,
@@ -81,8 +153,18 @@ def build_action_summary(action):
         "rotation_preview": _format_vector(action.header.rotation_lerp),
         "track_breakdown": _track_breakdown(track_summaries),
         "track_payload": json.dumps(track_summaries),
+        **timl_summary,
     }
 
 
-def build_file_summary(lmt):
-    return [build_action_summary(action) for action in lmt.actions]
+def build_file_summary(lmt, *, source_bytes: bytes | None = None):
+    attached_timl_cache: dict[int, dict[str, object]] = {}
+    return [
+        build_action_summary(
+            action,
+            lmt=lmt,
+            source_bytes=source_bytes,
+            attached_timl_cache=attached_timl_cache,
+        )
+        for action in lmt.actions
+    ]

@@ -63,6 +63,32 @@ class MHWANIMTOOLS_UL_lmt_tracks(bpy.types.UIList):
             layout.label(text=str(item.track_index))
 
 
+class MHWANIMTOOLS_UL_timl_transforms(bpy.types.UIList):
+    bl_idname = "MHWANIMTOOLS_UL_timl_transforms"
+
+    def draw_item(
+        self,
+        context,
+        layout,
+        data,
+        item,
+        icon,
+        active_data,
+        active_propname,
+        index,
+    ):
+        del context, data, icon, active_data, active_propname, index
+        if self.layout_type in {"DEFAULT", "COMPACT"}:
+            row = layout.row(align=True)
+            row.label(text=f"T{item.type_index:02d}:{item.transform_index:02d}")
+            row.label(text=item.data_type_name or "?")
+            row.label(text=item.timeline_parameter_label or item.datatype_label or "?")
+            row.label(text=f"{item.keyframe_count} keys")
+        elif self.layout_type == "GRID":
+            layout.alignment = "CENTER"
+            layout.label(text=f"{item.type_index}:{item.transform_index}")
+
+
 class MHWANIMTOOLS_UL_diagnostics(bpy.types.UIList):
     bl_idname = "MHWANIMTOOLS_UL_diagnostics"
 
@@ -93,6 +119,7 @@ class MHWANIMTOOLS_UL_diagnostics(bpy.types.UIList):
 classes = (
     MHWANIMTOOLS_UL_lmt_entries,
     MHWANIMTOOLS_UL_lmt_tracks,
+    MHWANIMTOOLS_UL_timl_transforms,
     MHWANIMTOOLS_UL_diagnostics,
 )
 
