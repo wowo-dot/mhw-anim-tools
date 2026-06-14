@@ -50,6 +50,7 @@ Current export-prep scope:
 - normalized sampled-track diagnostics before any binary packing/compression work
 - synthetic and live MOD3 symmetry smoke coverage against decoded LMT source samples and reconstructed sparse tracks
 - synthetic and live MOD3 writer roundtrip smoke coverage against decoded LMT source samples
+- the first standalone TIML core reader / validator with typed data-entry, transform, and keyframe models
 
 Quaternion note:
 
@@ -60,7 +61,8 @@ Quaternion note:
 Not implemented yet:
 
 - helper/tether playback
-- TIML / EFX rewrite
+- TIML Blender-side import/export rewrite
+- EFX rewrite
 
 ## Layout
 
