@@ -206,6 +206,16 @@ def _parse_timl_bindings(controller_object) -> tuple[TimlControllerBinding, ...]
     return tuple(bindings)
 
 
+def _duplicate_binding_labels(bindings: tuple[TimlControllerBinding, ...], *, key_getter, label_getter) -> tuple[str, ...]:
+    counts: dict[object, int] = {}
+    labels: dict[object, str] = {}
+    for binding in bindings:
+        key = key_getter(binding)
+        counts[key] = counts.get(key, 0) + 1
+        labels.setdefault(key, label_getter(binding))
+    return tuple(sorted(labels[key] for key, count in counts.items() if count > 1))
+
+
 def _collect_property_groups(action):
     groups: dict[str, dict[int, object]] = {}
     unsupported_paths: list[str] = []
@@ -361,6 +371,32 @@ def sample_timl_controller_action(controller_object, action=None) -> TimlSamplin
     bindings = _parse_timl_bindings(controller_object)
     if not bindings:
         result.add("ERROR", "timl.controller", "TIML controller is missing binding metadata.")
+        return result
+    duplicate_identities = _duplicate_binding_labels(
+        bindings,
+        key_getter=lambda binding: (binding.type_index, binding.transform_index),
+        label_getter=lambda binding: binding.label,
+    )
+    if duplicate_identities:
+        result.add(
+            "ERROR",
+            "timl.controller",
+            "TIML controller binding metadata contains duplicate source transform identities: %s."
+            % ", ".join(duplicate_identities),
+        )
+    duplicate_properties = _duplicate_binding_labels(
+        bindings,
+        key_getter=lambda binding: binding.property_name,
+        label_getter=lambda binding: binding.property_name,
+    )
+    if duplicate_properties:
+        result.add(
+            "ERROR",
+            "timl.controller",
+            "TIML controller binding metadata reuses custom property names across multiple transforms: %s."
+            % ", ".join(duplicate_properties),
+        )
+    if result.error_count:
         return result
 
     property_groups, unsupported_paths = _collect_property_groups(action)

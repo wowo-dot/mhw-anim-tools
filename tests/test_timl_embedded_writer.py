@@ -254,6 +254,34 @@ class TimlEmbeddedWriterTests(unittest.TestCase):
         self.assertEqual(keyframe.interpolation, 3)
         self.assertEqual(keyframe.easing, 4)
 
+    def test_embedded_writer_rejects_timeline_hash_change(self):
+        source_bytes, source_offset = _build_embedded_timl_source_bytes()
+        source_entry = read_timl_data_bytes(
+            source_bytes,
+            data_offset=source_offset,
+            source_name="embedded.lmt#timl",
+            entry_id=7,
+        )
+        sampled_transform = _Transform(
+            type_index=0,
+            transform_index=0,
+            timeline_parameter_hash=0x99887766,
+            datatype_hash=0x55667788,
+            data_type=2,
+            data_type_name="float",
+            component_labels=("value",),
+            keyframes=(
+                _Keyframe(frame=12.0, value=(3.5,), interpolation="LINEAR"),
+            ),
+        )
+
+        with self.assertRaises(ValidationError):
+            build_embedded_timl_data_payload(
+                source_entry,
+                (sampled_transform,),
+                base_offset=source_offset,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

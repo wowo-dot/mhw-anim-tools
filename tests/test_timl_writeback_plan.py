@@ -183,6 +183,123 @@ class TimlWritebackPlanTests(unittest.TestCase):
         self.assertEqual(plan.error_count, 1)
         self.assertTrue(any("unsupported preview interpolation" in diagnostic.message for diagnostic in plan.diagnostics))
 
+    def test_duplicate_sampled_transform_identity_is_rejected(self):
+        source_bytes, source_offset = _build_embedded_timl_source_bytes()
+        controller_action = _FakeAction("TIML::sample::000", mhw_anim_tools_import_kind="attached_timl")
+        controller = _FakeController(
+            "TIML Controller::sample::000",
+            action=controller_action,
+            **{
+                TIML_ACTION_NAME_KEY: controller_action.name,
+                TIML_BINDINGS_KEY: "[]",
+                TIML_IMPORTED_PREVIEW_SIGNATURE_KEY: imported_preview_signature_json(()),
+            },
+        )
+        duplicated_transform = SampledTimlTransform(
+            property_name="timl_float",
+            type_index=0,
+            transform_index=0,
+            timeline_parameter_hash=0x11223344,
+            datatype_hash=0x55667788,
+            data_type=2,
+            data_type_name="float",
+            value_kind="scalar",
+            control_kind="float",
+            component_labels=("value",),
+            keyframes=(
+                SampledTimlKeyframe(frame=12.0, value=(3.5,), interpolation="LINEAR"),
+            ),
+        )
+        sampled = TimlSamplingResult(
+            metadata=TimlControllerMetadata(
+                carrier_name=controller.name,
+                action_name=controller_action.name,
+                source_lmt="sample.lmt",
+                entry_id=7,
+                source_offset=source_offset,
+                transform_count=2,
+            ),
+            sampled_transform_count=2,
+            keyframe_count=2,
+            sampled_transforms=(duplicated_transform, duplicated_transform),
+        )
+
+        with patch("blender_adapter.timl_writeback_plan.sample_timl_controller_action", return_value=sampled):
+            plan = plan_timl_controller_writeback(
+                controller,
+                source_bytes=source_bytes,
+                source_name="sample.lmt#timl",
+                entry_id=7,
+                source_offset=source_offset,
+            )
+
+        self.assertGreater(plan.error_count, 0)
+        self.assertEqual(plan.transform_plans, ())
+        self.assertTrue(any("duplicate transform identities" in diagnostic.message for diagnostic in plan.diagnostics))
+
+    def test_timeline_hash_mismatch_is_blocked_before_writer(self):
+        source_bytes, source_offset = _build_embedded_timl_source_bytes()
+        controller_action = _FakeAction("TIML::sample::000", mhw_anim_tools_import_kind="attached_timl")
+        controller = _FakeController(
+            "TIML Controller::sample::000",
+            action=controller_action,
+            **{
+                TIML_ACTION_NAME_KEY: controller_action.name,
+                TIML_BINDINGS_KEY: "[]",
+                TIML_IMPORTED_PREVIEW_SIGNATURE_KEY: imported_preview_signature_json(
+                    [
+                        _ImportedTransform(
+                            type_index=0,
+                            transform_index=0,
+                            data_type=2,
+                            keyframes=(_ImportedKeyframe(frame=12.0, value=(3.5,), interpolation=1),),
+                        )
+                    ]
+                ),
+            },
+        )
+        sampled = TimlSamplingResult(
+            metadata=TimlControllerMetadata(
+                carrier_name=controller.name,
+                action_name=controller_action.name,
+                source_lmt="sample.lmt",
+                entry_id=7,
+                source_offset=source_offset,
+                transform_count=1,
+            ),
+            sampled_transform_count=1,
+            keyframe_count=1,
+            sampled_transforms=(
+                SampledTimlTransform(
+                    property_name="timl_float",
+                    type_index=0,
+                    transform_index=0,
+                    timeline_parameter_hash=0x99887766,
+                    datatype_hash=0x55667788,
+                    data_type=2,
+                    data_type_name="float",
+                    value_kind="scalar",
+                    control_kind="float",
+                    component_labels=("value",),
+                    keyframes=(SampledTimlKeyframe(frame=12.0, value=(6.0,), interpolation="LINEAR"),),
+                ),
+            ),
+        )
+
+        with patch("blender_adapter.timl_writeback_plan.sample_timl_controller_action", return_value=sampled):
+            plan = plan_timl_controller_writeback(
+                controller,
+                source_bytes=source_bytes,
+                source_name="sample.lmt#timl",
+                entry_id=7,
+                source_offset=source_offset,
+            )
+
+        self.assertGreater(plan.error_count, 0)
+        self.assertEqual(plan.transform_plans[0].status, "unsupported_rebuild")
+        self.assertEqual(plan.transform_plans[0].reason, "timeline_hash_mismatch")
+        self.assertTrue(any("timeline hash changed" in diagnostic.message for diagnostic in plan.diagnostics))
+
 
 if __name__ == "__main__":
     unittest.main()

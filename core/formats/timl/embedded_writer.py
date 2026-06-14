@@ -363,6 +363,12 @@ def build_embedded_timl_data_payload(source_entry, sampled_transforms, *, base_o
                 if source_transform.keyframes:
                     highest_frame = max(highest_frame, float(source_transform.keyframes[-1].frame_timing))
             else:
+                if int(sampled_transform.timeline_parameter_hash) != int(type_entry.timeline_parameter_hash):
+                    raise ValidationError(
+                        f"TIML transform {type_index}:{transform_index} timeline hash changed from "
+                        f"0x{int(type_entry.timeline_parameter_hash) & 0xFFFFFFFF:08X} to "
+                        f"0x{int(sampled_transform.timeline_parameter_hash) & 0xFFFFFFFF:08X}."
+                    )
                 if int(sampled_transform.data_type) != int(source_transform.data_type):
                     raise ValidationError(
                         f"TIML transform {type_index}:{transform_index} data type changed from "

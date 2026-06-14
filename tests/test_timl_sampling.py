@@ -276,6 +276,91 @@ class TimlSamplingTests(unittest.TestCase):
         self.assertEqual(result.warning_count, 1)
         self.assertEqual(result.sampled_transforms[0].keyframes[0].interpolation, "BEZIER")
 
+    def test_duplicate_binding_identity_is_rejected(self):
+        action = _attached_timl_action(
+            "TIML::duplicate_identity::000",
+            [
+                FakeFCurve('["timl_a"]', 0, {0.0: 1.0}),
+                FakeFCurve('["timl_b"]', 0, {0.0: 2.0}),
+            ],
+            transform_count=2,
+        )
+        controller = FakeController(
+            "TIML Controller::duplicate_identity::000",
+            action=action,
+            **{
+                TIML_ACTION_NAME_KEY: action.name,
+                TIML_BINDINGS_KEY: json.dumps(
+                    [
+                        _binding(
+                            property_name="timl_a",
+                            type_index=0,
+                            transform_index=0,
+                            data_type=2,
+                            data_type_name="float",
+                            component_labels=("value",),
+                        ),
+                        _binding(
+                            property_name="timl_b",
+                            type_index=0,
+                            transform_index=0,
+                            data_type=2,
+                            data_type_name="float",
+                            component_labels=("value",),
+                        ),
+                    ]
+                ),
+            },
+        )
+
+        result = sample_timl_controller_action(controller)
+
+        self.assertGreater(result.error_count, 0)
+        self.assertEqual(result.sampled_transform_count, 0)
+        self.assertTrue(any("duplicate source transform identities" in diagnostic.message for diagnostic in result.diagnostics))
+
+    def test_duplicate_binding_property_name_is_rejected(self):
+        action = _attached_timl_action(
+            "TIML::duplicate_property::000",
+            [
+                FakeFCurve('["timl_shared"]', 0, {0.0: 1.0}),
+            ],
+            transform_count=2,
+        )
+        controller = FakeController(
+            "TIML Controller::duplicate_property::000",
+            action=action,
+            **{
+                TIML_ACTION_NAME_KEY: action.name,
+                TIML_BINDINGS_KEY: json.dumps(
+                    [
+                        _binding(
+                            property_name="timl_shared",
+                            type_index=0,
+                            transform_index=0,
+                            data_type=2,
+                            data_type_name="float",
+                            component_labels=("value",),
+                        ),
+                        _binding(
+                            property_name="timl_shared",
+                            type_index=0,
+                            transform_index=1,
+                            data_type=2,
+                            data_type_name="float",
+                            component_labels=("value",),
+                        ),
+                    ]
+                ),
+            },
+        )
+
+        result = sample_timl_controller_action(controller)
+
+        self.assertGreater(result.error_count, 0)
+        self.assertEqual(result.sampled_transform_count, 0)
+        self.assertTrue(any("reuses custom property names" in diagnostic.message for diagnostic in result.diagnostics))
+
 
 if __name__ == "__main__":
     unittest.main()

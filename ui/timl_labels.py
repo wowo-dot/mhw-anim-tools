@@ -45,6 +45,8 @@ def timl_writeback_reason_label(status: str, *, reason: str = "", source_advance
             return "Preview structure changed, so export must rebuild this transform from Blender keys and cannot preserve source-only easing details."
         return "Preview structure changed, so export will rebuild this transform from the current Blender keys."
     if status == "unsupported_rebuild":
+        if reason.endswith("_mismatch"):
+            return "Controller binding metadata no longer matches the imported TIML source transform, so export is blocked."
         return "This transform needs a structural rebuild, but current preview interpolation is unsupported. Use CONSTANT or LINEAR for now."
     return ""
 

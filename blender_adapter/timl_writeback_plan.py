@@ -107,6 +107,58 @@ def _unsupported_labels(plans, *, status: str) -> str:
     )
 
 
+def _duplicate_sampled_identities(sampled_transforms) -> tuple[tuple[int, int], ...]:
+    counts: dict[tuple[int, int], int] = {}
+    for transform in sampled_transforms:
+        identity = (int(transform.type_index), int(transform.transform_index))
+        counts[identity] = counts.get(identity, 0) + 1
+    return tuple(sorted(identity for identity, count in counts.items() if count > 1))
+
+
+def _source_component_count(source_transform) -> int:
+    if int(source_transform.data_type) == 3:
+        return 4
+    return 1
+
+
+def _sampled_source_mismatch_reason(source_type, source_transform, sampled_transform) -> str:
+    if int(sampled_transform.timeline_parameter_hash) != int(source_type.timeline_parameter_hash):
+        return "timeline_hash_mismatch"
+    if int(sampled_transform.datatype_hash) != int(source_transform.datatype_hash):
+        return "datatype_hash_mismatch"
+    if int(sampled_transform.data_type) != int(source_transform.data_type):
+        return "data_type_mismatch"
+    if int(sampled_transform.component_count) != int(_source_component_count(source_transform)):
+        return "component_count_mismatch"
+    return ""
+
+
+def _sampled_source_mismatch_message(reason: str, *, source_type, source_transform, sampled_transform) -> str:
+    if reason == "timeline_hash_mismatch":
+        return (
+            "timeline hash changed from "
+            f"0x{int(source_type.timeline_parameter_hash) & 0xFFFFFFFF:08X} to "
+            f"0x{int(sampled_transform.timeline_parameter_hash) & 0xFFFFFFFF:08X}"
+        )
+    if reason == "datatype_hash_mismatch":
+        return (
+            "datatype hash changed from "
+            f"0x{int(source_transform.datatype_hash) & 0xFFFFFFFF:08X} to "
+            f"0x{int(sampled_transform.datatype_hash) & 0xFFFFFFFF:08X}"
+        )
+    if reason == "data_type_mismatch":
+        return (
+            f"data type changed from {int(source_transform.data_type)} "
+            f"to {int(sampled_transform.data_type)}"
+        )
+    if reason == "component_count_mismatch":
+        return (
+            f"component count changed from {_source_component_count(source_transform)} "
+            f"to {int(sampled_transform.component_count)}"
+        )
+    return "source metadata mismatch"
+
+
 def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, source_name: str, entry_id: int, source_offset: int):
     plan = TimlControllerWritebackPlan()
     sampled = sample_timl_controller_action(controller_object)
@@ -114,6 +166,18 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
     for diagnostic in sampled.diagnostics:
         plan.add(diagnostic.level, diagnostic.source, diagnostic.message)
     if sampled.error_count:
+        return plan
+    duplicate_identities = _duplicate_sampled_identities(sampled.sampled_transforms)
+    if duplicate_identities:
+        duplicate_labels = ", ".join(
+            f"{type_index:02d}:{transform_index:02d}"
+            for type_index, transform_index in duplicate_identities
+        )
+        plan.add(
+            "ERROR",
+            "timl.writeback",
+            f"TIML controller sampling produced duplicate transform identities: {duplicate_labels}.",
+        )
         return plan
 
     source_entry = read_timl_data_bytes(
@@ -192,6 +256,34 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
                     )
                 )
                 continue
+            mismatch_reason = _sampled_source_mismatch_reason(type_entry, source_transform, sampled_transform)
+            if mismatch_reason:
+                transform_plans.append(
+                    TimlTransformWritebackPlan(
+                        type_index=type_index,
+                        transform_index=transform_index,
+                        status="unsupported_rebuild",
+                        data_type=int(source_transform.data_type),
+                        source_advanced=source_advanced,
+                        reason=mismatch_reason,
+                    )
+                )
+                plan.add(
+                    "ERROR",
+                    "timl.writeback",
+                    "TIML transform %02d:%02d binding metadata no longer matches the imported source payload: %s."
+                    % (
+                        int(type_index),
+                        int(transform_index),
+                        _sampled_source_mismatch_message(
+                            mismatch_reason,
+                            source_type=type_entry,
+                            source_transform=source_transform,
+                            sampled_transform=sampled_transform,
+                        ),
+                    ),
+                )
+                continue
             if identity in preserved_patch_identities:
                 transform_plans.append(
                     TimlTransformWritebackPlan(
@@ -261,12 +353,13 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
             "Edited TIML transform(s) %s changed their preview keyframe structure; merge export will rebuild them from the current preview curves."
             % _unsupported_labels(rebuilt_advanced, status="rewrite_preview"),
         )
-    if unsupported:
+    unsupported_interpolation = tuple(item for item in unsupported if item.reason == "unsupported_interpolation")
+    if unsupported_interpolation:
         plan.add(
             "ERROR",
             "timl.writeback",
             "Edited TIML transform(s) %s use unsupported preview interpolation for structural rebuild. Use CONSTANT or LINEAR keyframes for now."
-            % _unsupported_labels(unsupported, status="unsupported_rebuild"),
+            % _unsupported_labels(unsupported_interpolation, status="unsupported_rebuild"),
         )
 
     return plan
