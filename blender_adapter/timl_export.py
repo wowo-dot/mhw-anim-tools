@@ -16,6 +16,7 @@ class ActionTimlMetadata:
     import_kind: str
     source_lmt: str
     entry_id: int
+    source_timl_offset: int
     source_has_timl: bool
 
 
@@ -54,6 +55,7 @@ def extract_action_timl_metadata(action_like) -> ActionTimlMetadata:
         import_kind=str(_safe_get(action_like, "mhw_anim_tools_import_kind", "")),
         source_lmt=str(_safe_get(action_like, "mhw_anim_tools_source_lmt", "")),
         entry_id=_safe_int(_safe_get(action_like, "mhw_anim_tools_entry_id", 0), 0),
+        source_timl_offset=_safe_int(_safe_get(action_like, "mhw_anim_tools_source_timl_offset", 0), 0),
         source_has_timl=bool(_safe_get(action_like, "mhw_anim_tools_source_has_timl", False)),
     )
 

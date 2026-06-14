@@ -64,10 +64,21 @@ def matching_timl_controllers_for_export_action(export_action, controller_object
         metadata = extract_timl_controller_metadata(candidate)
         if metadata.source_lmt != action_metadata.source_lmt:
             continue
-        if int(metadata.entry_id) != int(action_metadata.entry_id):
+        same_entry = int(metadata.entry_id) == int(action_metadata.entry_id)
+        same_offset = (
+            int(action_metadata.source_timl_offset) > 0
+            and int(metadata.source_offset) == int(action_metadata.source_timl_offset)
+        )
+        if not same_entry and not same_offset:
             continue
-        matches.append(candidate)
-    return tuple(sorted(matches, key=lambda item: getattr(item, "name", "")))
+        matches.append((0 if same_entry else 1, candidate))
+    return tuple(
+        candidate
+        for _priority, candidate in sorted(
+            matches,
+            key=lambda item: (item[0], getattr(item[1], "name", "")),
+        )
+    )
 
 
 def _source_action_by_id(source_lmt, action_id: int):
@@ -76,26 +87,24 @@ def _source_action_by_id(source_lmt, action_id: int):
             return action
     return None
 
+
+def _shared_source_action_ids(source_lmt, source_offset: int) -> tuple[int, ...]:
+    return tuple(
+        int(action.id)
+        for action in source_lmt.actions
+        if int(action.header.timl_offset) == int(source_offset)
+    )
+
+
+def _payload_signature(payload, rebase_offsets) -> tuple[bytes, tuple[int, ...]]:
+    return (bytes(payload), tuple(int(offset) for offset in rebase_offsets))
+
 def build_matching_timl_writeback(export_action, controller_objects, *, source_lmt, source_bytes: bytes) -> TimlWritebackResult:
     result = TimlWritebackResult()
     action_metadata = extract_action_timl_metadata(export_action)
     if not action_metadata.source_has_timl or not action_metadata.source_lmt:
         return result
 
-    matches = matching_timl_controllers_for_export_action(export_action, controller_objects)
-    if not matches:
-        return result
-
-    controller = matches[0]
-    if len(matches) > 1:
-        duplicate_names = ", ".join(getattr(item, "name", "") for item in matches)
-        result.add(
-            "WARNING",
-            "timl.writeback",
-            f"Found multiple imported TIML controllers for this source entry ({duplicate_names}); using '{getattr(controller, 'name', '')}'.",
-        )
-
-    controller_metadata = extract_timl_controller_metadata(controller)
     source_action = _source_action_by_id(source_lmt, action_metadata.entry_id)
     if source_action is None:
         result.add(
@@ -105,8 +114,8 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
         )
         return result
 
-    source_offset = int(controller_metadata.source_offset or source_action.header.timl_offset)
-    if source_offset == 0:
+    expected_source_offset = int(action_metadata.source_timl_offset or source_action.header.timl_offset)
+    if expected_source_offset == 0:
         result.add(
             "ERROR",
             "timl.writeback",
@@ -114,36 +123,112 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
         )
         return result
 
-    plan = plan_timl_controller_writeback(
-        controller,
-        source_bytes=source_bytes,
-        source_name=f"{source_lmt.source_name}#timl",
-        entry_id=int(action_metadata.entry_id),
-        source_offset=source_offset,
-    )
-    for diagnostic in plan.diagnostics:
-        result.add(diagnostic.level, diagnostic.source, diagnostic.message)
-    if plan.error_count:
-        return result
-    changed_transforms = tuple(plan.changed_transforms)
-    if not changed_transforms:
+    matches = matching_timl_controllers_for_export_action(export_action, controller_objects)
+    if not matches:
         return result
 
-    try:
-        payload, rebase_offsets = build_embedded_timl_data_payload(
-            plan.source_entry,
-            changed_transforms,
-            base_offset=source_offset,
+    if len(matches) > 1:
+        duplicate_names = ", ".join(getattr(item, "name", "") for item in matches)
+        result.add(
+            "WARNING",
+            "timl.writeback",
+            (
+                "Found multiple imported TIML controllers for this source payload "
+                f"({duplicate_names}); export will compare them before choosing a writeback payload."
+            ),
         )
-    except (BinaryFormatError, ValidationError, ValueError) as exc:
-        result.add("ERROR", "timl.writeback", str(exc))
+    changed_payloads: list[tuple[str, str, bytes, tuple[int, ...], int]] = []
+    invalid_controller_names: list[str] = []
+
+    for controller in matches:
+        controller_metadata = extract_timl_controller_metadata(controller)
+        controller_name = controller_metadata.carrier_name or getattr(controller, "name", "")
+        source_offset = int(controller_metadata.source_offset or source_action.header.timl_offset)
+        if source_offset != expected_source_offset:
+            result.add(
+                "WARNING",
+                "timl.writeback",
+                (
+                    f"Skipping TIML controller '{controller_name}' because it points at source offset "
+                    f"0x{source_offset:X}, not the expected shared offset 0x{expected_source_offset:X}."
+                ),
+            )
+            continue
+
+        plan = plan_timl_controller_writeback(
+            controller,
+            source_bytes=source_bytes,
+            source_name=f"{source_lmt.source_name}#timl",
+            entry_id=int(action_metadata.entry_id),
+            source_offset=source_offset,
+        )
+        for diagnostic in plan.diagnostics:
+            result.add(diagnostic.level, diagnostic.source, diagnostic.message)
+        if plan.error_count:
+            invalid_controller_names.append(controller_name)
+            continue
+        changed_transforms = tuple(plan.changed_transforms)
+        if not changed_transforms:
+            continue
+
+        try:
+            payload, rebase_offsets = build_embedded_timl_data_payload(
+                plan.source_entry,
+                changed_transforms,
+                base_offset=source_offset,
+            )
+        except (BinaryFormatError, ValidationError, ValueError) as exc:
+            result.add("ERROR", "timl.writeback", str(exc))
+            invalid_controller_names.append(controller_name)
+            continue
+        changed_payloads.append(
+            (
+                controller_name,
+                controller_metadata.action_name,
+                payload,
+                tuple(rebase_offsets),
+                source_offset,
+            )
+        )
+
+    if not changed_payloads:
         return result
 
-    shared_action_ids = tuple(
-        int(action.id)
-        for action in source_lmt.actions
-        if int(action.header.timl_offset) == source_offset
-    )
+    if invalid_controller_names:
+        result.add(
+            "ERROR",
+            "timl.writeback",
+            (
+                "Refusing TIML writeback because one or more matching controllers for the same source payload "
+                f"could not be planned safely: {', '.join(sorted(invalid_controller_names))}."
+            ),
+        )
+        return result
+
+    grouped_payloads: dict[tuple[bytes, tuple[int, ...]], list[tuple[str, str]]] = {}
+    for controller_name, action_name, payload, rebase_offsets, _source_offset in changed_payloads:
+        grouped_payloads.setdefault(_payload_signature(payload, rebase_offsets), []).append((controller_name, action_name))
+
+    if len(grouped_payloads) > 1:
+        description = "; ".join(
+            ", ".join(sorted(controller_name for controller_name, _action_name in names))
+            for names in grouped_payloads.values()
+        )
+        result.add(
+            "ERROR",
+            "timl.writeback",
+            (
+                "Refusing TIML writeback because matching controllers for the same shared source payload "
+                f"produce different edited TIML data: {description}."
+            ),
+        )
+        return result
+
+    (payload, rebase_offsets), chosen_names = next(iter(grouped_payloads.items()))
+    controller_names = sorted(controller_name for controller_name, _action_name in chosen_names)
+    action_names = sorted(action_name for _controller_name, action_name in chosen_names if action_name)
+    source_offset = int(changed_payloads[0][4])
+    shared_action_ids = _shared_source_action_ids(source_lmt, source_offset)
     if len(shared_action_ids) > 1:
         shared_labels = ", ".join(f"{action_id:03d}" for action_id in shared_action_ids)
         result.add(
@@ -156,13 +241,22 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
             "INFO",
             "timl.writeback",
             (
-                f"Merge export will include {len(changed_transforms)} edited TIML transform(s) "
-                f"from '{controller_metadata.action_name}' and preserve untouched source transforms."
+                "Merge export will include edited TIML transform data "
+                f"from '{', '.join(action_names or controller_names)}' and preserve untouched source transforms."
+            ),
+        )
+    if len(chosen_names) > 1:
+        result.add(
+            "INFO",
+            "timl.writeback",
+            (
+                "Multiple controllers for the same shared TIML payload resolved to identical edited data: "
+                f"{', '.join(controller_names)}."
             ),
         )
 
-    result.controller_name = controller_metadata.carrier_name
-    result.action_name = controller_metadata.action_name
+    result.controller_name = controller_names[0] if controller_names else ""
+    result.action_name = action_names[0] if action_names else ""
     result.source_offset = source_offset
     result.shared_action_ids = shared_action_ids
     result.replacement_payloads[source_offset] = RawTimlPayload(payload=payload, rebase_offsets=rebase_offsets)
