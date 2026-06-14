@@ -16,6 +16,12 @@ from .semantics import raw_key_count
 FLOAT_VECTOR_KEY_STRUCT = struct.Struct("<3fI")
 U16_VECTOR_KEY_STRUCT = struct.Struct("<4H")
 U8_VECTOR_KEY_STRUCT = struct.Struct("<4B")
+RECOVERABLE_DECODE_ERRORS = (
+    BinaryFormatError,
+    struct.error,
+    ValueError,
+    OverflowError,
+)
 
 
 def _normalized_unsigned(raw_value: int, bits: int, offset: int, excluded_range: int) -> float:
@@ -267,7 +273,10 @@ def decode_track_samples(action, track, track_index: int, *, strict: bool = Fals
             tail_frame=(action.header.frame_count + 1) if tail_value is not None else None,
             tail_value=tail_value,
         )
-    except Exception as exc:
+    # Non-strict mode should recover from malformed source data, but it should
+    # not hide programmer bugs such as accidental AttributeError/TypeError
+    # regressions inside the decoder itself.
+    except RECOVERABLE_DECODE_ERRORS as exc:
         if strict:
             raise
         return LmtDecodedTrack(

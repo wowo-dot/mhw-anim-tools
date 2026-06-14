@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import struct
 import unittest
+from unittest.mock import patch
 
 from core.formats.lmt.decoder import decode_action_tracks
 from core.formats.lmt.reader import read_lmt_bytes
@@ -254,6 +255,20 @@ class LmtDecoderTests(unittest.TestCase):
         self.assertIsNotNone(track.decode_error)
         with self.assertRaises(Exception):
             decode_action_tracks(lmt.actions[0], strict=True)
+
+    def test_non_strict_decode_does_not_hide_programmer_type_errors(self):
+        lmt = read_lmt_bytes(
+            build_lmt_with_track(
+                buffer_type=3,
+                usage=1,
+                basis=(0.0, 0.0, 0.0, 0.0),
+                raw_buffer=struct.pack("<3fI", 1.0, 2.0, 3.0, 1),
+            ),
+            source_name="type-error.lmt",
+        )
+        with patch("core.formats.lmt.decoder._decode_supported_track", side_effect=TypeError("boom")):
+            with self.assertRaises(TypeError):
+                decode_action_tracks(lmt.actions[0], strict=False)
 
 
 if __name__ == "__main__":

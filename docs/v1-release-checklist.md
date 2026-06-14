@@ -109,8 +109,8 @@ Before public release, the tool should be:
 
 Current known public-cleanup references to revisit before release:
 
-- `D:\Freehkwowo\mhw_anim_tools\core\formats\lmt\semantics.py`
-- `D:\Freehkwowo\mhw_anim_tools\tools\compare_legacy_lmt.py`
+- `core/formats/lmt/semantics.py`
+- `tools/compare_legacy_lmt.py`
 
 ### 8. Release engineering is ready
 

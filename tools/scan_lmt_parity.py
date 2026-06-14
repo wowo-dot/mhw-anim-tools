@@ -1,4 +1,4 @@
-"""Scan a directory of LMT files and compare summary counts to Old Base.
+"""Scan a directory of LMT files and compare summary counts to a legacy reference.
 
 This is intended to run with Blender's Python because the legacy package uses
 Blender-facing dependencies such as ``mathutils``.
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -43,11 +44,7 @@ def iter_lmt_files(root: Path, limit: int | None):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("asset_root", type=Path)
-    parser.add_argument(
-        "--legacy-root",
-        type=Path,
-        default=Path(r"D:\Freehkwowo\Old Base"),
-    )
+    parser.add_argument("--legacy-root", type=Path, default=None)
     parser.add_argument("--limit", type=int, default=25)
     parser.add_argument("--output", type=Path, default=None)
     argv = sys.argv
@@ -56,8 +53,15 @@ def main():
     else:
         argv = argv[1:]
     args = parser.parse_args(argv)
+    legacy_root = args.legacy_root
+    if legacy_root is None:
+        env_value = os.environ.get("MHW_ANIM_TOOLS_LEGACY_ROOT", "").strip()
+        if env_value:
+            legacy_root = Path(env_value)
+    if legacy_root is None:
+        parser.error("Provide --legacy-root or set MHW_ANIM_TOOLS_LEGACY_ROOT.")
 
-    legacy_module = load_legacy_package(args.legacy_root)
+    legacy_module = load_legacy_package(legacy_root)
     results = []
     for lmt_path in iter_lmt_files(args.asset_root, args.limit):
         try:
@@ -73,7 +77,7 @@ def main():
 
     summary = {
         "asset_root": str(args.asset_root),
-        "legacy_root": str(args.legacy_root),
+        "legacy_root": str(legacy_root),
         "checked": len(results),
         "matches": sum(1 for item in results if item.get("match")),
         "mismatches": sum(1 for item in results if not item.get("match")),

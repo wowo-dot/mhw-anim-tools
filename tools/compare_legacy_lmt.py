@@ -1,4 +1,4 @@
-"""Optional comparison tool for checking the new reader against Old Base.
+"""Optional comparison tool for checking the new reader against a legacy reference.
 
 Run this with Blender's Python or another Python environment that has
 `mathutils` available, because the legacy reference package depends on it.
@@ -10,6 +10,7 @@ import argparse
 import importlib
 import importlib.util
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -61,19 +62,22 @@ def summarize_legacy_parser(legacy_module, path: Path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("lmt_path", type=Path)
-    parser.add_argument(
-        "--legacy-root",
-        type=Path,
-        default=Path(r"D:\Freehkwowo\Old Base"),
-    )
+    parser.add_argument("--legacy-root", type=Path, default=None)
     argv = sys.argv
     if "--" in argv:
         argv = argv[argv.index("--") + 1 :]
     else:
         argv = argv[1:]
     args = parser.parse_args(argv)
+    legacy_root = args.legacy_root
+    if legacy_root is None:
+        env_value = os.environ.get("MHW_ANIM_TOOLS_LEGACY_ROOT", "").strip()
+        if env_value:
+            legacy_root = Path(env_value)
+    if legacy_root is None:
+        parser.error("Provide --legacy-root or set MHW_ANIM_TOOLS_LEGACY_ROOT.")
 
-    legacy_module = load_legacy_package(args.legacy_root)
+    legacy_module = load_legacy_package(legacy_root)
     result = {
         "new": summarize_new_parser(args.lmt_path),
         "legacy": summarize_legacy_parser(legacy_module, args.lmt_path),

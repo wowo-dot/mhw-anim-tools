@@ -3,7 +3,7 @@
 `mhw_anim_tools` is a clean-room rewrite of the Monster Hunter World Blender
 animation tooling used for `.lmt`, `.timl`, `.efx`, and related workflows.
 
-This repository treats `D:\Freehkwowo\Old Base` as a legacy behavior reference,
+This repository treats a separate legacy reference copy as a behavior oracle,
 not as implementation source to keep extending forever.
 
 ## Current milestone
@@ -105,7 +105,7 @@ Writer-readiness scan notes:
 
 ## Legacy reference
 
-Use `D:\Freehkwowo\Old Base` as the reference implementation/spec for:
+Use a local legacy reference copy only for:
 
 - file layout expectations
 - buffer and flag semantics
@@ -113,3 +113,6 @@ Use `D:\Freehkwowo\Old Base` as the reference implementation/spec for:
 
 The new code should stay understandable on its own and should not become a
 line-by-line port of the legacy add-on.
+
+Optional legacy comparison scripts accept an explicit legacy-root path instead
+of assuming one fixed local workspace layout.
