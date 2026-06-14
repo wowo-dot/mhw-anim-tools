@@ -80,6 +80,7 @@ Not implemented yet:
 
 Useful smoke scripts:
 
+- `tools/smoke_import_all_actions.py`
 - `tools/smoke_import_selected_action.py`
 - `tools/smoke_import_attached_timl.py`
 - `tools/smoke_analyze_timl_controller.py`

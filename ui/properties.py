@@ -386,6 +386,11 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
         name="Last Imported Action",
         default="",
     )
+    last_imported_action_count: bpy.props.IntProperty(
+        name="Last Imported Action Count",
+        default=0,
+        min=0,
+    )
     last_imported_timl_action_name: bpy.props.StringProperty(
         name="Last Imported TIML Action",
         default="",

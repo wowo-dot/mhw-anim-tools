@@ -229,9 +229,18 @@ class MHWANIMTOOLS_PT_workspace(bpy.types.Panel):
                                 )
                     import_row = details.row(align=True)
                     import_row.scale_y = 1.1
-                    import_row.operator("mhw_anim_tools.import_selected_lmt_action", icon="ACTION")
+                    import_row.operator("mhw_anim_tools.import_selected_lmt_action", icon="ACTION", text="Import Selected")
+                    import_row.operator("mhw_anim_tools.import_all_lmt_actions", icon="ACTION_TWEAK", text="Import All")
                     if scene_props.last_imported_action_name:
-                        details.label(text=f"Last imported: {scene_props.last_imported_action_name}")
+                        if scene_props.last_imported_action_count > 1:
+                            details.label(
+                                text=(
+                                    f"Last batch: {scene_props.last_imported_action_count} actions "
+                                    f"(active: {scene_props.last_imported_action_name})"
+                                )
+                            )
+                        else:
+                            details.label(text=f"Last imported: {scene_props.last_imported_action_name}")
                     panel_body.template_list(
                         "MHWANIMTOOLS_UL_lmt_tracks",
                         "",

@@ -8,6 +8,7 @@ import bpy
 from bpy_extras.io_utils import ImportHelper
 
 from ..blender_adapter.actions import import_lmt_action_to_armature
+from ..blender_adapter.import_batch import import_all_lmt_actions_to_armature
 from ..blender_adapter.lmt_session import build_file_summary
 from ..blender_adapter.timl_actions import import_attached_timl_to_action
 from ..core.formats.lmt.reader import read_lmt_bytes
@@ -36,6 +37,7 @@ class MHWANIMTOOLS_OT_inspect_lmt(bpy.types.Operator, ImportHelper):
         clear_diagnostics(scene_props)
         scene_props.lmt_entries.clear()
         scene_props.last_imported_action_name = ""
+        scene_props.last_imported_action_count = 0
         scene_props.last_imported_timl_action_name = ""
         scene_props.last_imported_timl_object_name = ""
         action_summaries = build_file_summary(lmt, source_bytes=source_bytes)
@@ -131,6 +133,7 @@ class MHWANIMTOOLS_OT_import_selected_lmt_action(bpy.types.Operator):
             return {"CANCELLED"}
 
         scene_props.last_imported_action_name = result.action_name
+        scene_props.last_imported_action_count = 1 if result.action_name else 0
         scene_props.export_action = bpy.data.actions.get(result.action_name)
         if result.frame_end:
             context.scene.frame_start = min(int(context.scene.frame_start), 0)
@@ -142,6 +145,69 @@ class MHWANIMTOOLS_OT_import_selected_lmt_action(bpy.types.Operator):
             f"warnings={result.warning_count}"
         )
         self.report({"INFO"}, scene_props.last_status)
+        return {"FINISHED"}
+
+
+class MHWANIMTOOLS_OT_import_all_lmt_actions(bpy.types.Operator):
+    bl_idname = "mhw_anim_tools.import_all_lmt_actions"
+    bl_label = "Import All Actions"
+    bl_description = "Create Blender Actions on the selected target armature from every LMT entry in the current source file"
+
+    def execute(self, context):
+        scene_props = context.scene.mhw_anim_tools
+        clear_diagnostics(scene_props)
+        if not scene_props.last_lmt_path:
+            scene_props.last_status = "Inspect an LMT file before importing all actions."
+            add_diagnostic(scene_props, "ERROR", "session", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        if scene_props.target_armature is None:
+            scene_props.last_status = "Choose a target armature before importing all actions."
+            add_diagnostic(scene_props, "ERROR", "armature", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        lmt = read_lmt_file(scene_props.last_lmt_path)
+        result = import_all_lmt_actions_to_armature(
+            lmt,
+            scene_props.target_armature,
+            source_path=scene_props.last_lmt_path,
+            import_action=import_lmt_action_to_armature,
+        )
+        for diagnostic in result.diagnostics:
+            add_diagnostic(scene_props, diagnostic.level, diagnostic.source, diagnostic.message)
+
+        if result.imported_action_names:
+            scene_props.last_imported_action_name = result.imported_action_names[-1]
+            scene_props.last_imported_action_count = len(result.imported_action_names)
+            scene_props.export_action = bpy.data.actions.get(scene_props.last_imported_action_name)
+        else:
+            scene_props.last_imported_action_name = ""
+            scene_props.last_imported_action_count = 0
+
+        if result.frame_end:
+            context.scene.frame_start = min(int(context.scene.frame_start), 0)
+            context.scene.frame_end = max(int(context.scene.frame_end), result.frame_end)
+
+        if result.imported_action_count == 0:
+            scene_props.last_status = (
+                "Batch import failed: "
+                f"{result.failed_action_count} action(s) failed, "
+                f"{result.warning_count} warning(s)."
+            )
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        scene_props.last_status = (
+            f"Imported {result.imported_action_count}/{result.requested_action_count} LMT actions: "
+            f"tracks={result.imported_track_count}, "
+            f"failed={result.failed_action_count}, "
+            f"warnings={result.warning_count}"
+        )
+        if result.failed_action_count or result.warning_count:
+            self.report({"WARNING"}, scene_props.last_status)
+        else:
+            self.report({"INFO"}, scene_props.last_status)
         return {"FINISHED"}
 
 
@@ -234,6 +300,7 @@ class MHWANIMTOOLS_OT_clear_lmt_session(bpy.types.Operator):
         scene_props.last_warning_count = 0
         scene_props.last_error_count = 0
         scene_props.last_imported_action_name = ""
+        scene_props.last_imported_action_count = 0
         scene_props.last_imported_timl_action_name = ""
         scene_props.last_imported_timl_object_name = ""
         clear_timl_analysis(scene_props)
@@ -253,6 +320,7 @@ class MHWANIMTOOLS_OT_clear_lmt_session(bpy.types.Operator):
 classes = (
     MHWANIMTOOLS_OT_inspect_lmt,
     MHWANIMTOOLS_OT_import_selected_lmt_action,
+    MHWANIMTOOLS_OT_import_all_lmt_actions,
     MHWANIMTOOLS_OT_import_selected_attached_timl,
     MHWANIMTOOLS_OT_clear_lmt_session,
 )
