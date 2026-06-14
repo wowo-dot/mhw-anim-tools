@@ -212,6 +212,48 @@ class TimlEmbeddedWriterTests(unittest.TestCase):
         self.assertEqual(preserved.easing, 4)
         self.assertEqual(changed.value, 9)
 
+    def test_embedded_writer_preserves_advanced_source_semantics_for_value_only_edit(self):
+        source_bytes, source_offset = _build_multi_transform_embedded_source_bytes()
+        source_entry = read_timl_data_bytes(
+            source_bytes,
+            data_offset=source_offset,
+            source_name="advanced-source#timl",
+            entry_id=0,
+        )
+        sampled_transform = _Transform(
+            type_index=0,
+            transform_index=0,
+            timeline_parameter_hash=0x11223344,
+            datatype_hash=0xAAAABBBB,
+            data_type=2,
+            data_type_name="float",
+            component_labels=("value",),
+            keyframes=(
+                _Keyframe(frame=5.0, value=(9.5,), interpolation="LINEAR"),
+            ),
+        )
+
+        payload, _rebase_offsets = build_embedded_timl_data_payload(
+            source_entry,
+            (sampled_transform,),
+            base_offset=source_offset,
+        )
+
+        rebuilt_source = (b"\x00" * source_offset) + payload
+        rebuilt_entry = read_timl_data_bytes(
+            rebuilt_source,
+            data_offset=source_offset,
+            source_name="advanced-rebuilt#timl",
+            entry_id=0,
+        )
+        keyframe = rebuilt_entry.types[0].transforms[0].keyframes[0]
+        self.assertEqual(keyframe.value, 9.5)
+        self.assertEqual(keyframe.control_left, 0.25)
+        self.assertEqual(keyframe.control_right, 0.75)
+        self.assertEqual(keyframe.frame_timing, 5.0)
+        self.assertEqual(keyframe.interpolation, 3)
+        self.assertEqual(keyframe.easing, 4)
+
 
 if __name__ == "__main__":
     unittest.main()

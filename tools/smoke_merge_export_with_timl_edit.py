@@ -287,6 +287,12 @@ def main():
             for (type_index, transform_index), source_snapshot in sorted(source_snapshots.items())
             if (type_index, transform_index) != edited_identity and output_snapshots.get((type_index, transform_index)) != source_snapshot
         ]
+        edited_source_snapshot = source_snapshots.get(edited_identity, ())
+        edited_output_snapshot = output_snapshots.get(edited_identity, ())
+        edited_non_value_preserved = (
+            len(edited_source_snapshot) == len(edited_output_snapshot)
+            and all(source_keyframe[1:] == output_keyframe[1:] for source_keyframe, output_keyframe in zip(edited_source_snapshot, edited_output_snapshot))
+        )
 
         payload = {
             "inspect_result": _operator_status(inspect_result),
@@ -300,6 +306,7 @@ def main():
             "expected_native_value": edit_info["expected_native_value"],
             "source_value": source_value,
             "output_value": output_value,
+            "edited_non_value_preserved": edited_non_value_preserved,
             "untouched_mismatch_count": len(untouched_mismatches),
             "untouched_mismatches": untouched_mismatches,
             "diagnostics": [
@@ -322,6 +329,8 @@ def main():
             raise SystemExit("Expected both source and output actions to keep attached TIML payloads.")
         if source_value == output_value:
             raise SystemExit("Edited TIML controller value did not change the exported embedded TIML payload.")
+        if not edited_non_value_preserved:
+            raise SystemExit("Edited TIML transform lost source frame/control/interpolation/easing semantics unexpectedly.")
         if untouched_mismatches:
             raise SystemExit(f"Untouched TIML transforms changed unexpectedly: {', '.join(untouched_mismatches)}")
         expected = edit_info["expected_native_value"]

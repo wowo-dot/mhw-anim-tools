@@ -10,6 +10,7 @@ try:
     from ..core.diagnostics.errors import ValidationError
     from ..core.formats.lmt.export_context import RawTimlPayload
     from ..core.formats.timl.embedded_writer import build_embedded_timl_data_payload
+    from ..core.formats.timl.embedded_writer import preserved_source_curve_identities
     from ..core.formats.timl.reader import read_timl_data_bytes
     from .timl_export import extract_action_timl_metadata
     from .timl_metadata import TIML_IMPORTED_PREVIEW_SIGNATURE_KEY
@@ -22,6 +23,7 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.diagnostics.errors import ValidationError
     from core.formats.lmt.export_context import RawTimlPayload
     from core.formats.timl.embedded_writer import build_embedded_timl_data_payload
+    from core.formats.timl.embedded_writer import preserved_source_curve_identities
     from core.formats.timl.reader import read_timl_data_bytes
     from blender_adapter.timl_export import extract_action_timl_metadata
     from blender_adapter.timl_metadata import TIML_IMPORTED_PREVIEW_SIGNATURE_KEY
@@ -186,17 +188,33 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
             entry_id=int(action_metadata.entry_id),
         )
         advanced_identities = _advanced_source_transform_identities(source_entry)
-        changed_advanced = sorted(
+        preserved_advanced = sorted(
             (int(transform.type_index), int(transform.transform_index))
             for transform in changed_transforms
-            if (int(transform.type_index), int(transform.transform_index)) in advanced_identities
+            if (int(transform.type_index), int(transform.transform_index)) in (advanced_identities & preserved_source_curve_identities(source_entry, changed_transforms))
         )
-        if changed_advanced:
-            changed_labels = ", ".join(f"{type_index:02d}:{transform_index:02d}" for type_index, transform_index in changed_advanced)
+        rewritten_advanced = sorted(
+            (int(transform.type_index), int(transform.transform_index))
+            for transform in changed_transforms
+            if (int(transform.type_index), int(transform.transform_index)) in (advanced_identities - set(preserved_advanced))
+        )
+        if preserved_advanced:
+            preserved_labels = ", ".join(
+                f"{type_index:02d}:{transform_index:02d}" for type_index, transform_index in preserved_advanced
+            )
+            result.add(
+                "INFO",
+                "timl.writeback",
+                f"Edited TIML transform(s) {preserved_labels} will keep their original source interpolation/easing semantics while writing updated values.",
+            )
+        if rewritten_advanced:
+            rewritten_labels = ", ".join(
+                f"{type_index:02d}:{transform_index:02d}" for type_index, transform_index in rewritten_advanced
+            )
             result.add(
                 "WARNING",
                 "timl.writeback",
-                f"Edited TIML transform(s) {changed_labels} were imported from advanced interpolation/easing; merge export will replace those source semantics with the current preview curves.",
+                f"Edited TIML transform(s) {rewritten_labels} changed their preview keyframe structure; merge export will replace those source semantics with the current preview curves.",
             )
         payload, rebase_offsets = build_embedded_timl_data_payload(
             source_entry,
