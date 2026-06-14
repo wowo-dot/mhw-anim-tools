@@ -18,12 +18,16 @@ from .fcurves import create_action_fcurves
 from .fcurves import create_scalar_action_fcurve
 from .fcurves import ensure_action
 from .fcurves import ensure_object_animation_data
+from .timl_metadata import TIML_ACTION_NAME_KEY
+from .timl_metadata import TIML_BINDINGS_KEY
+from .timl_metadata import TIML_ENTRY_ID_KEY
+from .timl_metadata import TIML_PROPERTY_LIST_KEY
+from .timl_metadata import TIML_SOURCE_LMT_KEY
+from .timl_metadata import TIML_SOURCE_OFFSET_KEY
 
 
 SUPPORTED_TIML_DATA_TYPES = {0, 1, 2, 3, 4}
 EXACT_INTEGER_FLOAT_LIMIT = 16_777_216
-TIML_PROPERTY_LIST_KEY = "mhw_anim_tools_timl_property_names"
-TIML_BINDINGS_KEY = "mhw_anim_tools_timl_bindings"
 
 
 @dataclass(frozen=True)
@@ -331,8 +335,8 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
 
     carrier[TIML_PROPERTY_LIST_KEY] = json.dumps(property_names)
     carrier[TIML_BINDINGS_KEY] = json.dumps(bindings, separators=(",", ":"))
-    carrier["mhw_anim_tools_timl_source_lmt"] = source_path
-    carrier["mhw_anim_tools_timl_entry_id"] = int(source_action.id)
-    carrier["mhw_anim_tools_timl_source_offset"] = int(source_action.header.timl_offset)
-    carrier["mhw_anim_tools_timl_action_name"] = blender_action.name
+    carrier[TIML_SOURCE_LMT_KEY] = source_path
+    carrier[TIML_ENTRY_ID_KEY] = int(source_action.id)
+    carrier[TIML_SOURCE_OFFSET_KEY] = int(source_action.header.timl_offset)
+    carrier[TIML_ACTION_NAME_KEY] = blender_action.name
     return result

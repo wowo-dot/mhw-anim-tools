@@ -5,6 +5,7 @@ import bpy
 
 from .ui import operators_export
 from .ui import operators_import
+from .ui import operators_timl
 from .ui import operators_tools
 from .ui import lists
 from .ui import panels
@@ -29,6 +30,7 @@ MODULES = (
     lists,
     operators_tools,
     operators_import,
+    operators_timl,
     operators_export,
     panels,
 )

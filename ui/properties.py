@@ -86,6 +86,10 @@ def armature_object_poll(_self, obj):
     return obj is not None and obj.type == "ARMATURE"
 
 
+def timl_controller_object_poll(_self, obj):
+    return obj is not None and obj.type == "EMPTY"
+
+
 def clear_diagnostics(scene_props):
     scene_props.diagnostics.clear()
     scene_props.selected_diagnostic_index = 0
@@ -182,12 +186,28 @@ def selected_entry_update(self, _context):
     _populate_timl_transform_items(self)
 
 
+def clear_timl_analysis(scene_props):
+    scene_props.last_timl_analysis_controller_name = ""
+    scene_props.last_timl_analysis_action_name = ""
+    scene_props.last_timl_analysis_transform_count = 0
+    scene_props.last_timl_analysis_keyframe_count = 0
+    scene_props.last_timl_analysis_frame_end = 0
+    scene_props.last_timl_analysis_warning_count = 0
+    scene_props.last_timl_analysis_error_count = 0
+
+
 class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
     target_armature: bpy.props.PointerProperty(
         name="Target Armature",
         description="Preferred MHW armature for future preview and export tools",
         type=bpy.types.Object,
         poll=armature_object_poll,
+    )
+    timl_controller: bpy.props.PointerProperty(
+        name="TIML Controller",
+        description="Imported TIML controller object for the active TIML editing workflow",
+        type=bpy.types.Object,
+        poll=timl_controller_object_poll,
     )
     export_action: bpy.props.PointerProperty(
         name="Export Action",
@@ -209,6 +229,39 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
     last_imported_timl_object_name: bpy.props.StringProperty(
         name="Last Imported TIML Object",
         default="",
+    )
+    last_timl_analysis_controller_name: bpy.props.StringProperty(
+        name="Last TIML Analysis Controller",
+        default="",
+    )
+    last_timl_analysis_action_name: bpy.props.StringProperty(
+        name="Last TIML Analysis Action",
+        default="",
+    )
+    last_timl_analysis_transform_count: bpy.props.IntProperty(
+        name="TIML Transform Count",
+        default=0,
+        min=0,
+    )
+    last_timl_analysis_keyframe_count: bpy.props.IntProperty(
+        name="TIML Keyframe Count",
+        default=0,
+        min=0,
+    )
+    last_timl_analysis_frame_end: bpy.props.IntProperty(
+        name="TIML Frame End",
+        default=0,
+        min=0,
+    )
+    last_timl_analysis_warning_count: bpy.props.IntProperty(
+        name="TIML Warning Count",
+        default=0,
+        min=0,
+    )
+    last_timl_analysis_error_count: bpy.props.IntProperty(
+        name="TIML Error Count",
+        default=0,
+        min=0,
     )
     last_export_action_name: bpy.props.StringProperty(
         name="Last Export Action",

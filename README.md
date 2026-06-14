@@ -54,6 +54,8 @@ Current export-prep scope:
 - the first standalone TIML core reader / validator with typed data-entry, transform, and keyframe models
 - standalone TIML semantics / summary helpers plus a real-corpus profiler for timeline/datatype usage
 - LMT-side attached TIML subtree parsing and browser summaries for inspected actions
+- imported attached TIML payloads as dedicated Blender controller actions with custom-property fcurves
+- reverse analysis of imported TIML controller actions back into typed TIML value space, with warnings for unsupported interpolation coverage, split-channel retiming, and quantization risk
 
 Quaternion note:
 
@@ -79,6 +81,8 @@ Not implemented yet:
 Useful smoke scripts:
 
 - `tools/smoke_import_selected_action.py`
+- `tools/smoke_import_attached_timl.py`
+- `tools/smoke_analyze_timl_controller.py`
 - `tools/smoke_sample_export_action.py`
 - `tools/smoke_write_lmt_roundtrip.py`
 

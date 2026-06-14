@@ -17,6 +17,7 @@ from .properties import add_diagnostic
 from .properties import clear_diagnostics
 from .properties import _populate_track_items
 from .properties import _populate_timl_transform_items
+from .properties import clear_timl_analysis
 
 
 class MHWANIMTOOLS_OT_inspect_lmt(bpy.types.Operator, ImportHelper):
@@ -197,6 +198,8 @@ class MHWANIMTOOLS_OT_import_selected_attached_timl(bpy.types.Operator):
 
         scene_props.last_imported_timl_action_name = result.action_name
         scene_props.last_imported_timl_object_name = result.carrier_name
+        scene_props.timl_controller = bpy.data.objects.get(result.carrier_name)
+        clear_timl_analysis(scene_props)
         if result.frame_end:
             context.scene.frame_start = min(int(context.scene.frame_start), 0)
             context.scene.frame_end = max(int(context.scene.frame_end), result.frame_end)
@@ -233,6 +236,7 @@ class MHWANIMTOOLS_OT_clear_lmt_session(bpy.types.Operator):
         scene_props.last_imported_action_name = ""
         scene_props.last_imported_timl_action_name = ""
         scene_props.last_imported_timl_object_name = ""
+        clear_timl_analysis(scene_props)
         scene_props.export_action = None
         scene_props.last_export_action_name = ""
         scene_props.last_export_track_count = 0

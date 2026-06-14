@@ -231,6 +231,58 @@ class MHWANIMTOOLS_PT_workspace(bpy.types.Panel):
                 panel_body.label(text="No LMT session loaded yet.", icon="INFO")
 
         panel_header, panel_body = layout.panel(
+            idname="MHWANIMTOOLS_PT_timl_controller_section",
+            default_closed=False,
+        )
+        panel_header.label(text="TIML Controller")
+        if panel_body is not None:
+            panel_body.prop(scene_props, "timl_controller")
+            analyze_row = panel_body.row(align=True)
+            analyze_row.scale_y = 1.1
+            analyze_row.operator("mhw_anim_tools.analyze_timl_controller", icon="FCURVE")
+            if scene_props.last_imported_timl_action_name and scene_props.last_imported_timl_object_name:
+                panel_body.label(
+                    text=(
+                        f"Imported: {scene_props.last_imported_timl_action_name} "
+                        f"on {scene_props.last_imported_timl_object_name}"
+                    )
+                )
+            controller = scene_props.timl_controller
+            if controller is not None:
+                details = panel_body.box()
+                details.label(text=controller.name, icon="EMPTY_DATA")
+                action = controller.animation_data.action if controller.animation_data else None
+                if action is not None:
+                    details.label(text=f"Action: {action.name}", icon="ACTION")
+                else:
+                    details.label(text="No active TIML action on controller", icon="ERROR")
+                source_path = str(controller.get("mhw_anim_tools_timl_source_lmt", ""))
+                if source_path:
+                    details.label(text=f"Source: {os.path.basename(source_path)}", icon="CURRENT_FILE")
+                entry_id = controller.get("mhw_anim_tools_timl_entry_id")
+                if entry_id is not None:
+                    details.label(text=f"Entry: {int(entry_id):03d}")
+                source_offset = controller.get("mhw_anim_tools_timl_source_offset")
+                if source_offset is not None:
+                    details.label(text=f"Offset: 0x{int(source_offset):X}")
+                if (
+                    scene_props.last_timl_analysis_controller_name == controller.name
+                    and scene_props.last_timl_analysis_action_name
+                ):
+                    analysis_box = details.box()
+                    analysis_box.label(
+                        text=f"Last analyzed: {scene_props.last_timl_analysis_action_name}",
+                        icon="CHECKMARK",
+                    )
+                    analysis_box.label(text=f"Transforms: {scene_props.last_timl_analysis_transform_count}")
+                    analysis_box.label(text=f"Keyframes: {scene_props.last_timl_analysis_keyframe_count}")
+                    analysis_box.label(text=f"Frame end: {scene_props.last_timl_analysis_frame_end}")
+                    analysis_box.label(text=f"Warnings: {scene_props.last_timl_analysis_warning_count}")
+                    analysis_box.label(text=f"Errors: {scene_props.last_timl_analysis_error_count}")
+            else:
+                panel_body.label(text="No TIML controller selected yet.", icon="INFO")
+
+        panel_header, panel_body = layout.panel(
             idname="MHWANIMTOOLS_PT_diagnostics_section",
             default_closed=False,
         )
