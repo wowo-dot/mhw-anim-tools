@@ -51,6 +51,7 @@ Current export-prep scope:
 - synthetic and live MOD3 symmetry smoke coverage against decoded LMT source samples and reconstructed sparse tracks
 - synthetic and live MOD3 writer roundtrip smoke coverage against decoded LMT source samples
 - the first standalone TIML core reader / validator with typed data-entry, transform, and keyframe models
+- standalone TIML semantics / summary helpers plus a real-corpus profiler for timeline/datatype usage
 
 Quaternion note:
 
@@ -83,6 +84,7 @@ Useful corpus scans:
 
 - `tools/scan_lmt_export_safety.py`
 - `tools/scan_lmt_writer_readiness.py`
+- `tools/scan_timl_corpus.py`
 
 Writer-readiness scan notes:
 
