@@ -82,6 +82,12 @@ Useful corpus scans:
 - `tools/scan_lmt_export_safety.py`
 - `tools/scan_lmt_writer_readiness.py`
 
+Writer-readiness scan notes:
+
+- use `--state <path>` plus `--resume` for long whole-corpus scans
+- use `--max-files-per-run` or `--max-seconds` to chunk a scan across sessions
+- use `--output <path>` to keep a rolling human-readable summary beside the raw state file
+
 ## Legacy reference
 
 Use `D:\Freehkwowo\Old Base` as the reference implementation/spec for:
