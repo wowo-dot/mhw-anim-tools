@@ -23,6 +23,7 @@ tmp*.efx
 *.log
 *.tmp
 *.bak
+corpus_scans/
 
 # OS/editor noise
 Thumbs.db
