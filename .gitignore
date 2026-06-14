@@ -1,0 +1,32 @@
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+
+# Test and tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Blender session and backup files
+*.blend1
+*.blend2
+
+# Generated exports and smoke artifacts
+tmp*.lmt
+tmp*.timl
+tmp*.efx
+*_smoke.lmt
+*_smoke.timl
+*_smoke.efx
+
+# Logs and local scratch files
+*.log
+*.tmp
+*.bak
+
+# OS/editor noise
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
