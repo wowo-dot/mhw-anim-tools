@@ -92,6 +92,10 @@ Useful corpus scans:
 - `tools/scan_lmt_writer_readiness.py`
 - `tools/scan_timl_corpus.py`
 
+Release planning:
+
+- `docs/v1-release-checklist.md`
+
 Writer-readiness scan notes:
 
 - use `--state <path>` plus `--resume` for long whole-corpus scans
