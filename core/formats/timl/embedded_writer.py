@@ -145,6 +145,74 @@ def _keyframe_bytes(sampled_transform, *, source_label: str) -> bytes:
     return b"".join(chunks)
 
 
+def _source_keyframe_bytes(source_transform, *, source_label: str) -> bytes:
+    semantics = get_data_type_semantics(source_transform.data_type)
+    chunks: list[bytes] = []
+    for keyframe in source_transform.keyframes:
+        frame = float(keyframe.frame_timing)
+        interpolation = int(keyframe.interpolation)
+        easing = int(keyframe.easing)
+
+        if source_transform.data_type == 0:
+            chunks.append(
+                SIGNED_KEYFRAME_STRUCT.pack(
+                    _coerce_int32(keyframe.value, source=f"{source_label} value"),
+                    _coerce_int32(keyframe.control_left, source=f"{source_label} control_left"),
+                    _coerce_int32(keyframe.control_right, source=f"{source_label} control_right"),
+                    frame,
+                    interpolation,
+                    easing,
+                )
+            )
+            continue
+        if source_transform.data_type in {1, 4}:
+            chunks.append(
+                UNSIGNED_KEYFRAME_STRUCT.pack(
+                    _coerce_uint32(keyframe.value, source=f"{source_label} value"),
+                    _coerce_uint32(keyframe.control_left, source=f"{source_label} control_left"),
+                    _coerce_uint32(keyframe.control_right, source=f"{source_label} control_right"),
+                    frame,
+                    interpolation,
+                    easing,
+                )
+            )
+            continue
+        if source_transform.data_type == 2:
+            chunks.append(
+                FLOAT_KEYFRAME_STRUCT.pack(
+                    float(keyframe.value),
+                    float(keyframe.control_left),
+                    float(keyframe.control_right),
+                    frame,
+                    interpolation,
+                    easing,
+                )
+            )
+            continue
+        if source_transform.data_type == 3:
+            value = tuple(int(component) for component in keyframe.value)
+            if len(value) != 4:
+                raise ValidationError(f"{source_label} color source key must have exactly 4 components.")
+            chunks.append(
+                COLOR_KEYFRAME_STRUCT.pack(
+                    _coerce_rgba8_component(value[0], source=f"{source_label} r"),
+                    _coerce_rgba8_component(value[1], source=f"{source_label} g"),
+                    _coerce_rgba8_component(value[2], source=f"{source_label} b"),
+                    _coerce_rgba8_component(value[3], source=f"{source_label} a"),
+                    float(keyframe.control_left),
+                    float(keyframe.control_right),
+                    frame,
+                    interpolation,
+                    easing,
+                )
+            )
+            continue
+        raise ValidationError(
+            f"{source_label} uses unsupported TIML data type {source_transform.data_type} ({semantics.name})."
+        )
+    return b"".join(chunks)
+
+
 def build_embedded_timl_data_payload(source_entry, sampled_transforms, *, base_offset: int) -> tuple[bytes, tuple[int, ...]]:
     """Return an embedded TIML payload plus pointer fields that need rebasing.
 
@@ -170,31 +238,39 @@ def build_embedded_timl_data_payload(source_entry, sampled_transforms, *, base_o
             identity = (int(type_index), int(transform_index))
             sampled_transform = transform_map.pop(identity, None)
             if sampled_transform is None:
-                raise ValidationError(
-                    f"Missing sampled TIML transform for type={type_index} transform={transform_index}."
+                keyframe_bytes = _source_keyframe_bytes(
+                    source_transform,
+                    source_label=f"TIML {type_index:02d}:{transform_index:02d}",
                 )
-            if int(sampled_transform.data_type) != int(source_transform.data_type):
-                raise ValidationError(
-                    f"TIML transform {type_index}:{transform_index} data type changed from "
-                    f"{source_transform.data_type} to {sampled_transform.data_type}."
+                keyframe_count = len(source_transform.keyframes)
+                if source_transform.keyframes:
+                    highest_frame = max(highest_frame, float(source_transform.keyframes[-1].frame_timing))
+            else:
+                if int(sampled_transform.data_type) != int(source_transform.data_type):
+                    raise ValidationError(
+                        f"TIML transform {type_index}:{transform_index} data type changed from "
+                        f"{source_transform.data_type} to {sampled_transform.data_type}."
+                    )
+                if int(sampled_transform.datatype_hash) != int(source_transform.datatype_hash):
+                    raise ValidationError(
+                        f"TIML transform {type_index}:{transform_index} datatype hash changed from "
+                        f"0x{int(source_transform.datatype_hash) & 0xFFFFFFFF:08X} to "
+                        f"0x{int(sampled_transform.datatype_hash) & 0xFFFFFFFF:08X}."
+                    )
+                if not sampled_transform.keyframes:
+                    raise ValidationError(f"TIML transform {type_index}:{transform_index} has no writable keyframes.")
+                highest_frame = max(highest_frame, float(sampled_transform.keyframes[-1].frame))
+                keyframe_bytes = _keyframe_bytes(
+                    sampled_transform,
+                    source_label=f"TIML {type_index:02d}:{transform_index:02d}",
                 )
-            if int(sampled_transform.datatype_hash) != int(source_transform.datatype_hash):
-                raise ValidationError(
-                    f"TIML transform {type_index}:{transform_index} datatype hash changed from "
-                    f"0x{int(source_transform.datatype_hash) & 0xFFFFFFFF:08X} to "
-                    f"0x{int(sampled_transform.datatype_hash) & 0xFFFFFFFF:08X}."
-                )
-            if not sampled_transform.keyframes:
-                raise ValidationError(f"TIML transform {type_index}:{transform_index} has no writable keyframes.")
-            highest_frame = max(highest_frame, float(sampled_transform.keyframes[-1].frame))
+                keyframe_count = len(sampled_transform.keyframes)
             transform_records.append(
                 {
                     "source_transform": source_transform,
                     "sampled_transform": sampled_transform,
-                    "keyframe_bytes": _keyframe_bytes(
-                        sampled_transform,
-                        source_label=f"TIML {type_index:02d}:{transform_index:02d}",
-                    ),
+                    "keyframe_bytes": keyframe_bytes,
+                    "keyframe_count": keyframe_count,
                 }
             )
         type_records.append(
@@ -267,12 +343,11 @@ def build_embedded_timl_data_payload(source_entry, sampled_transforms, *, base_o
             if absolute_keyframe_offset:
                 rebase_offsets.append(transform_struct_rel)
             source_transform = transform_record["source_transform"]
-            sampled_transform = transform_record["sampled_transform"]
             TRANSFORM_STRUCT.pack_into(
                 payload,
                 transform_struct_rel,
                 absolute_keyframe_offset,
-                len(sampled_transform.keyframes),
+                int(transform_record["keyframe_count"]),
                 int(source_transform.datatype_hash),
                 int(source_transform.data_type),
             )

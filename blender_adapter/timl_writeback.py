@@ -12,6 +12,8 @@ try:
     from ..core.formats.timl.embedded_writer import build_embedded_timl_data_payload
     from ..core.formats.timl.reader import read_timl_data_bytes
     from .timl_export import extract_action_timl_metadata
+    from .timl_metadata import TIML_IMPORTED_PREVIEW_SIGNATURE_KEY
+    from .timl_preview_state import diff_sampled_transforms_from_imported_signature
     from .timl_sampling import extract_timl_controller_metadata
     from .timl_sampling import is_imported_timl_controller
     from .timl_sampling import sample_timl_controller_action
@@ -22,6 +24,8 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.timl.embedded_writer import build_embedded_timl_data_payload
     from core.formats.timl.reader import read_timl_data_bytes
     from blender_adapter.timl_export import extract_action_timl_metadata
+    from blender_adapter.timl_metadata import TIML_IMPORTED_PREVIEW_SIGNATURE_KEY
+    from blender_adapter.timl_preview_state import diff_sampled_transforms_from_imported_signature
     from blender_adapter.timl_sampling import extract_timl_controller_metadata
     from blender_adapter.timl_sampling import is_imported_timl_controller
     from blender_adapter.timl_sampling import sample_timl_controller_action
@@ -79,6 +83,24 @@ def _source_action_by_id(source_lmt, action_id: int):
     return None
 
 
+def _safe_get(value_like, key: str, default=None):
+    getter = getattr(value_like, "get", None)
+    if callable(getter):
+        return getter(key, default)
+    if isinstance(value_like, dict):
+        return value_like.get(key, default)
+    return default
+
+
+def _advanced_source_transform_identities(source_entry) -> set[tuple[int, int]]:
+    advanced = set()
+    for type_index, type_entry in enumerate(source_entry.types):
+        for transform_index, transform in enumerate(type_entry.transforms):
+            if any(int(keyframe.interpolation) not in {0, 1} or int(keyframe.easing) != 0 for keyframe in transform.keyframes):
+                advanced.add((int(type_index), int(transform_index)))
+    return advanced
+
+
 def build_matching_timl_writeback(export_action, controller_objects, *, source_lmt, source_bytes: bytes) -> TimlWritebackResult:
     result = TimlWritebackResult()
     action_metadata = extract_action_timl_metadata(export_action)
@@ -123,6 +145,39 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
     if sampled.error_count:
         return result
 
+    diff = diff_sampled_transforms_from_imported_signature(
+        _safe_get(controller, TIML_IMPORTED_PREVIEW_SIGNATURE_KEY, ""),
+        sampled.sampled_transforms,
+    )
+    if not diff.available:
+        result.add(
+            "WARNING",
+            "timl.writeback",
+            "TIML controller is missing imported preview signature metadata; merge export will treat all analyzable transforms as edited.",
+        )
+        changed_transforms = tuple(sampled.sampled_transforms)
+    else:
+        if diff.missing_identities:
+            missing_labels = ", ".join(f"{type_index:02d}:{transform_index:02d}" for type_index, transform_index in diff.missing_identities)
+            result.add(
+                "WARNING",
+                "timl.writeback",
+                f"TIML controller is missing preview curves for source transform(s) {missing_labels}; merge export will preserve their original source data.",
+            )
+        changed_identities = set(diff.edited_identities)
+        if not changed_identities:
+            result.add(
+                "INFO",
+                "timl.writeback",
+                f"TIML controller '{controller_metadata.action_name}' is unchanged; merge export will preserve the original embedded TIML payload.",
+            )
+            return result
+        changed_transforms = tuple(
+            transform
+            for transform in sampled.sampled_transforms
+            if (int(transform.type_index), int(transform.transform_index)) in changed_identities
+        )
+
     try:
         source_entry = read_timl_data_bytes(
             source_bytes,
@@ -130,9 +185,22 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
             source_name=f"{source_lmt.source_name}#timl",
             entry_id=int(action_metadata.entry_id),
         )
+        advanced_identities = _advanced_source_transform_identities(source_entry)
+        changed_advanced = sorted(
+            (int(transform.type_index), int(transform.transform_index))
+            for transform in changed_transforms
+            if (int(transform.type_index), int(transform.transform_index)) in advanced_identities
+        )
+        if changed_advanced:
+            changed_labels = ", ".join(f"{type_index:02d}:{transform_index:02d}" for type_index, transform_index in changed_advanced)
+            result.add(
+                "WARNING",
+                "timl.writeback",
+                f"Edited TIML transform(s) {changed_labels} were imported from advanced interpolation/easing; merge export will replace those source semantics with the current preview curves.",
+            )
         payload, rebase_offsets = build_embedded_timl_data_payload(
             source_entry,
-            sampled.sampled_transforms,
+            changed_transforms,
             base_offset=source_offset,
         )
     except (BinaryFormatError, ValidationError, ValueError) as exc:
@@ -155,7 +223,10 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
         result.add(
             "INFO",
             "timl.writeback",
-            f"Merge export will include edited TIML controller '{controller_metadata.action_name}'.",
+            (
+                f"Merge export will include {len(changed_transforms)} edited TIML transform(s) "
+                f"from '{controller_metadata.action_name}' and preserve untouched source transforms."
+            ),
         )
 
     result.controller_name = controller_metadata.carrier_name

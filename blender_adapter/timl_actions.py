@@ -21,7 +21,9 @@ from .fcurves import ensure_object_animation_data
 from .timl_metadata import TIML_ACTION_NAME_KEY
 from .timl_metadata import TIML_BINDINGS_KEY
 from .timl_metadata import TIML_ENTRY_ID_KEY
+from .timl_metadata import TIML_IMPORTED_PREVIEW_SIGNATURE_KEY
 from .timl_metadata import TIML_PROPERTY_LIST_KEY
+from .timl_preview_state import imported_preview_signature_json
 from .timl_metadata import TIML_SOURCE_LMT_KEY
 from .timl_metadata import TIML_SOURCE_OFFSET_KEY
 
@@ -119,6 +121,8 @@ def _clear_timl_carrier_properties(carrier):
         del carrier[TIML_PROPERTY_LIST_KEY]
     if TIML_BINDINGS_KEY in carrier:
         del carrier[TIML_BINDINGS_KEY]
+    if TIML_IMPORTED_PREVIEW_SIGNATURE_KEY in carrier:
+        del carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY]
 
 
 def _prop_name_for_transform(transform_samples) -> str:
@@ -243,6 +247,7 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
 
     property_names: list[str] = []
     bindings: list[dict[str, object]] = []
+    imported_preview_transforms = []
     for transform in transform_samples:
         source_label = f"timl {transform.type_index:02d}:{transform.transform_index:02d}"
         if transform.data_type not in SUPPORTED_TIML_DATA_TYPES:
@@ -314,6 +319,7 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
         result.imported_transform_count += 1
         result.created_fcurve_count += len(created_fcurves)
         result.frame_end = max(result.frame_end, _scene_frame_int(transform.keyframes[-1].frame))
+        imported_preview_transforms.append(transform)
 
     if result.error_count:
         clear_action_fcurves(blender_action)
@@ -324,6 +330,8 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
             del carrier[TIML_PROPERTY_LIST_KEY]
         if TIML_BINDINGS_KEY in carrier:
             del carrier[TIML_BINDINGS_KEY]
+        if TIML_IMPORTED_PREVIEW_SIGNATURE_KEY in carrier:
+            del carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY]
         if animation_data.action == blender_action:
             animation_data.action = None
         return result
@@ -335,6 +343,7 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
 
     carrier[TIML_PROPERTY_LIST_KEY] = json.dumps(property_names)
     carrier[TIML_BINDINGS_KEY] = json.dumps(bindings, separators=(",", ":"))
+    carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY] = imported_preview_signature_json(imported_preview_transforms)
     carrier[TIML_SOURCE_LMT_KEY] = source_path
     carrier[TIML_ENTRY_ID_KEY] = int(source_action.id)
     carrier[TIML_SOURCE_OFFSET_KEY] = int(source_action.header.timl_offset)

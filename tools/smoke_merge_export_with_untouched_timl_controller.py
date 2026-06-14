@@ -112,78 +112,6 @@ def _operator_status(result) -> str:
     return str(result)
 
 
-def _load_timl_bindings(controller):
-    raw_value = controller.get("mhw_anim_tools_timl_bindings", "")
-    if not isinstance(raw_value, str) or not raw_value:
-        return []
-    return json.loads(raw_value)
-
-
-def _first_matching_fcurve(action, *, property_name: str, array_index: int):
-    target_path = f'["{property_name}"]'
-    for fcurve in action.fcurves:
-        if fcurve.data_path == target_path and int(fcurve.array_index) == int(array_index):
-            return fcurve
-    return None
-
-
-def _first_key_value(fcurve):
-    if not fcurve.keyframe_points:
-        raise SystemExit("Selected TIML controller fcurve has no keyframes.")
-    return float(fcurve.keyframe_points[0].co[1])
-
-
-def _tweak_timl_controller_value(controller, action):
-    bindings = _load_timl_bindings(controller)
-    for binding in bindings:
-        data_type = int(binding.get("data_type", 0))
-        property_name = str(binding.get("property_name", ""))
-        fcurve = _first_matching_fcurve(action, property_name=property_name, array_index=0)
-        if fcurve is None:
-            continue
-        before = _first_key_value(fcurve)
-        after = before
-        expected_native_value = None
-        if data_type == 2:
-            after = before + 5.0
-            expected_native_value = after
-        elif data_type == 0:
-            after = round(before) + 2.0
-            expected_native_value = int(round(after))
-        elif data_type == 1:
-            after = round(before) + 2.0
-            expected_native_value = int(round(after))
-        elif data_type == 4:
-            after = 0.0 if before >= 0.5 else 1.0
-            expected_native_value = int(round(after))
-        elif data_type == 3:
-            after = min(1.0, before + (32.0 / 255.0))
-            expected_native_value = int(round(after * 255.0))
-        else:
-            continue
-        fcurve.keyframe_points[0].co = (float(fcurve.keyframe_points[0].co[0]), float(after))
-        fcurve.update()
-        return {
-            "binding": binding,
-            "before_preview_value": before,
-            "after_preview_value": after,
-            "expected_native_value": expected_native_value,
-        }
-    raise SystemExit("Could not find a writable TIML controller fcurve to edit.")
-
-
-def _source_timl_value(blob: bytes, *, timl_offset: int, entry_id: int, type_index: int, transform_index: int):
-    from mhw_anim_tools.core.formats.timl.reader import read_timl_data_bytes
-
-    entry = read_timl_data_bytes(
-        blob,
-        data_offset=timl_offset,
-        source_name="timl-smoke#timl",
-        entry_id=entry_id,
-    )
-    return entry.types[type_index].transforms[transform_index].keyframes[0].value
-
-
 def _timl_transform_snapshots(blob: bytes, *, timl_offset: int, entry_id: int):
     from mhw_anim_tools.core.formats.timl.reader import read_timl_data_bytes
 
@@ -215,9 +143,9 @@ def main():
     lmt_path = Path(args.get("lmt", ""))
     mod3_path = Path(args.get("mod3", ""))
     if not lmt_path.is_file():
-        raise SystemExit("Provide --lmt <path-to-lmt> for the TIML merge-export smoke test.")
+        raise SystemExit("Provide --lmt <path-to-lmt> for the untouched TIML merge-export smoke test.")
     if not mod3_path.is_file():
-        raise SystemExit("Provide --mod3 <path-to-mod3> for the TIML merge-export smoke test.")
+        raise SystemExit("Provide --mod3 <path-to-mod3> for the untouched TIML merge-export smoke test.")
 
     repo_root = Path(__file__).resolve().parents[1]
     addon = _register_addon(repo_root)
@@ -233,12 +161,6 @@ def main():
         scene_props.selected_entry_index = int(args.get("entry-index", "0"))
         import_lmt_result = bpy.ops.mhw_anim_tools.import_selected_lmt_action("EXEC_DEFAULT")
         import_timl_result = bpy.ops.mhw_anim_tools.import_selected_attached_timl("EXEC_DEFAULT")
-
-        controller = scene_props.timl_controller
-        if controller is None or controller.animation_data is None or controller.animation_data.action is None:
-            raise SystemExit("TIML import did not create a usable controller action.")
-        timl_action = controller.animation_data.action
-        edit_info = _tweak_timl_controller_value(controller, timl_action)
 
         lmt_action = bpy.data.actions.get(scene_props.last_imported_action_name)
         if lmt_action is None:
@@ -256,21 +178,6 @@ def main():
         selected_entry = int(scene_props.selected_entry_index)
         source_action = source_lmt.actions[selected_entry]
         output_action = output_lmt.actions[selected_entry]
-        binding = edit_info["binding"]
-        source_value = _source_timl_value(
-            source_bytes,
-            timl_offset=int(source_action.header.timl_offset),
-            entry_id=int(source_action.id),
-            type_index=int(binding["type_index"]),
-            transform_index=int(binding["transform_index"]),
-        )
-        output_value = _source_timl_value(
-            output_bytes,
-            timl_offset=int(output_action.header.timl_offset),
-            entry_id=int(output_action.id),
-            type_index=int(binding["type_index"]),
-            transform_index=int(binding["transform_index"]),
-        )
         source_snapshots = _timl_transform_snapshots(
             source_bytes,
             timl_offset=int(source_action.header.timl_offset),
@@ -281,12 +188,6 @@ def main():
             timl_offset=int(output_action.header.timl_offset),
             entry_id=int(output_action.id),
         )
-        edited_identity = (int(binding["type_index"]), int(binding["transform_index"]))
-        untouched_mismatches = [
-            f"{type_index:02d}:{transform_index:02d}"
-            for (type_index, transform_index), source_snapshot in sorted(source_snapshots.items())
-            if (type_index, transform_index) != edited_identity and output_snapshots.get((type_index, transform_index)) != source_snapshot
-        ]
 
         payload = {
             "inspect_result": _operator_status(inspect_result),
@@ -294,14 +195,6 @@ def main():
             "import_timl_result": _operator_status(import_timl_result),
             "export_result": _operator_status(export_result),
             "status": scene_props.last_status,
-            "binding": binding,
-            "before_preview_value": edit_info["before_preview_value"],
-            "after_preview_value": edit_info["after_preview_value"],
-            "expected_native_value": edit_info["expected_native_value"],
-            "source_value": source_value,
-            "output_value": output_value,
-            "untouched_mismatch_count": len(untouched_mismatches),
-            "untouched_mismatches": untouched_mismatches,
             "diagnostics": [
                 {
                     "level": item.level,
@@ -310,27 +203,19 @@ def main():
                 }
                 for item in scene_props.diagnostics
             ],
+            "transform_snapshot_match": source_snapshots == output_snapshots,
             "written_file": str(output_path),
         }
         print(json.dumps(payload, indent=2))
 
         if "FINISHED" not in inspect_result or "FINISHED" not in import_lmt_result or "FINISHED" not in import_timl_result:
-            raise SystemExit("Source import path did not finish successfully before TIML merge export.")
+            raise SystemExit("Source import path did not finish successfully before untouched TIML merge export.")
         if "FINISHED" not in export_result:
-            raise SystemExit("Merge export with edited TIML did not finish successfully.")
+            raise SystemExit("Merge export with untouched TIML controller did not finish successfully.")
         if int(source_action.header.timl_offset) == 0 or int(output_action.header.timl_offset) == 0:
             raise SystemExit("Expected both source and output actions to keep attached TIML payloads.")
-        if source_value == output_value:
-            raise SystemExit("Edited TIML controller value did not change the exported embedded TIML payload.")
-        if untouched_mismatches:
-            raise SystemExit(f"Untouched TIML transforms changed unexpectedly: {', '.join(untouched_mismatches)}")
-        expected = edit_info["expected_native_value"]
-        if isinstance(output_value, tuple):
-            if int(output_value[0]) != int(expected):
-                raise SystemExit(f"Expected first exported color component {expected}, got {output_value[0]}.")
-        else:
-            if abs(float(output_value) - float(expected)) > 1e-4:
-                raise SystemExit(f"Expected exported TIML value {expected}, got {output_value}.")
+        if source_snapshots != output_snapshots:
+            raise SystemExit("Untouched TIML controller export changed the embedded TIML payload.")
     finally:
         addon.unregister()
 
