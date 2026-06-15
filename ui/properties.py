@@ -128,6 +128,26 @@ def clear_diagnostics(scene_props):
     scene_props.selected_diagnostic_index = 0
 
 
+def clear_export_analysis(scene_props):
+    scene_props.last_export_action_name = ""
+    scene_props.last_export_track_count = 0
+    scene_props.last_export_sparse_key_count = 0
+    scene_props.last_export_supported_track_count = 0
+    scene_props.last_export_frame_count = 0
+    scene_props.last_export_buffer_summary = ""
+    scene_props.last_export_warning_count = 0
+    scene_props.last_export_error_count = 0
+    scene_props.last_export_mode = ""
+    scene_props.last_export_source_name = ""
+    scene_props.last_export_entry_id = 0
+    scene_props.last_export_source_action_count = 0
+    scene_props.last_export_preserves_siblings = False
+    scene_props.last_export_matching_timl_controller_count = 0
+    scene_props.last_export_matching_timl_controller_names = ""
+    scene_props.last_export_timl_source_scope = ""
+    scene_props.last_export_timl_writeback_scope = ""
+
+
 def add_diagnostic(scene_props, level: str, source: str, message: str):
     item = scene_props.diagnostics.add()
     item.level = level
@@ -512,6 +532,44 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
         name="Export Errors",
         default=0,
         min=0,
+    )
+    last_export_mode: bpy.props.StringProperty(
+        name="Export Mode",
+        default="",
+    )
+    last_export_source_name: bpy.props.StringProperty(
+        name="Export Source Name",
+        default="",
+    )
+    last_export_entry_id: bpy.props.IntProperty(
+        name="Export Entry ID",
+        default=0,
+    )
+    last_export_source_action_count: bpy.props.IntProperty(
+        name="Export Source Action Count",
+        default=0,
+        min=0,
+    )
+    last_export_preserves_siblings: bpy.props.BoolProperty(
+        name="Export Preserves Siblings",
+        default=False,
+    )
+    last_export_matching_timl_controller_count: bpy.props.IntProperty(
+        name="Export Matching TIML Controllers",
+        default=0,
+        min=0,
+    )
+    last_export_matching_timl_controller_names: bpy.props.StringProperty(
+        name="Export Matching TIML Controller Names",
+        default="",
+    )
+    last_export_timl_source_scope: bpy.props.StringProperty(
+        name="Export TIML Source Scope",
+        default="",
+    )
+    last_export_timl_writeback_scope: bpy.props.StringProperty(
+        name="Export TIML Writeback Scope",
+        default="",
     )
     last_lmt_path: bpy.props.StringProperty(
         name="Last LMT",

@@ -15,6 +15,7 @@ from ..core.formats.lmt.reader import read_lmt_bytes
 from ..core.formats.lmt.reader import read_lmt_file
 from ..core.formats.lmt.validation import validate_lmt
 from .properties import add_diagnostic
+from .properties import clear_export_analysis
 from .properties import clear_diagnostics
 from .properties import _populate_track_items
 from .properties import _populate_timl_transform_items
@@ -305,14 +306,7 @@ class MHWANIMTOOLS_OT_clear_lmt_session(bpy.types.Operator):
         scene_props.last_imported_timl_object_name = ""
         clear_timl_analysis(scene_props)
         scene_props.export_action = None
-        scene_props.last_export_action_name = ""
-        scene_props.last_export_track_count = 0
-        scene_props.last_export_sparse_key_count = 0
-        scene_props.last_export_supported_track_count = 0
-        scene_props.last_export_frame_count = 0
-        scene_props.last_export_buffer_summary = ""
-        scene_props.last_export_warning_count = 0
-        scene_props.last_export_error_count = 0
+        clear_export_analysis(scene_props)
         scene_props.last_status = "Cleared LMT session."
         return {"FINISHED"}
 

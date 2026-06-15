@@ -29,6 +29,8 @@ try:
     from ..core.formats.lmt.writer import DEFAULT_VERSION
     from ..core.formats.lmt.writer import write_lmt_file
     from .export_sampling import sample_action_for_lmt_export
+    from .export_impact import ExportImpactSummary
+    from .export_impact import build_export_impact_summary
     from .timl_export import assess_timl_export_readiness
     from .timl_writeback import build_matching_timl_writeback
     from .timl_writeback import matching_timl_controllers_for_export_action
@@ -48,6 +50,8 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.lmt.source_preservation import identify_preservable_decoded_track_identities
     from core.formats.lmt.writer import DEFAULT_VERSION
     from core.formats.lmt.writer import write_lmt_file
+    from blender_adapter.export_impact import ExportImpactSummary
+    from blender_adapter.export_impact import build_export_impact_summary
     from blender_adapter.export_sampling import sample_action_for_lmt_export
     from blender_adapter.timl_export import assess_timl_export_readiness
     from blender_adapter.timl_writeback import build_matching_timl_writeback
@@ -86,6 +90,7 @@ class ExportAnalysis:
     reconstructed: object | None = None
     plan: object | None = None
     metadata: ExportSourceMetadata = field(default_factory=ExportSourceMetadata)
+    impact_summary: ExportImpactSummary = field(default_factory=ExportImpactSummary)
     diagnostics: tuple[ExportWorkflowDiagnostic, ...] = ()
     warning_count: int = 0
     error_count: int = 0
@@ -399,12 +404,14 @@ def analyze_export_action(scene_props, *, actions, objects) -> ExportAnalysis:
 
     warning_count = sampling_result.warning_count + metadata_report.warning_count + plan.warning_count
     error_count = sampling_result.error_count + metadata_report.error_count + plan.error_count
+    impact_summary = build_export_impact_summary(action, metadata, objects)
     return ExportAnalysis(
         action=action,
         sampling_result=sampling_result,
         reconstructed=reconstructed,
         plan=plan,
         metadata=metadata,
+        impact_summary=impact_summary,
         diagnostics=tuple(workflow_diagnostics),
         warning_count=warning_count,
         error_count=error_count,

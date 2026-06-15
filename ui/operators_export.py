@@ -12,6 +12,7 @@ from ..blender_adapter.export_workflow import write_export_file
 from ..core.diagnostics.errors import BinaryFormatError
 from ..core.diagnostics.errors import ValidationError
 from .properties import add_diagnostic
+from .properties import clear_export_analysis
 from .properties import clear_diagnostics
 
 
@@ -28,6 +29,7 @@ def _publish_export_diagnostics(scene_props, diagnostics):
 
 def _apply_export_summary(scene_props, analysis):
     scene_props.export_action = analysis.action
+    clear_export_analysis(scene_props)
     if analysis.sampling_result is None or analysis.reconstructed is None or analysis.plan is None:
         return
     scene_props.last_export_action_name = analysis.sampling_result.action_name
@@ -38,6 +40,15 @@ def _apply_export_summary(scene_props, analysis):
     scene_props.last_export_buffer_summary = analysis.plan.buffer_breakdown
     scene_props.last_export_warning_count = analysis.warning_count
     scene_props.last_export_error_count = analysis.error_count
+    scene_props.last_export_mode = analysis.impact_summary.export_mode
+    scene_props.last_export_source_name = analysis.impact_summary.source_name
+    scene_props.last_export_entry_id = analysis.impact_summary.entry_id
+    scene_props.last_export_source_action_count = analysis.impact_summary.source_action_count
+    scene_props.last_export_preserves_siblings = analysis.impact_summary.preserves_siblings
+    scene_props.last_export_matching_timl_controller_count = analysis.impact_summary.matching_timl_controller_count
+    scene_props.last_export_matching_timl_controller_names = ", ".join(analysis.impact_summary.matching_timl_controller_names)
+    scene_props.last_export_timl_source_scope = analysis.impact_summary.timl_source_scope_label
+    scene_props.last_export_timl_writeback_scope = analysis.impact_summary.timl_writeback_scope_label
 
 
 class MHWANIMTOOLS_OT_analyze_export_action(bpy.types.Operator):
@@ -48,6 +59,7 @@ class MHWANIMTOOLS_OT_analyze_export_action(bpy.types.Operator):
     def execute(self, context):
         scene_props = context.scene.mhw_anim_tools
         clear_diagnostics(scene_props)
+        clear_export_analysis(scene_props)
         analysis = analyze_export_action(scene_props, actions=bpy.data.actions, objects=bpy.data.objects)
         _publish_export_diagnostics(scene_props, analysis.diagnostics)
         if analysis.action is None:
@@ -72,7 +84,8 @@ class MHWANIMTOOLS_OT_analyze_export_action(bpy.types.Operator):
             f"skipped={analysis.sampling_result.skipped_track_count}, "
             f"warnings={analysis.warning_count}, "
             f"frames=0->{analysis.sampling_result.frame_end}, "
-            f"mode={analysis.metadata.export_mode}"
+            f"entry={analysis.impact_summary.entry_id:03d}, "
+            f"mode={analysis.impact_summary.export_mode}"
         )
         self.report({"INFO"}, scene_props.last_status)
         return {"FINISHED"}
@@ -97,6 +110,7 @@ class MHWANIMTOOLS_OT_export_lmt_action(bpy.types.Operator, ExportHelper):
     def execute(self, context):
         scene_props = context.scene.mhw_anim_tools
         clear_diagnostics(scene_props)
+        clear_export_analysis(scene_props)
         analysis = analyze_export_action(scene_props, actions=bpy.data.actions, objects=bpy.data.objects)
         _publish_export_diagnostics(scene_props, analysis.diagnostics)
         if analysis.action is None:
@@ -126,7 +140,8 @@ class MHWANIMTOOLS_OT_export_lmt_action(bpy.types.Operator, ExportHelper):
             f"tracks={analysis.plan.supported_track_count}, "
             f"sparse_keys={analysis.reconstructed.sparse_key_count}, "
             f"warnings={analysis.warning_count}, "
-            f"mode={analysis.metadata.export_mode}"
+            f"entry={analysis.impact_summary.entry_id:03d}, "
+            f"mode={analysis.impact_summary.export_mode}"
         )
         self.report({"INFO"}, scene_props.last_status)
         return {"FINISHED"}

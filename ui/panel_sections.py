@@ -406,6 +406,38 @@ def _draw_export_section(layout, scene_props):
     stats_box.label(text=f"Warnings: {scene_props.last_export_warning_count}")
     stats_box.label(text=f"Errors: {scene_props.last_export_error_count}")
 
+    if (
+        scene_props.last_export_mode
+        or scene_props.last_export_source_name
+        or scene_props.last_export_matching_timl_controller_count
+        or scene_props.last_export_timl_source_scope
+        or scene_props.last_export_timl_writeback_scope
+    ):
+        impact_box = panel_body.box()
+        impact_box.label(text="Source Impact", icon="INFO")
+        if scene_props.last_export_mode:
+            impact_box.label(text=f"Mode: {scene_props.last_export_mode}")
+        if scene_props.last_export_source_name:
+            impact_box.label(text=f"Source: {os.path.basename(scene_props.last_export_source_name)}")
+        impact_box.label(text=f"Entry: {scene_props.last_export_entry_id:03d}")
+        if scene_props.last_export_source_action_count:
+            impact_box.label(text=f"Source actions: {scene_props.last_export_source_action_count}")
+            sibling_text = "yes" if scene_props.last_export_preserves_siblings else "no"
+            impact_box.label(text=f"Preserves siblings: {sibling_text}")
+        if scene_props.last_export_matching_timl_controller_count:
+            impact_box.label(
+                text=(
+                    "Matching TIML controllers: "
+                    f"{scene_props.last_export_matching_timl_controller_count}"
+                )
+            )
+            if scene_props.last_export_matching_timl_controller_names:
+                impact_box.label(text=scene_props.last_export_matching_timl_controller_names)
+        if scene_props.last_export_timl_source_scope:
+            impact_box.label(text=f"TIML source scope: {scene_props.last_export_timl_source_scope}")
+        if scene_props.last_export_timl_writeback_scope:
+            impact_box.label(text=f"TIML writeback scope: {scene_props.last_export_timl_writeback_scope}")
+
 
 def draw_workspace_panel(layout, context):
     scene_props = context.scene.mhw_anim_tools
