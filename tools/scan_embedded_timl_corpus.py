@@ -19,6 +19,7 @@ from collections import Counter
 import json
 import math
 from pathlib import Path
+import re
 import sys
 import time
 
@@ -140,6 +141,84 @@ def _iter_mod3_search_roots(asset_root: Path) -> list[Path]:
     return roots
 
 
+def _find_chunk_root(path: Path) -> Path | None:
+    current = path.resolve()
+    while current.parent != current:
+        if current.name.lower() == "chunk":
+            return current
+        current = current.parent
+    return None
+
+
+def _extract_printable_strings(data: bytes) -> list[str]:
+    return [match.decode("latin1", errors="ignore") for match in re.findall(rb"[ -~]{4,}", data)]
+
+
+def _normalize_gen_model_reference(text: str) -> str:
+    root_markers = (
+        "Assets\\",
+        "npc\\",
+        "otomo\\",
+        "hm\\",
+        "em\\",
+        "accessory\\",
+        "event\\",
+        "ft\\",
+        "gm\\",
+        "item\\",
+        "pl\\",
+        "sm\\",
+        "st\\",
+        "ui\\",
+        "wp\\",
+    )
+    start = -1
+    for marker in root_markers:
+        marker_index = text.find(marker)
+        if marker_index >= 0 and (start < 0 or marker_index < start):
+            start = marker_index
+    if start < 0:
+        return ""
+    normalized = text[start:].strip().strip("\x00")
+    if "\\mod\\" not in normalized:
+        return ""
+    normalized = normalized.replace("/", "\\")
+    segments = [segment for segment in normalized.split("\\") if segment]
+    if len(segments) < 3:
+        return ""
+    return "\\".join(segments)
+
+
+def _resolve_gen_model_reference_to_mod3(reference: str, *, chunk_root: Path) -> str:
+    normalized = _normalize_gen_model_reference(reference)
+    if not normalized:
+        return ""
+    path = chunk_root.joinpath(*normalized.split("\\"))
+    candidate = path.with_suffix(".mod3")
+    if candidate.is_file():
+        return str(candidate)
+    return ""
+
+
+def _existing_gen_model_reference_candidates(asset_root: Path) -> list[str]:
+    chunk_root = _find_chunk_root(asset_root)
+    if chunk_root is None:
+        return []
+    mod_root = asset_root / "mod"
+    if not mod_root.is_dir():
+        return []
+    results: list[str] = []
+    seen: set[str] = set()
+    for gen_path in sorted(mod_root.glob("*.gen")):
+        for text in _extract_printable_strings(gen_path.read_bytes()):
+            candidate = _resolve_gen_model_reference_to_mod3(text, chunk_root=chunk_root)
+            if not candidate or candidate in seen:
+                continue
+            seen.add(candidate)
+            results.append(candidate)
+    return results
+
+
 def _nearby_mod3_candidates_for_lmt(lmt_path: Path, *, limit: int = 5) -> list[str]:
     stem = lmt_path.stem.lower()
     clip_folder = lmt_path.parent.name.lower()
@@ -185,6 +264,11 @@ def _nearby_mod3_candidates_for_lmt(lmt_path: Path, *, limit: int = 5) -> list[s
                     score += 1
                 score += max(0, len(candidate.relative_to(search_root).parts) - 1)
                 ranked.append((score, candidate_path))
+        for index, candidate_path in enumerate(_existing_gen_model_reference_candidates(asset_root)):
+            if candidate_path in seen:
+                continue
+            seen.add(candidate_path)
+            ranked.append((6 + int(index), candidate_path))
     ranked.sort(key=lambda item: (item[0], item[1].lower()))
     return [path for _score, path in ranked[: int(limit)]]
 
