@@ -75,9 +75,57 @@ def _is_integral_frame(value: float) -> bool:
     return math.isclose(float(value), float(rounded), rel_tol=0.0, abs_tol=1e-6)
 
 
+def _nearby_mod3_candidates_for_lmt(lmt_path: Path, *, limit: int = 5) -> list[str]:
+    stem = lmt_path.stem.lower()
+    clip_folder = lmt_path.parent.name.lower()
+    asset_roots: list[Path] = []
+    current = lmt_path.parent
+    while current.parent != current:
+        if current.name.lower() == "mot":
+            asset_root = current.parent
+            if asset_root not in asset_roots:
+                asset_roots.append(asset_root)
+        current = current.parent
+
+    ranked: list[tuple[int, str]] = []
+    seen: set[str] = set()
+    for asset_root in asset_roots:
+        mod_root = asset_root / "mod"
+        if not mod_root.is_dir():
+            continue
+        asset_name = asset_root.name.lower()
+        for candidate in mod_root.rglob("*.mod3"):
+            candidate_path = str(candidate)
+            if candidate_path in seen:
+                continue
+            seen.add(candidate_path)
+            candidate_stem = candidate.stem.lower()
+            score = 10
+            if candidate_stem == stem:
+                score = 0
+            elif candidate_stem == clip_folder:
+                score = 1
+            elif candidate_stem == asset_name:
+                score = 2
+            elif candidate_stem.startswith(asset_name):
+                score = 3
+            elif asset_name and asset_name in candidate_stem:
+                score = 4
+            elif stem and stem in candidate_stem:
+                score = 5
+            ranked.append((score, candidate_path))
+    ranked.sort(key=lambda item: (item[0], item[1].lower()))
+    return [path for _score, path in ranked[: int(limit)]]
+
+
+def _guess_mod3_path_for_lmt(lmt_path: Path) -> str:
+    candidates = _nearby_mod3_candidates_for_lmt(lmt_path, limit=1)
+    return candidates[0] if candidates else ""
+
+
 def _new_state(asset_root: Path, total_files: int, limit: int | None) -> dict[str, object]:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "asset_root": str(asset_root.resolve()),
         "limit": limit,
         "total_files": int(total_files),
@@ -108,6 +156,7 @@ def _new_state(asset_root: Path, total_files: int, limit: int | None) -> dict[st
         "easing_counts": {},
         "top_parse_errors": [],
         "advanced_payload_examples": [],
+        "rebuild_friendly_payload_examples": [],
         "unsupported_type_examples": [],
         "complete": False,
         "last_path": "",
@@ -168,6 +217,7 @@ def _summary_from_state(state: dict[str, object]) -> dict[str, object]:
         "easing_counts": _sorted_counter(dict(state["easing_counts"]), numeric=True),
         "top_parse_errors": list(state["top_parse_errors"])[:20],
         "advanced_payload_examples": list(state["advanced_payload_examples"])[:20],
+        "rebuild_friendly_payload_examples": list(state["rebuild_friendly_payload_examples"])[:20],
         "unsupported_type_examples": list(state["unsupported_type_examples"])[:20],
         "supported_transform_ratio": (float(supported_transform_count) / float(transform_count)) if transform_count else 0.0,
     }
@@ -230,12 +280,16 @@ def _process_payload(state: dict[str, object], *, lmt_path: Path, payload_offset
 
     payload_has_advanced_source = False
     payload_unsupported_types: list[int] = []
+    payload_supported_transform_count = 0
+    payload_transform_count = 0
     for type_index, type_entry in enumerate(data_entry.types):
         for transform_index, transform in enumerate(type_entry.transforms):
+            payload_transform_count += 1
             semantics = get_data_type_semantics(transform.data_type)
             _increment(state["data_type_counts"], semantics.name)
             if int(transform.data_type) in SUPPORTED_TIML_DATA_TYPES:
                 state["supported_transform_count"] = int(state["supported_transform_count"]) + 1
+                payload_supported_transform_count += 1
             else:
                 state["unsupported_data_type_transform_count"] = int(state["unsupported_data_type_transform_count"]) + 1
                 payload_unsupported_types.append(int(transform.data_type))
@@ -275,6 +329,19 @@ def _process_payload(state: dict[str, object], *, lmt_path: Path, payload_offset
                 "payload_offset": int(payload_offset),
                 "action_ids": [int(action_id) for action_id in payload_action_ids],
                 "data_types": sorted(set(int(value) for value in payload_unsupported_types)),
+            },
+        )
+    if (not payload_has_advanced_source) and (not payload_unsupported_types) and payload_transform_count > 0:
+        _append_capped(
+            state["rebuild_friendly_payload_examples"],
+            {
+                "path": str(lmt_path),
+                "mod3_path": _guess_mod3_path_for_lmt(lmt_path),
+                "mod3_candidates": _nearby_mod3_candidates_for_lmt(lmt_path),
+                "payload_offset": int(payload_offset),
+                "action_ids": [int(action_id) for action_id in payload_action_ids],
+                "transform_count": int(payload_transform_count),
+                "supported_transform_count": int(payload_supported_transform_count),
             },
         )
 

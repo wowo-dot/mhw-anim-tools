@@ -48,6 +48,11 @@ Current export-prep scope:
 - minimal Blender export operator/file dialog from the sidebar and File > Export menu
 - source-aware merge export that preserves sibling actions inside the original container
 - raw TIML subtree preservation with absolute-offset rebasing during merged export
+- source-backed TIML controller writeback for:
+  - unchanged payload preservation
+  - value-only edits that preserve advanced source semantics
+  - simple-source structural rebuilds from Blender CONSTANT/LINEAR keys
+  - explicit blocking for unsafe advanced-source structural rebuilds
 - normalized sampled-track diagnostics before any binary packing/compression work
 - synthetic and live MOD3 symmetry smoke coverage against decoded LMT source samples and reconstructed sparse tracks
 - synthetic and live MOD3 writer roundtrip smoke coverage against decoded LMT source samples
@@ -66,7 +71,8 @@ Quaternion note:
 Not implemented yet:
 
 - helper/tether playback
-- TIML Blender-side import/export rewrite
+- broad TIML structural rebuild coverage beyond the current conservative source-backed path
+- standalone TIML import/export workflows outside source-backed LMT merge export
 - EFX rewrite
 
 ## Layout
@@ -84,6 +90,9 @@ Useful smoke scripts:
 - `tools/smoke_import_selected_action.py`
 - `tools/smoke_import_attached_timl.py`
 - `tools/smoke_analyze_timl_controller.py`
+- `tools/smoke_merge_export_with_timl_edit.py`
+- `tools/smoke_merge_export_with_timl_simple_structural_edit.py`
+- `tools/smoke_merge_export_with_timl_structural_edit.py`
 - `tools/smoke_sample_export_action.py`
 - `tools/smoke_write_lmt_roundtrip.py`
 
@@ -92,6 +101,7 @@ Useful corpus scans:
 - `tools/scan_lmt_export_safety.py`
 - `tools/scan_lmt_writer_readiness.py`
 - `tools/scan_timl_corpus.py`
+- `tools/scan_embedded_timl_corpus.py`
 
 Release planning:
 
