@@ -41,6 +41,11 @@ class TimlUiLabelTests(unittest.TestCase):
         message = timl_writeback_reason_label("unsupported_rebuild", reason="boolean_off_grid")
         self.assertIn("0 or 1", message)
 
+    def test_reason_label_mentions_range_for_color_blocks(self):
+        message = timl_writeback_reason_label("unsupported_rebuild", reason="color_range")
+        self.assertIn("0..1", message)
+        self.assertIn("color range", message)
+
     def test_status_counter_tracks_each_writeback_mode(self):
         counts = count_timl_writeback_statuses(
             [

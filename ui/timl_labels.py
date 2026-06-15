@@ -107,6 +107,8 @@ def timl_writeback_reason_label(status: str, *, reason: str = "", source_advance
             return "This integer transform is outside the writable TIML integer range, so export is blocked until the values are brought back into range."
         if reason == "boolean_off_grid":
             return "This boolean transform currently uses preview values other than 0 or 1, so export is blocked until the keys are made explicitly boolean."
+        if reason == "color_range":
+            return "This color transform currently goes outside the writable preview range, so export is blocked until the keys are brought back into the 0..1 color range."
         return "This transform needs a structural rebuild, but current preview interpolation is unsupported. Use CONSTANT or LINEAR for now."
     return ""
 

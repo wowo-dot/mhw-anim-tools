@@ -241,6 +241,47 @@ class TimlSamplingTests(unittest.TestCase):
         self.assertIn("off-grid", messages)
         self.assertIn("not 0/1", messages)
 
+    def test_color_values_warn_when_out_of_range(self):
+        action = _attached_timl_action(
+            "TIML::color_warn::000",
+            [
+                FakeFCurve('["timl_color"]', 0, {0.0: 1.2}),
+                FakeFCurve('["timl_color"]', 1, {0.0: 0.5}),
+                FakeFCurve('["timl_color"]', 2, {0.0: -0.1}),
+                FakeFCurve('["timl_color"]', 3, {0.0: 1.0}),
+            ],
+            transform_count=1,
+        )
+        controller = FakeController(
+            "TIML Controller::color_warn::000",
+            action=action,
+            **{
+                TIML_ACTION_NAME_KEY: action.name,
+                TIML_BINDINGS_KEY: json.dumps(
+                    [
+                        _binding(
+                            property_name="timl_color",
+                            type_index=0,
+                            transform_index=0,
+                            data_type=3,
+                            data_type_name="color_rgba8",
+                            component_labels=("r", "g", "b", "a"),
+                            normalized_color=True,
+                        )
+                    ]
+                ),
+            },
+        )
+
+        result = sample_timl_controller_action(controller)
+
+        self.assertEqual(result.error_count, 0)
+        self.assertEqual(result.sampled_transform_count, 1)
+        self.assertEqual(result.warning_count, 1)
+        messages = "\n".join(diagnostic.message for diagnostic in result.diagnostics)
+        self.assertIn("0..1", messages)
+        self.assertIn("block safe TIML writeback", messages)
+
     def test_non_linear_interpolation_warns_but_samples(self):
         action = _attached_timl_action(
             "TIML::bezier::000",

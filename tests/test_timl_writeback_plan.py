@@ -15,6 +15,7 @@ from blender_adapter.timl_writeback_plan import plan_timl_controller_writeback
 from core.formats.timl.reader import SIGNED_KEYFRAME_STRUCT
 from core.formats.timl.reader import UNSIGNED_KEYFRAME_STRUCT
 from tests.test_timl_reader import _build_embedded_timl_source_bytes
+from tests.test_timl_reader import _build_color_timl_bytes
 from tests.test_timl_reader import _build_simple_embedded_timl_source_bytes
 from tests.test_timl_reader import DATA_STRUCT
 from tests.test_timl_reader import TRANSFORM_STRUCT
@@ -583,6 +584,72 @@ class TimlWritebackPlanTests(unittest.TestCase):
         self.assertEqual(plan.transform_plans[0].status, "unsupported_rebuild")
         self.assertEqual(plan.transform_plans[0].reason, "integer_precision_risk")
         self.assertTrue(any("exact Blender float precision" in diagnostic.message for diagnostic in plan.diagnostics))
+
+    def test_color_out_of_range_is_blocked_before_writer(self):
+        source_bytes = _build_color_timl_bytes()
+        source_offset = 48
+        controller_action = _FakeAction("TIML::sample::000", mhw_anim_tools_import_kind="attached_timl")
+        controller = _FakeController(
+            "TIML Controller::sample::000",
+            action=controller_action,
+            **{
+                TIML_ACTION_NAME_KEY: controller_action.name,
+                TIML_BINDINGS_KEY: "[]",
+                TIML_IMPORTED_PREVIEW_SIGNATURE_KEY: imported_preview_signature_json(
+                    [
+                        _ImportedTransform(
+                            type_index=0,
+                            transform_index=0,
+                            data_type=3,
+                            keyframes=(_ImportedKeyframe(frame=8.0, value=(16.0, 32.0, 64.0, 255.0), interpolation=1),),
+                        )
+                    ]
+                ),
+            },
+        )
+        sampled = TimlSamplingResult(
+            metadata=TimlControllerMetadata(
+                carrier_name=controller.name,
+                action_name=controller_action.name,
+                source_lmt="sample.timl",
+                entry_id=0,
+                source_offset=source_offset,
+                transform_count=1,
+            ),
+            sampled_transform_count=1,
+            keyframe_count=1,
+            sampled_transforms=(
+                SampledTimlTransform(
+                    property_name="timl_color",
+                    type_index=0,
+                    transform_index=0,
+                    timeline_parameter_hash=0xABCD,
+                    datatype_hash=0xDEAD,
+                    data_type=3,
+                    data_type_name="color_rgba8",
+                    value_kind="color",
+                    control_kind="float",
+                    component_labels=("r", "g", "b", "a"),
+                    keyframes=(
+                        SampledTimlKeyframe(frame=8.0, value=(300.0, 32.0, 64.0, -1.0), interpolation="LINEAR"),
+                    ),
+                ),
+            ),
+        )
+
+        with patch("blender_adapter.timl_writeback_plan.sample_timl_controller_action", return_value=sampled):
+            plan = plan_timl_controller_writeback(
+                controller,
+                source_bytes=source_bytes,
+                source_name="sample.timl",
+                entry_id=0,
+                source_offset=source_offset,
+            )
+
+        self.assertGreater(plan.error_count, 0)
+        self.assertEqual(plan.transform_plans[0].status, "unsupported_rebuild")
+        self.assertEqual(plan.transform_plans[0].reason, "color_range")
+        self.assertTrue(any("require clamping" in diagnostic.message for diagnostic in plan.diagnostics))
 
 
 if __name__ == "__main__":

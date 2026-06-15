@@ -158,6 +158,9 @@ def _sampled_transform_writeback_block_reason(sampled_transform) -> str:
             for value in components
         ):
             return "boolean_off_grid"
+    elif data_type == 3:
+        if any((not math.isfinite(value)) or value < 0.0 or value > 255.0 for value in components):
+            return "color_range"
     return ""
 
 
@@ -170,6 +173,8 @@ def _sampled_transform_writeback_block_message(reason: str) -> str:
         return "integer preview values are off-grid and would require lossy quantization"
     if reason == "boolean_off_grid":
         return "boolean preview values are not limited to 0 or 1 and would require lossy quantization"
+    if reason == "color_range":
+        return "color preview values fall outside the writable 0..255 range and would require clamping"
     return "preview values are not safely writable"
 
 

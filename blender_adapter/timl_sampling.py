@@ -325,7 +325,7 @@ def _validate_transform_values(result: TimlSamplingResult, binding: TimlControll
         result.add(
             "WARNING",
             source,
-            "Color preview values fall outside the expected 0..1 Blender range and may clamp when written back.",
+            "Color preview values fall outside the expected 0..1 Blender range and will block safe TIML writeback until they are brought back into range.",
         )
     if semantics.value_kind == "integer":
         if _has_integer_precision_risk(native_values):
