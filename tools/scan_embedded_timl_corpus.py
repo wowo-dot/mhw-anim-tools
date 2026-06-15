@@ -21,6 +21,7 @@ from functools import lru_cache
 import json
 import math
 from pathlib import Path
+from pathlib import PureWindowsPath
 import re
 import sys
 import time
@@ -303,6 +304,10 @@ def _body_profile_fallback_candidates(asset_root: Path, *, limit: int = 5) -> li
     return results
 
 
+def _windows_relative_path_to_host_path(relative_path: str) -> Path:
+    return Path(*PureWindowsPath(str(relative_path)).parts)
+
+
 def _known_companion_fallback_candidates(lmt_path: Path) -> list[str]:
     chunk_root = _find_chunk_root(lmt_path)
     if chunk_root is None:
@@ -314,7 +319,7 @@ def _known_companion_fallback_candidates(lmt_path: Path) -> list[str]:
     candidates = KNOWN_COMPANION_FALLBACKS.get(relative_key, ())
     results: list[str] = []
     for relative_path in candidates:
-        absolute_path = chunk_root / relative_path
+        absolute_path = chunk_root / _windows_relative_path_to_host_path(relative_path)
         if absolute_path.is_file():
             results.append(str(absolute_path))
     return results

@@ -4,11 +4,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tools.scan_embedded_timl_corpus import _known_companion_fallback_candidates
 from tools.scan_embedded_timl_corpus import _nearby_mod3_candidates_for_lmt
 from tools.scan_embedded_timl_corpus import _normalize_gen_model_reference
 from tools.scan_embedded_timl_corpus import _record_ranked_example
 from tools.scan_embedded_timl_corpus import _resolve_gen_model_reference_to_mod3
 from tools.scan_embedded_timl_corpus import _shared_payload_example_rank
+from tools.scan_embedded_timl_corpus import _windows_relative_path_to_host_path
 
 
 class EmbeddedTimlCorpusScanTests(unittest.TestCase):
@@ -122,6 +124,32 @@ class EmbeddedTimlCorpusScanTests(unittest.TestCase):
             candidates = _nearby_mod3_candidates_for_lmt(lmt_path, limit=5)
 
             self.assertIn(str(model_path), candidates)
+
+    def test_windows_relative_path_to_host_path_splits_backslash_segments(self):
+        converted = _windows_relative_path_to_host_path(
+            "Assets\\evm\\evm055\\evm055_00\\mod\\evm055_00.mod3"
+        )
+
+        self.assertEqual(
+            converted,
+            Path("Assets") / "evm" / "evm055" / "evm055_00" / "mod" / "evm055_00.mod3",
+        )
+
+    def test_known_companion_fallback_candidates_resolve_windows_style_override_paths(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            chunk_root = Path(tmpdir) / "chunk"
+            lmt_path = chunk_root / "npc" / "common" / "mot" / "ncom151_09" / "ncom151_09.lmt"
+            model_path = chunk_root / "Assets" / "evm" / "evm055" / "evm055_00" / "mod" / "evm055_00.mod3"
+
+            lmt_path.parent.mkdir(parents=True, exist_ok=True)
+            model_path.parent.mkdir(parents=True, exist_ok=True)
+
+            lmt_path.write_bytes(b"")
+            model_path.write_bytes(b"")
+
+            candidates = _known_companion_fallback_candidates(lmt_path)
+
+            self.assertEqual(candidates, [str(model_path)])
 
     def test_ranked_example_retention_prefers_runnable_shared_examples(self):
         with tempfile.TemporaryDirectory() as tmpdir:

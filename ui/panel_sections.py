@@ -2,6 +2,7 @@
 """Section drawing helpers for the Blender UI surfaces."""
 
 import json
+import ntpath
 import os
 
 from ..blender_adapter.armature import summarize_track_binding
@@ -22,6 +23,11 @@ def timl_controller_for_object_panel(context):
     if is_imported_timl_controller(controller) and active_object == controller:
         return controller
     return None
+
+
+def _display_source_name(path_text: str) -> str:
+    text = str(path_text or "")
+    return ntpath.basename(text) or os.path.basename(text)
 
 
 def _draw_timl_writeback_counts(layout, scene_props):
@@ -418,7 +424,7 @@ def _draw_export_section(layout, scene_props):
         if scene_props.last_export_mode:
             impact_box.label(text=f"Mode: {scene_props.last_export_mode}")
         if scene_props.last_export_source_name:
-            impact_box.label(text=f"Source: {os.path.basename(scene_props.last_export_source_name)}")
+            impact_box.label(text=f"Source: {_display_source_name(scene_props.last_export_source_name)}")
         impact_box.label(text=f"Entry: {scene_props.last_export_entry_id:03d}")
         if scene_props.last_export_source_action_count:
             impact_box.label(text=f"Source actions: {scene_props.last_export_source_action_count}")
