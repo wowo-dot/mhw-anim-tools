@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
+from collections import defaultdict
+from functools import lru_cache
 import json
 import math
 from pathlib import Path
@@ -36,7 +38,9 @@ from core.formats.timl.semantics import get_interpolation_label
 
 
 SUPPORTED_TIML_DATA_TYPES = {0, 1, 2, 3, 4}
-STATE_SCHEMA_VERSION = 5
+STATE_SCHEMA_VERSION = 6
+
+BODY_INFO_TOKEN_PATTERN = re.compile(r"npc\\common\\body_info\\([^\\\x00]+)")
 
 
 def iter_lmt_files(root: Path, limit: int | None):
@@ -154,6 +158,19 @@ def _extract_printable_strings(data: bytes) -> list[str]:
     return [match.decode("latin1", errors="ignore") for match in re.findall(rb"[ -~]{4,}", data)]
 
 
+def _extract_body_profile_tokens(data: bytes) -> list[str]:
+    text = data.decode("latin1", errors="ignore")
+    tokens: list[str] = []
+    seen: set[str] = set()
+    for match in BODY_INFO_TOKEN_PATTERN.finditer(text):
+        token = str(match.group(1) or "").strip()
+        if not token or token in seen:
+            continue
+        seen.add(token)
+        tokens.append(token)
+    return tokens
+
+
 def _normalize_gen_model_reference(text: str) -> str:
     root_markers = (
         "Assets\\",
@@ -219,6 +236,61 @@ def _existing_gen_model_reference_candidates(asset_root: Path) -> list[str]:
     return results
 
 
+@lru_cache(maxsize=None)
+def _body_profile_candidate_index(chunk_root_key: str) -> dict[str, tuple[tuple[str, int], ...]]:
+    chunk_root = Path(chunk_root_key)
+    npc_root = chunk_root / "npc"
+    counters: dict[str, Counter[str]] = defaultdict(Counter)
+    if not npc_root.is_dir():
+        return {}
+    for gen_path in sorted(npc_root.rglob("*.gen")):
+        data = gen_path.read_bytes()
+        tokens = _extract_body_profile_tokens(data)
+        if not tokens:
+            continue
+        resolved_candidates: set[str] = set()
+        for text in _extract_printable_strings(data):
+            candidate = _resolve_gen_model_reference_to_mod3(text, chunk_root=chunk_root)
+            if candidate:
+                resolved_candidates.add(candidate)
+        if not resolved_candidates:
+            continue
+        for token in tokens:
+            for candidate in resolved_candidates:
+                counters[token][candidate] += 1
+    return {
+        token: tuple((path, int(count)) for path, count in counter.most_common())
+        for token, counter in counters.items()
+    }
+
+
+def _body_profile_fallback_candidates(asset_root: Path, *, limit: int = 5) -> list[str]:
+    chunk_root = _find_chunk_root(asset_root)
+    if chunk_root is None:
+        return []
+    mod_root = asset_root / "mod"
+    if not mod_root.is_dir():
+        return []
+    token_counter: Counter[str] = Counter()
+    for gen_path in sorted(mod_root.glob("*.gen")):
+        for token in _extract_body_profile_tokens(gen_path.read_bytes()):
+            token_counter[token] += 1
+    if not token_counter:
+        return []
+    index = _body_profile_candidate_index(str(chunk_root))
+    results: list[str] = []
+    seen: set[str] = set()
+    for token, _count in token_counter.most_common():
+        for candidate, ref_count in index.get(token, ()):
+            if ref_count <= 0 or candidate in seen:
+                continue
+            seen.add(candidate)
+            results.append(candidate)
+            if len(results) >= int(limit):
+                return results
+    return results
+
+
 def _nearby_mod3_candidates_for_lmt(lmt_path: Path, *, limit: int = 5) -> list[str]:
     stem = lmt_path.stem.lower()
     clip_folder = lmt_path.parent.name.lower()
@@ -269,6 +341,11 @@ def _nearby_mod3_candidates_for_lmt(lmt_path: Path, *, limit: int = 5) -> list[s
                 continue
             seen.add(candidate_path)
             ranked.append((6 + int(index), candidate_path))
+        for index, candidate_path in enumerate(_body_profile_fallback_candidates(asset_root)):
+            if candidate_path in seen:
+                continue
+            seen.add(candidate_path)
+            ranked.append((30 + int(index), candidate_path))
     ranked.sort(key=lambda item: (item[0], item[1].lower()))
     return [path for _score, path in ranked[: int(limit)]]
 

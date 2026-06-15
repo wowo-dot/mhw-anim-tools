@@ -81,6 +81,32 @@ class EmbeddedTimlCorpusScanTests(unittest.TestCase):
 
             self.assertIn(str(model_path), candidates)
 
+    def test_nearby_mod3_candidates_can_use_body_profile_fallbacks(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            chunk_root = Path(tmpdir) / "chunk"
+            unresolved_root = chunk_root / "npc" / "npc016"
+            reference_root = chunk_root / "npc" / "npc117"
+            unresolved_lmt = unresolved_root / "mot" / "npc016_09" / "npc016_09.lmt"
+            unresolved_gen = unresolved_root / "mod" / "npc016_00.gen"
+            reference_gen = reference_root / "mod" / "npc117_00.gen"
+            model_path = chunk_root / "Assets" / "evm" / "evm527" / "evm527_00" / "mod" / "evm527_00.mod3"
+
+            unresolved_lmt.parent.mkdir(parents=True, exist_ok=True)
+            unresolved_gen.parent.mkdir(parents=True, exist_ok=True)
+            reference_gen.parent.mkdir(parents=True, exist_ok=True)
+            model_path.parent.mkdir(parents=True, exist_ok=True)
+
+            unresolved_lmt.write_bytes(b"")
+            unresolved_gen.write_bytes(b"\x00npc\\common\\body_info\\airu\x00")
+            reference_gen.write_bytes(
+                b"\x00npc\\common\\body_info\\airu\x00XAssets\\evm\\evm527\\evm527_00\\mod\\evm527_00\x00"
+            )
+            model_path.write_bytes(b"")
+
+            candidates = _nearby_mod3_candidates_for_lmt(unresolved_lmt, limit=5)
+
+            self.assertIn(str(model_path), candidates)
+
     def test_ranked_example_retention_prefers_runnable_shared_examples(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             live_mod3 = Path(tmpdir) / "live.mod3"

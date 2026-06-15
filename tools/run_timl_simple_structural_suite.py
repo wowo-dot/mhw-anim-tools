@@ -40,15 +40,18 @@ def _collect_examples(summary_paths: list[Path]) -> tuple[list[dict[str, object]
     return examples, missing_example_key_summaries
 
 
-def _choose_mod3_path(example: dict[str, object]) -> str:
-    primary = str(example.get("mod3_path", "") or "")
-    if primary and Path(primary).is_file():
-        return primary
-    for candidate in example.get("mod3_candidates", ()):
-        candidate_path = str(candidate or "")
-        if candidate_path and Path(candidate_path).is_file():
-            return candidate_path
-    return ""
+def _candidate_mod3_paths(example: dict[str, object]) -> list[str]:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for raw_path in (example.get("mod3_path", ""), *example.get("mod3_candidates", ())):
+        candidate_path = str(raw_path or "")
+        if not candidate_path or candidate_path in seen:
+            continue
+        if not Path(candidate_path).is_file():
+            continue
+        seen.add(candidate_path)
+        ordered.append(candidate_path)
+    return ordered
 
 
 def _resolve_entry_index(example: dict[str, object]) -> int:
@@ -81,16 +84,17 @@ def _select_examples(raw_examples: list[dict[str, object]], *, limit: int | None
     sortable: list[dict[str, object]] = []
     for example in raw_examples:
         lmt_path = str(example.get("path", "") or "")
-        mod3_path = _choose_mod3_path(example)
+        mod3_paths = _candidate_mod3_paths(example)
         entry_index = _resolve_entry_index(example)
         if not lmt_path or not Path(lmt_path).is_file():
             continue
-        if not mod3_path:
+        if not mod3_paths:
             continue
         if entry_index < 0:
             continue
         prepared = dict(example)
-        prepared["mod3_path"] = mod3_path
+        prepared["mod3_path"] = mod3_paths[0]
+        prepared["mod3_path_candidates"] = mod3_paths
         prepared["selected_entry_index"] = int(entry_index)
         sortable.append(prepared)
 
@@ -137,50 +141,74 @@ def _tail(text: str, *, lines: int = 40) -> str:
 
 def _run_case(*, blender_path: Path, smoke_script: Path, example: dict[str, object]) -> dict[str, object]:
     lmt_path = str(example["path"])
-    mod3_path = str(example["mod3_path"])
+    mod3_paths = [str(path) for path in example.get("mod3_path_candidates", ()) if str(path)]
+    if not mod3_paths:
+        mod3_paths = [str(example["mod3_path"])]
     entry_index = int(example["selected_entry_index"])
-    command = [
-        str(blender_path),
-        "--factory-startup",
-        "--background",
-        "--python",
-        str(smoke_script),
-        "--",
-        "--lmt",
-        lmt_path,
-        "--mod3",
-        mod3_path,
-        "--entry-index",
-        str(entry_index),
-    ]
-    started = time.perf_counter()
-    completed = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
-    duration_seconds = time.perf_counter() - started
-    stdout = completed.stdout or ""
-    stderr = completed.stderr or ""
-    parsed_payload = _extract_last_json_blob(stdout)
-    return {
-        "path": lmt_path,
-        "mod3_path": mod3_path,
-        "selected_entry_index": entry_index,
-        "action_ids": [int(value) for value in example.get("action_ids", ())],
-        "entry_indices": [int(value) for value in example.get("entry_indices", ())],
-        "transform_count": int(example.get("transform_count", 0) or 0),
-        "supported_transform_count": int(example.get("supported_transform_count", 0) or 0),
-        "summary_path": str(example.get("_summary_path", "") or ""),
-        "returncode": int(completed.returncode),
-        "ok": int(completed.returncode) == 0,
-        "duration_seconds": round(duration_seconds, 3),
-        "payload": parsed_payload,
-        "stdout_tail": _tail(stdout),
-        "stderr_tail": _tail(stderr),
-    }
+    attempts: list[dict[str, object]] = []
+    last_result: dict[str, object] | None = None
+    for mod3_path in mod3_paths:
+        command = [
+            str(blender_path),
+            "--factory-startup",
+            "--background",
+            "--python",
+            str(smoke_script),
+            "--",
+            "--lmt",
+            lmt_path,
+            "--mod3",
+            mod3_path,
+            "--entry-index",
+            str(entry_index),
+        ]
+        started = time.perf_counter()
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        duration_seconds = time.perf_counter() - started
+        stdout = completed.stdout or ""
+        stderr = completed.stderr or ""
+        parsed_payload = _extract_last_json_blob(stdout)
+        result = {
+            "path": lmt_path,
+            "mod3_path": mod3_path,
+            "selected_entry_index": entry_index,
+            "action_ids": [int(value) for value in example.get("action_ids", ())],
+            "entry_indices": [int(value) for value in example.get("entry_indices", ())],
+            "transform_count": int(example.get("transform_count", 0) or 0),
+            "supported_transform_count": int(example.get("supported_transform_count", 0) or 0),
+            "summary_path": str(example.get("_summary_path", "") or ""),
+            "returncode": int(completed.returncode),
+            "ok": int(completed.returncode) == 0,
+            "duration_seconds": round(duration_seconds, 3),
+            "payload": parsed_payload,
+            "stdout_tail": _tail(stdout),
+            "stderr_tail": _tail(stderr),
+        }
+        attempts.append(
+            {
+                "mod3_path": mod3_path,
+                "returncode": int(completed.returncode),
+                "stdout_tail": _tail(stdout, lines=8),
+                "stderr_tail": _tail(stderr, lines=8),
+            }
+        )
+        result["mod3_attempt_count"] = len(mod3_paths)
+        if len(attempts) > 1:
+            result["mod3_attempts"] = attempts
+        if int(completed.returncode) == 0:
+            return result
+        last_result = result
+    assert last_result is not None
+    last_result["mod3_attempt_count"] = len(mod3_paths)
+    if len(attempts) > 1:
+        last_result["mod3_attempts"] = attempts
+    return last_result
 
 
 def main():
