@@ -94,6 +94,8 @@ Current status note:
 
 - the writer/export-prep chain is now conservative, validated, and source-aware
 - standalone export intentionally blocks unsafe TIML/container cases
+- the `2026-06-15` grindstone real-asset export path passed selected-action
+  merge export and writer/read-decode roundtrip smoke checks cleanly
 - writer/read-decode roundtrip coverage exists, but final v1 confidence still
   depends on a wider real-asset export/reimport matrix and user-facing workflow
   documentation for what is preserved, promoted, or blocked
@@ -118,6 +120,8 @@ Current status note:
 - this is the strongest part of the current v1 path after core LMT import/export
 - value-only, shared-payload, and simple-source structural workflows all have
   targeted tests and live smoke tools
+- the `2026-06-15` real-asset suites passed `3/3` shared-payload cases and
+  `3/3` simple-structural cases across multiple source files
 - the remaining gap is not basic capability; it is corpus breadth and release
   confidence across more real assets and edit shapes
 

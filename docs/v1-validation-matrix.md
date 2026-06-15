@@ -16,6 +16,34 @@ Use it to track:
   broader corpus validation is still missing
 - `Pending`: not yet validated to release confidence
 
+## Latest observed validation snapshot
+
+Observed on `2026-06-15`:
+
+- `python -m compileall -q .` passed
+- `python -m unittest discover -s tests -v` passed with `171/171` tests green
+- real-asset grindstone smokes passed:
+  - selected LMT action import
+  - attached TIML controller import
+  - source-backed merge export
+  - writer/read-decode roundtrip
+- real-asset shared TIML suite passed `3/3` selected cases:
+  - `npc018_09_st`
+  - `npc016_09`
+  - `ncom151_09`
+- real-asset simple-source structural TIML suite passed `3/3` selected cases:
+  - `st06_ot100`
+  - `co00_00`
+  - `npc002_00`
+
+Useful note:
+
+- one shared-payload suite case (`npc016_09`) rejected the first MOD3 companion
+  candidate because it did not yield a compatible armature, then succeeded on a
+  later candidate; this is good evidence that the narrow fallback/companion
+  resolution path is behaving explicitly instead of silently binding to the
+  wrong thing
+
 ## Release-candidate asset set
 
 These are the first assets/workflow families we should keep validating as we
