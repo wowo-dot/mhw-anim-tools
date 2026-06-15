@@ -35,7 +35,7 @@ from core.formats.timl.semantics import get_interpolation_label
 
 
 SUPPORTED_TIML_DATA_TYPES = {0, 1, 2, 3, 4}
-STATE_SCHEMA_VERSION = 3
+STATE_SCHEMA_VERSION = 4
 
 
 def iter_lmt_files(root: Path, limit: int | None):
@@ -158,6 +158,7 @@ def _new_state(asset_root: Path, total_files: int, limit: int | None) -> dict[st
         "top_parse_errors": [],
         "advanced_payload_examples": [],
         "rebuild_friendly_payload_examples": [],
+        "shared_payload_examples": [],
         "unsupported_type_examples": [],
         "complete": False,
         "last_path": "",
@@ -224,6 +225,7 @@ def _summary_from_state(state: dict[str, object]) -> dict[str, object]:
         "top_parse_errors": list(state["top_parse_errors"])[:20],
         "advanced_payload_examples": list(state["advanced_payload_examples"])[:20],
         "rebuild_friendly_payload_examples": list(state["rebuild_friendly_payload_examples"])[:20],
+        "shared_payload_examples": list(state["shared_payload_examples"])[:20],
         "unsupported_type_examples": list(state["unsupported_type_examples"])[:20],
         "supported_transform_ratio": (float(supported_transform_count) / float(transform_count)) if transform_count else 0.0,
     }
@@ -297,6 +299,8 @@ def _process_payload(
     payload_unsupported_types: list[int] = []
     payload_supported_transform_count = 0
     payload_transform_count = 0
+    payload_simple_source_transform_count = 0
+    payload_advanced_source_transform_count = 0
     for type_index, type_entry in enumerate(data_entry.types):
         for transform_index, transform in enumerate(type_entry.transforms):
             payload_transform_count += 1
@@ -322,8 +326,10 @@ def _process_payload(
             if transform_has_advanced_source:
                 payload_has_advanced_source = True
                 state["advanced_source_transform_count"] = int(state["advanced_source_transform_count"]) + 1
+                payload_advanced_source_transform_count += 1
             else:
                 state["simple_source_transform_count"] = int(state["simple_source_transform_count"]) + 1
+                payload_simple_source_transform_count += 1
 
     if payload_has_advanced_source:
         state["payloads_with_advanced_source_count"] = int(state["payloads_with_advanced_source_count"]) + 1
@@ -361,6 +367,24 @@ def _process_payload(
                 "selected_entry_index": int(payload_entry_indices[0]) if payload_entry_indices else -1,
                 "transform_count": int(payload_transform_count),
                 "supported_transform_count": int(payload_supported_transform_count),
+            },
+        )
+    if len(payload_action_ids) > 1 and payload_transform_count > 0:
+        _append_capped(
+            state["shared_payload_examples"],
+            {
+                "path": str(lmt_path),
+                "mod3_path": _guess_mod3_path_for_lmt(lmt_path),
+                "mod3_candidates": _nearby_mod3_candidates_for_lmt(lmt_path),
+                "payload_offset": int(payload_offset),
+                "action_ids": [int(action_id) for action_id in payload_action_ids],
+                "entry_indices": [int(entry_index) for entry_index in payload_entry_indices],
+                "selected_entry_index": int(payload_entry_indices[0]) if payload_entry_indices else -1,
+                "shared_action_count": len(payload_action_ids),
+                "transform_count": int(payload_transform_count),
+                "supported_transform_count": int(payload_supported_transform_count),
+                "simple_source_transform_count": int(payload_simple_source_transform_count),
+                "advanced_source_transform_count": int(payload_advanced_source_transform_count),
             },
         )
 
