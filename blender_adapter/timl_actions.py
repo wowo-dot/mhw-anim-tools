@@ -8,11 +8,14 @@ import re
 from dataclasses import dataclass
 from dataclasses import field
 from pathlib import Path
+from types import SimpleNamespace
 
 import bpy
 
 from ..core.formats.timl.channels import build_timl_transform_samples
 from ..core.formats.timl.reader import read_timl_data_bytes
+from ..core.formats.timl.semantics import format_datatype_hash_label
+from ..core.formats.timl.semantics import format_timeline_parameter_label
 from .fcurves import clear_action_fcurves
 from .fcurves import create_action_fcurves
 from .fcurves import create_scalar_action_fcurve
@@ -26,6 +29,18 @@ from .timl_metadata import TIML_PROPERTY_LIST_KEY
 from .timl_preview_state import imported_preview_signature_json
 from .timl_metadata import TIML_SOURCE_LMT_KEY
 from .timl_metadata import TIML_SOURCE_OFFSET_KEY
+from .timl_templates import clear_timl_template_metadata
+from .timl_templates import default_event_loop_template_header
+from .timl_templates import EVENT_LOOP_MFLAG_HASH
+from .timl_templates import EVENT_LOOP_RELEASE_TIME_A_HASH
+from .timl_templates import EVENT_LOOP_REQNO_A_HASH
+from .timl_templates import EVENT_LOOP_TEMPLATE_KIND
+from .timl_templates import EVENT_LOOP_TIMELINE_HASH
+from .timl_templates import DEFAULT_EVENT_LOOP_FLAG_OFF
+from .timl_templates import DEFAULT_EVENT_LOOP_FLAG_ON
+from .timl_templates import DEFAULT_EVENT_LOOP_RELEASE_TIME_A
+from .timl_templates import DEFAULT_EVENT_LOOP_REQNO_A
+from .timl_templates import set_timl_template_metadata
 
 
 SUPPORTED_TIML_DATA_TYPES = {0, 1, 2, 3, 4}
@@ -123,28 +138,29 @@ def _clear_timl_carrier_properties(carrier):
         del carrier[TIML_BINDINGS_KEY]
     if TIML_IMPORTED_PREVIEW_SIGNATURE_KEY in carrier:
         del carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY]
+    clear_timl_template_metadata(carrier)
 
 
 def _prop_name_for_transform(transform_samples) -> str:
-    timeline_hex = f"{int(transform_samples.timeline_parameter_hash) & 0xFFFFFFFF:08X}"
-    datatype_hex = f"{int(transform_samples.datatype_hash) & 0xFFFFFFFF:08X}"
+    timeline_label = format_timeline_parameter_label(int(transform_samples.timeline_parameter_hash))
+    datatype_label = format_datatype_hash_label(int(transform_samples.datatype_hash))
     return _slugify_label(
-        f"timl_t{transform_samples.type_index:02d}_x{transform_samples.transform_index:02d}_"
-        f"{timeline_hex}_{datatype_hex}_{transform_samples.data_type_name}"
+        f"timl_{timeline_label}_{datatype_label}_"
+        f"t{transform_samples.type_index:02d}_x{transform_samples.transform_index:02d}"
     )
 
 
 def _action_group_for_transform(transform_samples) -> str:
-    timeline_hex = f"{int(transform_samples.timeline_parameter_hash) & 0xFFFFFFFF:08X}"
-    return f"TIML {timeline_hex}"
+    timeline_label = format_timeline_parameter_label(int(transform_samples.timeline_parameter_hash))
+    return f"TIML {timeline_label}"
 
 
 def _display_name_for_transform(transform_samples) -> str:
-    timeline_hex = f"0x{int(transform_samples.timeline_parameter_hash) & 0xFFFFFFFF:08X}"
-    datatype_hex = f"0x{int(transform_samples.datatype_hash) & 0xFFFFFFFF:08X}"
+    timeline_label = format_timeline_parameter_label(int(transform_samples.timeline_parameter_hash))
+    datatype_label = format_datatype_hash_label(int(transform_samples.datatype_hash))
     return (
         f"TIML {transform_samples.type_index:02d}:{transform_samples.transform_index:02d} "
-        f"{timeline_hex} / {datatype_hex} ({transform_samples.data_type_name})"
+        f"{timeline_label} / {datatype_label} ({transform_samples.data_type_name})"
     )
 
 
@@ -197,6 +213,137 @@ def _assign_carrier_property(carrier, prop_name: str, transform_samples):
         pass
 
 
+def _event_loop_preview_transform(
+    *,
+    transform_index: int,
+    datatype_hash: int,
+    values: tuple[tuple[float, tuple[float, ...]], ...],
+):
+    keyframes = tuple(
+        SimpleNamespace(frame=float(frame), value=tuple(float(component) for component in value), interpolation=1)
+        for frame, value in values
+    )
+    return SimpleNamespace(
+        property_name="",
+        type_index=0,
+        transform_index=int(transform_index),
+        timeline_parameter_hash=EVENT_LOOP_TIMELINE_HASH,
+        datatype_hash=int(datatype_hash),
+        data_type=1,
+        data_type_name="uint32",
+        value_kind="integer",
+        control_kind="integer",
+        component_labels=("value",),
+        component_count=1,
+        keyframes=keyframes,
+    )
+
+
+def seed_eventloop_template_on_controller(
+    controller,
+    *,
+    source_path: str,
+    entry_id: int,
+    source_offset: int,
+    animation_length: float,
+    data_index_a: int = 0,
+    data_index_b: int = 0,
+    loop_start_point: float = 0.0,
+    loop_control: int = 0,
+    label_hash: int = 0,
+):
+    if controller is None:
+        raise TypeError("TIML controller object is required before seeding an EventLoop template.")
+
+    action_name = _action_name_for_import(source_path, entry_id)
+    blender_action = ensure_action(action_name)
+    clear_action_fcurves(blender_action)
+    _clear_timl_carrier_properties(controller)
+
+    template_header = default_event_loop_template_header(
+        source_lmt=source_path,
+        entry_id=int(entry_id),
+        animation_length=float(animation_length),
+        data_index_a=int(data_index_a),
+        data_index_b=int(data_index_b),
+        loop_start_point=float(loop_start_point),
+        loop_control=int(loop_control),
+        label_hash=int(label_hash),
+    )
+    frame_end = max(0.0, float(template_header.animation_length))
+    transforms = (
+        _event_loop_preview_transform(
+            transform_index=0,
+            datatype_hash=EVENT_LOOP_REQNO_A_HASH,
+            values=((0.0, (float(DEFAULT_EVENT_LOOP_REQNO_A),)),),
+        ),
+        _event_loop_preview_transform(
+            transform_index=1,
+            datatype_hash=EVENT_LOOP_RELEASE_TIME_A_HASH,
+            values=((0.0, (float(DEFAULT_EVENT_LOOP_RELEASE_TIME_A),)),),
+        ),
+        _event_loop_preview_transform(
+            transform_index=2,
+            datatype_hash=EVENT_LOOP_MFLAG_HASH,
+            values=(
+                (0.0, (float(DEFAULT_EVENT_LOOP_FLAG_ON),)),
+                (frame_end, (float(DEFAULT_EVENT_LOOP_FLAG_OFF),)),
+            ),
+        ),
+    )
+
+    animation_data = ensure_object_animation_data(controller)
+    animation_data.action = blender_action
+    blender_action["mhw_anim_tools_import_kind"] = "attached_timl"
+    blender_action["mhw_anim_tools_source_lmt"] = source_path
+    blender_action["mhw_anim_tools_entry_id"] = int(entry_id)
+    blender_action["mhw_anim_tools_source_timl_offset"] = int(source_offset)
+    blender_action["mhw_anim_tools_timl_transform_count"] = int(len(transforms))
+
+    property_names: list[str] = []
+    bindings: list[dict[str, object]] = []
+    for transform in transforms:
+        prop_name = _prop_name_for_transform(transform)
+        transform.property_name = prop_name
+        property_names.append(prop_name)
+        bindings.append(
+            {
+                "property_name": prop_name,
+                "type_index": int(transform.type_index),
+                "transform_index": int(transform.transform_index),
+                "timeline_parameter_hash": int(transform.timeline_parameter_hash),
+                "datatype_hash": int(transform.datatype_hash),
+                "data_type": int(transform.data_type),
+                "data_type_name": str(transform.data_type_name),
+                "component_labels": list(transform.component_labels),
+                "normalized_color": False,
+            }
+        )
+        _assign_carrier_property(controller, prop_name, transform)
+        channel_values, channel_interpolations = _channel_data_for_transform(transform)
+        create_scalar_action_fcurve(
+            blender_action,
+            data_path=f'["{prop_name}"]',
+            action_group=_action_group_for_transform(transform),
+            keyframes=channel_values[0],
+            interpolations=channel_interpolations[0],
+        )
+
+    controller[TIML_PROPERTY_LIST_KEY] = json.dumps(property_names)
+    controller[TIML_BINDINGS_KEY] = json.dumps(bindings, separators=(",", ":"))
+    controller[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY] = imported_preview_signature_json(())
+    controller[TIML_SOURCE_LMT_KEY] = source_path
+    controller[TIML_ENTRY_ID_KEY] = int(entry_id)
+    controller[TIML_SOURCE_OFFSET_KEY] = int(source_offset)
+    controller[TIML_ACTION_NAME_KEY] = blender_action.name
+    set_timl_template_metadata(
+        controller,
+        kind=EVENT_LOOP_TEMPLATE_KIND,
+        header=template_header,
+    )
+    return blender_action.name
+
+
 def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, source_bytes: bytes, target_armature=None):
     result = ImportTimlResult()
     if action_index < 0 or action_index >= len(lmt.actions):
@@ -220,13 +367,11 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
         return result
 
     transform_samples = build_timl_transform_samples(data_entry)
-    if not transform_samples:
-        result.add("ERROR", "timl", "Attached TIML payload contained no transforms to import.")
-        return result
 
     action_name = _action_name_for_import(source_path, source_action.id)
     carrier_name = _carrier_name_for_import(source_path, source_action.id)
     blender_action = ensure_action(action_name)
+    clear_action_fcurves(blender_action)
     blender_action["mhw_anim_tools_source_lmt"] = source_path
     blender_action["mhw_anim_tools_entry_id"] = int(source_action.id)
     blender_action["mhw_anim_tools_import_kind"] = "attached_timl"
@@ -244,6 +389,21 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
     animation_data.action = blender_action
     result.action_name = blender_action.name
     result.carrier_name = carrier.name
+
+    if not transform_samples:
+        carrier[TIML_PROPERTY_LIST_KEY] = json.dumps([])
+        carrier[TIML_BINDINGS_KEY] = json.dumps([], separators=(",", ":"))
+        carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY] = imported_preview_signature_json(())
+        carrier[TIML_SOURCE_LMT_KEY] = source_path
+        carrier[TIML_ENTRY_ID_KEY] = int(source_action.id)
+        carrier[TIML_SOURCE_OFFSET_KEY] = int(source_action.header.timl_offset)
+        carrier[TIML_ACTION_NAME_KEY] = blender_action.name
+        result.add(
+            "WARNING",
+            "timl",
+            "Attached TIML container has no transforms yet. Use the TIML workspace to create an EventLoop block.",
+        )
+        return result
 
     property_names: list[str] = []
     bindings: list[dict[str, object]] = []

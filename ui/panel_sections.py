@@ -2,7 +2,6 @@
 """Section drawing helpers for the Blender UI surfaces."""
 
 import json
-import ntpath
 import os
 
 from ..blender_adapter.armature import summarize_track_binding
@@ -11,6 +10,11 @@ from ..blender_adapter.timl_sampling import is_imported_timl_controller
 from ..integration.model_editor import bonefunction_count
 from ..integration.model_editor import get_workspace_summary
 from ..integration.model_editor import mhbone_count
+from .timl_presenter import build_timl_analysis_summary
+from .timl_presenter import build_timl_edit_policy_summary
+from .timl_presenter import build_timl_source_summary
+from .timl_presenter import build_timl_writeback_summary
+from .timl_presenter import timl_display_source_name
 from .timl_labels import timl_edit_policy_icon
 from .timl_labels import timl_writeback_status_icon
 
@@ -26,26 +30,32 @@ def timl_controller_for_object_panel(context):
 
 
 def _display_source_name(path_text: str) -> str:
-    text = str(path_text or "")
-    return ntpath.basename(text) or os.path.basename(text)
+    return timl_display_source_name(path_text)
 
 
 def _draw_timl_writeback_counts(layout, scene_props):
     counts_box = layout.box()
     counts_box.label(text="Writeback Modes", icon="FILE_REFRESH")
-    counts_box.label(text=f"Preserve Raw: {scene_props.last_timl_writeback_preserve_raw_count}")
-    counts_box.label(text=f"Patch Values: {scene_props.last_timl_writeback_patch_values_count}")
-    counts_box.label(text=f"Rebuild Preview: {scene_props.last_timl_writeback_rebuild_count}")
-    counts_box.label(text=f"Blocked: {scene_props.last_timl_writeback_blocked_count}")
+    counts_box.label(
+        text=build_timl_writeback_summary(
+            preserve_raw_count=scene_props.last_timl_writeback_preserve_raw_count,
+            patch_values_count=scene_props.last_timl_writeback_patch_values_count,
+            rebuild_count=scene_props.last_timl_writeback_rebuild_count,
+            blocked_count=scene_props.last_timl_writeback_blocked_count,
+        )
+    )
 
 
 def _draw_timl_edit_policy_counts(layout, scene_props):
     counts_box = layout.box()
-    counts_box.label(text="Edit Policies", icon="KEYFRAMES")
-    counts_box.label(text=f"Value Only: {scene_props.last_timl_edit_value_only_count}")
-    counts_box.label(text=f"Rebuild OK: {scene_props.last_timl_edit_rebuild_capable_count}")
-    if scene_props.last_timl_edit_blocked_count:
-        counts_box.label(text=f"Blocked: {scene_props.last_timl_edit_blocked_count}")
+    counts_box.label(text="Edit Policies", icon="KEYFRAME")
+    counts_box.label(
+        text=build_timl_edit_policy_summary(
+            value_only_count=scene_props.last_timl_edit_value_only_count,
+            rebuild_capable_count=scene_props.last_timl_edit_rebuild_capable_count,
+            blocked_count=scene_props.last_timl_edit_blocked_count,
+        )
+    )
 
 
 def _draw_timl_payload_scope(layout, scene_props):
@@ -124,6 +134,7 @@ def _draw_workspace_section(layout, context, scene_props):
 def _draw_entry_timl_summary(panel_body, scene_props, entry, details):
     details.label(text="TIML attached" if entry.has_timl else "No TIML attached")
     if not entry.has_timl:
+        details.label(text="This LMT entry has no attached TIML controller payload.", icon="INFO")
         return
     timl_box = details.box()
     timl_box.label(text=f"Attached TIML @ {entry.timl_source_offset_display or 'unknown'}", icon="NODETREE")
@@ -150,40 +161,7 @@ def _draw_entry_timl_summary(panel_body, scene_props, entry, details):
                 f"on {scene_props.last_imported_timl_object_name}"
             )
         )
-    panel_body.template_list(
-        "MHWANIMTOOLS_UL_timl_transforms",
-        "",
-        scene_props,
-        "timl_transforms",
-        scene_props,
-        "selected_timl_transform_index",
-        rows=6,
-    )
-    if not (0 <= scene_props.selected_timl_transform_index < len(scene_props.timl_transforms)):
-        return
-    timl_transform = scene_props.timl_transforms[scene_props.selected_timl_transform_index]
-    timl_transform_box = panel_body.box()
-    timl_transform_box.label(
-        text=f"TIML Transform {timl_transform.type_index:02d}:{timl_transform.transform_index:02d}",
-        icon="IPO_BEZIER",
-    )
-    timl_transform_box.label(text=f"Timeline: {timl_transform.timeline_parameter_label}")
-    timl_transform_box.label(text=f"Datatype hash: {timl_transform.datatype_label}")
-    timl_transform_box.label(text=f"Data type: {timl_transform.data_type_name}")
-    timl_transform_box.label(text=f"Value/control: {timl_transform.value_kind} / {timl_transform.control_kind}")
-    timl_transform_box.label(text=f"Keyframes: {timl_transform.keyframe_count}")
-    timl_transform_box.label(text=f"Frame span: {timl_transform.first_frame:.3f} -> {timl_transform.last_frame:.3f}")
-    if timl_transform.fractional_key_count:
-        timl_transform_box.label(
-            text=f"Fractional frames: {timl_transform.fractional_key_count}",
-            icon="INFO",
-        )
-    if timl_transform.first_value_preview:
-        timl_transform_box.label(text=f"First value: {timl_transform.first_value_preview}")
-    if timl_transform.interpolation_summary:
-        timl_transform_box.label(text=f"Interpolation: {timl_transform.interpolation_summary}")
-    if timl_transform.easing_summary:
-        timl_transform_box.label(text=f"Easing: {timl_transform.easing_summary}")
+    timl_box.label(text="Deep TIML browsing moves to Properties > TIML Inspector after import.", icon="PROPERTIES")
 
 
 def _draw_entry_binding_summary(details, scene_props, entry):
@@ -277,7 +255,7 @@ def _draw_track_details(panel_body, scene_props):
 def _draw_lmt_inspector_section(layout, scene_props):
     panel_header, panel_body = layout.panel(
         idname="MHWANIMTOOLS_PT_lmt_inspector_section",
-        default_closed=False,
+        default_closed=True,
     )
     panel_header.label(text="LMT Inspector")
     if panel_body is None:
@@ -331,6 +309,7 @@ def _draw_timl_workflow_section(layout, scene_props):
     panel_body.prop(scene_props, "timl_controller")
     analyze_row = panel_body.row(align=True)
     analyze_row.scale_y = 1.1
+    analyze_row.operator("mhw_anim_tools.open_timl_workspace", icon="WORKSPACE", text="Open TIML Workspace")
     analyze_row.operator("mhw_anim_tools.select_timl_controller", icon="RESTRICT_SELECT_OFF", text="Select")
     analyze_row.operator("mhw_anim_tools.analyze_timl_controller", icon="FCURVE", text="Analyze")
     if scene_props.last_imported_timl_action_name and scene_props.last_imported_timl_object_name:
@@ -353,40 +332,61 @@ def _draw_timl_workflow_section(layout, scene_props):
     else:
         details.label(text="No active TIML action on controller", icon="ERROR")
     source_path = str(controller.get("mhw_anim_tools_timl_source_lmt", ""))
-    if source_path:
-        details.label(text=f"Source: {os.path.basename(source_path)}", icon="CURRENT_FILE")
     entry_id = controller.get("mhw_anim_tools_timl_entry_id")
-    if entry_id is not None:
-        details.label(text=f"Entry: {int(entry_id):03d}")
     source_offset = controller.get("mhw_anim_tools_timl_source_offset")
-    if source_offset is not None:
-        details.label(text=f"Offset: 0x{int(source_offset):X}")
-    if (
-        scene_props.last_timl_analysis_controller_name == controller.name
-        and scene_props.last_timl_analysis_action_name
-    ):
-        analysis_box = details.box()
+    source_summary = build_timl_source_summary(
+        source_name=source_path,
+        entry_id=int(entry_id) if entry_id is not None else None,
+        source_offset=int(source_offset) if source_offset is not None else None,
+    )
+    if source_summary:
+        details.label(text=source_summary, icon="CURRENT_FILE")
+    if scene_props.last_timl_analysis_controller_name == controller.name and scene_props.last_timl_analysis_action_name:
+        analysis_box = panel_body.box()
+        analysis_box.label(text=f"Last analyzed: {scene_props.last_timl_analysis_action_name}", icon="CHECKMARK")
         analysis_box.label(
-            text=f"Last analyzed: {scene_props.last_timl_analysis_action_name}",
-            icon="CHECKMARK",
+            text=build_timl_analysis_summary(
+                transform_count=scene_props.last_timl_analysis_transform_count,
+                keyframe_count=scene_props.last_timl_analysis_keyframe_count,
+                frame_end=scene_props.last_timl_analysis_frame_end,
+                warning_count=scene_props.last_timl_analysis_warning_count,
+                error_count=scene_props.last_timl_analysis_error_count,
+            )
         )
-        analysis_box.label(text=f"Transforms: {scene_props.last_timl_analysis_transform_count}")
-        analysis_box.label(text=f"Keyframes: {scene_props.last_timl_analysis_keyframe_count}")
-        analysis_box.label(text=f"Frame end: {scene_props.last_timl_analysis_frame_end}")
-        analysis_box.label(text=f"Warnings: {scene_props.last_timl_analysis_warning_count}")
-        analysis_box.label(text=f"Errors: {scene_props.last_timl_analysis_error_count}")
         if scene_props.last_timl_writeback_available:
-            _draw_timl_edit_policy_counts(analysis_box, scene_props)
-            _draw_timl_writeback_counts(analysis_box, scene_props)
-            _draw_timl_payload_scope(analysis_box, scene_props)
-            _draw_timl_shared_controller_summary(analysis_box, scene_props)
-    panel_body.label(text="Deep TIML details live in Object Properties > TIML Inspector.", icon="PROPERTIES")
+            analysis_box.label(
+                text=build_timl_edit_policy_summary(
+                    value_only_count=scene_props.last_timl_edit_value_only_count,
+                    rebuild_capable_count=scene_props.last_timl_edit_rebuild_capable_count,
+                    blocked_count=scene_props.last_timl_edit_blocked_count,
+                ),
+                icon="KEYFRAME",
+            )
+            analysis_box.label(
+                text=build_timl_writeback_summary(
+                    preserve_raw_count=scene_props.last_timl_writeback_preserve_raw_count,
+                    patch_values_count=scene_props.last_timl_writeback_patch_values_count,
+                    rebuild_count=scene_props.last_timl_writeback_rebuild_count,
+                    blocked_count=scene_props.last_timl_writeback_blocked_count,
+                ),
+                icon="FILE_REFRESH",
+            )
+            if scene_props.last_timl_payload_scope:
+                analysis_box.label(text=scene_props.last_timl_payload_scope, icon="LINKED")
+            if scene_props.last_timl_matching_controller_count:
+                status_label = _timl_shared_controller_status_label(scene_props.last_timl_shared_controller_status)
+                if status_label:
+                    analysis_box.label(
+                        text=f"{status_label} ({scene_props.last_timl_matching_controller_count})",
+                        icon="OUTLINER_OB_EMPTY",
+                    )
+    panel_body.label(text="Deep TIML editing now lives in the TIML Workspace panel inside Graph Editor.", icon="GRAPH")
 
 
 def _draw_diagnostics_section(layout, scene_props):
     panel_header, panel_body = layout.panel(
         idname="MHWANIMTOOLS_PT_diagnostics_section",
-        default_closed=False,
+        default_closed=True,
     )
     panel_header.label(text="Diagnostics")
     if panel_body is None:
@@ -485,23 +485,31 @@ def draw_timl_inspector_panel(layout, context):
         layout.label(text="Select an imported TIML controller to inspect it.", icon="INFO")
         return
 
+    info_box = layout.box()
+    info_box.label(text="Fallback technical view", icon="INFO")
+    info_box.label(text="Use the TIML Workspace panel in Graph Editor for primary TIML editing.")
+    action_row = info_box.row(align=True)
+    action_row.scale_y = 1.1
+    action_row.operator("mhw_anim_tools.open_timl_workspace", icon="WORKSPACE")
+    action_row.operator("mhw_anim_tools.select_timl_controller", icon="RESTRICT_SELECT_OFF", text="Select")
+
     summary_box = layout.box()
     summary_box.label(text=controller.name, icon="EMPTY_DATA")
-    scene_props.timl_controller = controller
     action = controller.animation_data.action if controller.animation_data else None
     if action is not None:
         summary_box.label(text=f"Action: {action.name}", icon="ACTION")
     else:
         summary_box.label(text="No active TIML action on this controller", icon="ERROR")
     source_path = str(controller.get("mhw_anim_tools_timl_source_lmt", ""))
-    if source_path:
-        summary_box.label(text=f"Source: {os.path.basename(source_path)}", icon="CURRENT_FILE")
     entry_id = controller.get("mhw_anim_tools_timl_entry_id")
-    if entry_id is not None:
-        summary_box.label(text=f"Entry: {int(entry_id):03d}")
     source_offset = controller.get("mhw_anim_tools_timl_source_offset")
-    if source_offset is not None:
-        summary_box.label(text=f"Offset: 0x{int(source_offset):X}")
+    source_summary = build_timl_source_summary(
+        source_name=source_path,
+        entry_id=int(entry_id) if entry_id is not None else None,
+        source_offset=int(source_offset) if source_offset is not None else None,
+    )
+    if source_summary:
+        summary_box.label(text=source_summary, icon="CURRENT_FILE")
 
     action_row = layout.row(align=True)
     action_row.scale_y = 1.1
@@ -511,11 +519,15 @@ def draw_timl_inspector_panel(layout, context):
     if scene_props.last_timl_analysis_controller_name == controller.name:
         analysis_box = layout.box()
         analysis_box.label(text="Controller Summary", icon="CHECKMARK")
-        analysis_box.label(text=f"Transforms: {scene_props.last_timl_analysis_transform_count}")
-        analysis_box.label(text=f"Keyframes: {scene_props.last_timl_analysis_keyframe_count}")
-        analysis_box.label(text=f"Frame end: {scene_props.last_timl_analysis_frame_end}")
-        analysis_box.label(text=f"Warnings: {scene_props.last_timl_analysis_warning_count}")
-        analysis_box.label(text=f"Errors: {scene_props.last_timl_analysis_error_count}")
+        analysis_box.label(
+            text=build_timl_analysis_summary(
+                transform_count=scene_props.last_timl_analysis_transform_count,
+                keyframe_count=scene_props.last_timl_analysis_keyframe_count,
+                frame_end=scene_props.last_timl_analysis_frame_end,
+                warning_count=scene_props.last_timl_analysis_warning_count,
+                error_count=scene_props.last_timl_analysis_error_count,
+            )
+        )
         if scene_props.last_timl_writeback_available:
             _draw_timl_edit_policy_counts(analysis_box, scene_props)
             _draw_timl_writeback_counts(analysis_box, scene_props)
@@ -526,58 +538,101 @@ def draw_timl_inspector_panel(layout, context):
     else:
         layout.label(text="Run Analyze TIML Controller to refresh writeback status.", icon="INFO")
 
-    if not scene_props.timl_controller_transforms:
-        layout.label(text="No sampled TIML transforms are available yet.", icon="INFO")
-        return
-
-    layout.template_list(
-        "MHWANIMTOOLS_UL_timl_controller_transforms",
-        "",
-        scene_props,
-        "timl_controller_transforms",
-        scene_props,
-        "selected_timl_controller_transform_index",
-        rows=8,
+    browser_header, browser_body = layout.panel(
+        idname="MHWANIMTOOLS_PT_timl_inspector_browser",
+        default_closed=True,
     )
+    browser_header.label(text="Transform Browser")
+    if browser_body is not None:
+        if not scene_props.timl_controller_transforms:
+            browser_body.label(text="No sampled TIML transforms are available yet.", icon="INFO")
+        else:
+            browser_body.template_list(
+                "MHWANIMTOOLS_UL_timl_controller_transforms",
+                "",
+                scene_props,
+                "timl_controller_transforms",
+                scene_props,
+                "selected_timl_controller_transform_index",
+                rows=10,
+            )
+            browser_body.label(text="Select a transform, then use Graph Editor for key edits.", icon="FCURVE")
+
     if not (0 <= scene_props.selected_timl_controller_transform_index < len(scene_props.timl_controller_transforms)):
         return
+
     transform = scene_props.timl_controller_transforms[scene_props.selected_timl_controller_transform_index]
-    details = layout.box()
-    details.label(
-        text=f"TIML Transform {transform.type_index:02d}:{transform.transform_index:02d}",
-        icon="IPO_BEZIER",
+
+    details_header, details_body = layout.panel(
+        idname="MHWANIMTOOLS_PT_timl_inspector_transform_details",
+        default_closed=True,
     )
-    if transform.property_name:
-        details.label(text=f"Property: {transform.property_name}")
-    if transform.timeline_display:
-        details.label(text=f"Timeline: {transform.timeline_display}")
-    if transform.datatype_display:
-        details.label(text=f"Datatype: {transform.datatype_display}")
-    details.label(text=f"Data type: {transform.data_type_name or '?'}")
-    if transform.value_kind or transform.control_kind:
-        details.label(text=f"Value/control: {transform.value_kind or '?'} / {transform.control_kind or '?'}")
-    if transform.component_labels:
-        details.label(text=f"Components: {transform.component_labels}")
-    details.label(text=f"Keyframes: {transform.keyframe_count}")
-    if transform.keyframe_count:
-        details.label(text=f"Frame span: {transform.first_frame:.3f} -> {transform.last_frame:.3f}")
-    if transform.first_value_preview:
-        details.label(text=f"First value: {transform.first_value_preview}")
-    if transform.interpolation_summary:
-        details.label(text=f"Interpolation: {transform.interpolation_summary}")
-    if transform.edit_policy_label:
-        details.label(
-            text=f"Edit policy: {transform.edit_policy_label}",
-            icon=timl_edit_policy_icon(transform.edit_policy_code),
-        )
-    if transform.edit_policy_reason:
-        details.label(text=transform.edit_policy_reason)
-    if transform.writeback_status_label:
-        details.label(
-            text=f"Writeback: {transform.writeback_status_label}",
-            icon=timl_writeback_status_icon(transform.writeback_status_code),
-        )
-    if transform.source_advanced:
-        details.label(text="Source uses advanced interpolation/easing semantics.", icon="INFO")
-    if transform.writeback_reason:
-        details.label(text=transform.writeback_reason)
+    details_header.label(text=transform.identity_label or "Selected Transform")
+    if details_body is not None:
+        title_box = details_body.box()
+        title_box.label(text=transform.semantic_label or transform.data_type_name or "Unknown TIML Transform", icon="IPO_BEZIER")
+        button_row = details_body.row(align=True)
+        button_row.scale_y = 1.1
+        button_row.operator("mhw_anim_tools.select_timl_transform_curves", icon="RESTRICT_SELECT_OFF", text="Select Curves")
+        details_body.label(text=f"Timeline: {transform.timeline_display or '?'}")
+        details_body.label(text=f"Datatype: {transform.datatype_display or '?'}")
+        details_body.label(text=f"Storage type: {transform.data_type_name or '?'}")
+        if transform.value_kind or transform.control_kind:
+            details_body.label(text=f"Value/control: {transform.value_kind or '?'} / {transform.control_kind or '?'}")
+        if transform.component_labels:
+            details_body.label(text=f"Components: {transform.component_labels}")
+        details_body.label(text=f"Keyframes: {transform.keyframe_count}")
+        if transform.keyframe_count:
+            details_body.label(text=f"Frame span: {transform.first_frame:.3f} -> {transform.last_frame:.3f}")
+        if transform.first_value_preview:
+            details_body.label(text=f"First value: {transform.first_value_preview}")
+        if transform.interpolation_summary:
+            details_body.label(text=f"Interpolation: {transform.interpolation_summary}")
+        if transform.edit_policy_label:
+            details_body.label(
+                text=f"Edit policy: {transform.edit_policy_label}",
+                icon=timl_edit_policy_icon(transform.edit_policy_code),
+            )
+        if transform.edit_policy_reason:
+            details_body.label(text=transform.edit_policy_reason)
+        if transform.writeback_status_label:
+            details_body.label(
+                text=f"Writeback: {transform.writeback_status_label}",
+                icon=timl_writeback_status_icon(transform.writeback_status_code),
+            )
+        if transform.source_advanced:
+            details_body.label(text="Source uses advanced interpolation/easing semantics.", icon="INFO")
+        if transform.writeback_reason:
+            details_body.label(text=transform.writeback_reason)
+
+    metadata_header, metadata_body = layout.panel(
+        idname="MHWANIMTOOLS_PT_timl_inspector_metadata",
+        default_closed=True,
+    )
+    metadata_header.label(text="Source Metadata")
+    if metadata_body is not None:
+        if transform.property_name:
+            metadata_body.label(text=f"Property: {transform.property_name}")
+        if transform.raw_timeline_display:
+            metadata_body.label(text=f"Timeline hash: {transform.raw_timeline_display}")
+        if transform.raw_datatype_display:
+            metadata_body.label(text=f"Datatype hash: {transform.raw_datatype_display}")
+
+    diagnostics_header, diagnostics_body = layout.panel(
+        idname="MHWANIMTOOLS_PT_timl_inspector_diagnostics",
+        default_closed=True,
+    )
+    diagnostics_header.label(text="Diagnostics")
+    if diagnostics_body is not None:
+        if scene_props.diagnostics:
+            diagnostics_body.template_list(
+                "MHWANIMTOOLS_UL_diagnostics",
+                "",
+                scene_props,
+                "diagnostics",
+                scene_props,
+                "selected_diagnostic_index",
+                rows=6,
+            )
+        else:
+            diagnostics_body.label(text="No diagnostics for this TIML controller.", icon="CHECKMARK")

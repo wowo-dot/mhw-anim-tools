@@ -20,12 +20,13 @@ We lock the TIML surfaces as follows:
 
 1. The `View3D > Sidebar > MHW Anim` panel remains a workflow hub.
 2. The TIML sidebar section is named `TIML Workflow`.
-3. The Properties editor becomes the primary deep-inspection surface.
-4. The Properties panel is named `TIML Inspector`.
-5. The Graph Editor remains the place where users edit imported TIML preview
+3. A dedicated TIML workspace becomes the primary deep-edit shell.
+4. The Graph Editor hosts the main TIML editor in that workspace.
+5. The Properties panel remains a technical fallback named `TIML Inspector`.
+6. The Graph Editor remains the place where users edit imported TIML preview
    curves.
-6. The imported TIML controller object is the inspection anchor.
-7. TIML writeback modes are named exactly:
+7. The imported TIML controller object is the inspection anchor.
+8. TIML writeback modes are named exactly:
    - `Preserve Raw`
    - `Patch Values`
    - `Rebuild Preview`
@@ -44,7 +45,15 @@ Purpose:
 
 Must not become the full editing surface.
 
-### 2. Properties: `TIML Inspector`
+### 2. TIML Workspace
+
+Purpose:
+
+- host the main TIML browser/detail editor
+- keep block browsing and curve editing visible together
+- present both semantic and raw TIML views
+
+### 3. Properties: `TIML Inspector`
 
 Purpose:
 
@@ -53,9 +62,9 @@ Purpose:
 - show transform-by-transform writeback mode
 - show per-transform diagnostics and preview structure
 
-This is the main UI for understanding what export will do.
+This is the fallback/debugging surface, not the primary authoring view.
 
-### 3. Graph Editor
+### 4. Graph Editor
 
 Purpose:
 
@@ -96,7 +105,7 @@ Benefits:
 
 Trade-offs:
 
-- users will move between Sidebar, Properties, and Graph Editor instead of doing
+- users will move between Sidebar, TIML Workspace, and Graph Editor instead of doing
   everything in one place
 - some state must be mirrored into scene/UI properties for inspection
 
@@ -107,3 +116,7 @@ Future EFX UI should follow the same pattern:
 - sidebar for workflow entry and status
 - dedicated inspector surface for dense data
 - core editing in Blender-native editors where practical
+
+See also:
+
+- `docs/ui-architecture-checklist.md`

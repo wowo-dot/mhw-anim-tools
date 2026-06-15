@@ -1,6 +1,8 @@
 import unittest
 
 from core.formats.timl.semantics import format_hash_label
+from core.formats.timl.semantics import format_datatype_hash_label
+from core.formats.timl.semantics import format_timeline_parameter_label
 from core.formats.timl.semantics import get_data_type_semantics
 from core.formats.timl.semantics import get_interpolation_label
 
@@ -24,3 +26,12 @@ class TimlSemanticsTests(unittest.TestCase):
     def test_hash_label_uses_mapping_when_present(self):
         self.assertEqual(format_hash_label(0x12345678, {0x12345678: "Example"}), "Example")
         self.assertEqual(format_hash_label(0x12345678), "0x12345678")
+
+    def test_known_timeline_parameter_labels_use_curated_names(self):
+        self.assertEqual(format_timeline_parameter_label(0x24006667), "EventLoop")
+        self.assertEqual(format_timeline_parameter_label(0x01739779), "GameParameter")
+
+    def test_known_datatype_hash_labels_use_curated_names(self):
+        self.assertEqual(format_datatype_hash_label(0xE64D793E), "ReqNo A")
+        self.assertEqual(format_datatype_hash_label(0xE4D7A72E), "ReleaseTime A")
+        self.assertEqual(format_datatype_hash_label(0x08FD20A6), "mFlag")

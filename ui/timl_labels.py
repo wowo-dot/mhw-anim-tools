@@ -28,7 +28,7 @@ TIML_EDIT_POLICY_LABELS = {
 
 TIML_EDIT_POLICY_ICONS = {
     "value_only": "LOCKED",
-    "rebuild_capable": "KEYFRAMES",
+    "rebuild_capable": "KEYFRAME",
     "blocked": "ERROR",
 }
 

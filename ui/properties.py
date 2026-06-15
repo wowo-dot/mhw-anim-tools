@@ -5,7 +5,10 @@ import json
 
 import bpy
 
+from ..core.formats.timl.editor_model import TimlEditorTransformView
+from ..core.formats.timl.editor_model import build_timl_editor_block_views
 from ..core.formats.timl.model import timl_data_type_name
+from .timl_presenter import build_timl_transform_labels
 from .timl_labels import count_timl_edit_policies
 from .timl_labels import count_timl_writeback_statuses
 from .timl_labels import timl_edit_policy_code
@@ -71,8 +74,12 @@ class MhwAnimToolsLmtTrackItem(bpy.types.PropertyGroup):
 class MhwAnimToolsTimlTransformItem(bpy.types.PropertyGroup):
     type_index: bpy.props.IntProperty(name="Type Index", default=0, min=0)
     transform_index: bpy.props.IntProperty(name="Transform Index", default=0, min=0)
+    identity_label: bpy.props.StringProperty(name="Identity", default="")
+    semantic_label: bpy.props.StringProperty(name="Semantic Label", default="")
     timeline_parameter_label: bpy.props.StringProperty(name="Timeline Parameter", default="")
     datatype_label: bpy.props.StringProperty(name="Datatype", default="")
+    raw_timeline_parameter_label: bpy.props.StringProperty(name="Timeline Hash", default="")
+    raw_datatype_label: bpy.props.StringProperty(name="Datatype Hash", default="")
     data_type_name: bpy.props.StringProperty(name="Data Type", default="")
     value_kind: bpy.props.StringProperty(name="Value Kind", default="")
     control_kind: bpy.props.StringProperty(name="Control Kind", default="")
@@ -88,9 +95,13 @@ class MhwAnimToolsTimlTransformItem(bpy.types.PropertyGroup):
 class MhwAnimToolsTimlControllerTransformItem(bpy.types.PropertyGroup):
     type_index: bpy.props.IntProperty(name="Type Index", default=0, min=0)
     transform_index: bpy.props.IntProperty(name="Transform Index", default=0, min=0)
+    identity_label: bpy.props.StringProperty(name="Identity", default="")
+    semantic_label: bpy.props.StringProperty(name="Semantic Label", default="")
     property_name: bpy.props.StringProperty(name="Property Name", default="")
-    timeline_display: bpy.props.StringProperty(name="Timeline Hash", default="")
-    datatype_display: bpy.props.StringProperty(name="Datatype Hash", default="")
+    timeline_display: bpy.props.StringProperty(name="Timeline", default="")
+    datatype_display: bpy.props.StringProperty(name="Datatype", default="")
+    raw_timeline_display: bpy.props.StringProperty(name="Timeline Hash", default="")
+    raw_datatype_display: bpy.props.StringProperty(name="Datatype Hash", default="")
     data_type_name: bpy.props.StringProperty(name="Data Type", default="")
     value_kind: bpy.props.StringProperty(name="Value Kind", default="")
     control_kind: bpy.props.StringProperty(name="Control Kind", default="")
@@ -107,6 +118,25 @@ class MhwAnimToolsTimlControllerTransformItem(bpy.types.PropertyGroup):
     writeback_status_label: bpy.props.StringProperty(name="Writeback Status", default="")
     writeback_reason: bpy.props.StringProperty(name="Writeback Reason", default="")
     source_advanced: bpy.props.BoolProperty(name="Advanced Source", default=False)
+
+
+class MhwAnimToolsTimlBlockItem(bpy.types.PropertyGroup):
+    type_index: bpy.props.IntProperty(name="Type Index", default=0, min=0)
+    timeline_hash: bpy.props.IntProperty(name="Timeline Hash", default=0)
+    timeline_label: bpy.props.StringProperty(name="Timeline", default="")
+    raw_timeline_label: bpy.props.StringProperty(name="Timeline Hash Display", default="")
+    block_label: bpy.props.StringProperty(name="Block Label", default="")
+    help_text: bpy.props.StringProperty(name="Help Text", default="")
+    transform_count: bpy.props.IntProperty(name="Transform Count", default=0, min=0)
+    keyframe_count: bpy.props.IntProperty(name="Keyframe Count", default=0, min=0)
+    first_frame: bpy.props.FloatProperty(name="First Frame", default=0.0)
+    last_frame: bpy.props.FloatProperty(name="Last Frame", default=0.0)
+    datatype_summary: bpy.props.StringProperty(name="Datatype Summary", default="")
+    writeback_summary: bpy.props.StringProperty(name="Writeback Summary", default="")
+    edit_policy_summary: bpy.props.StringProperty(name="Edit Policy Summary", default="")
+    transform_labels_json: bpy.props.StringProperty(name="Transform Labels", default="", options={"HIDDEN"})
+    property_names_json: bpy.props.StringProperty(name="Property Names", default="", options={"HIDDEN"})
+    known_semantic: bpy.props.BoolProperty(name="Known Semantic", default=False)
 
 
 class MhwAnimToolsDiagnosticItem(bpy.types.PropertyGroup):
@@ -214,8 +244,21 @@ def _populate_timl_transform_items(scene_props):
         item = scene_props.timl_transforms.add()
         item.type_index = int(transform.get("type_index", 0))
         item.transform_index = int(transform.get("transform_index", 0))
-        item.timeline_parameter_label = transform.get("timeline_parameter_label", "")
-        item.datatype_label = transform.get("datatype_label", "")
+        labels = build_timl_transform_labels(
+            type_index=item.type_index,
+            transform_index=item.transform_index,
+            timeline_label=str(transform.get("timeline_parameter_label", "")),
+            datatype_label=str(transform.get("datatype_label", "")),
+            timeline_hash=int(transform.get("timeline_parameter_hash", 0)),
+            datatype_hash=int(transform.get("datatype_hash", 0)),
+            data_type_name=str(transform.get("data_type_name", "")),
+        )
+        item.identity_label = labels["identity_label"]
+        item.semantic_label = labels["semantic_label"]
+        item.timeline_parameter_label = labels["timeline_label"]
+        item.datatype_label = labels["datatype_label"]
+        item.raw_timeline_parameter_label = labels["raw_timeline_label"]
+        item.raw_datatype_label = labels["raw_datatype_label"]
         item.data_type_name = transform.get("data_type_name", "")
         item.value_kind = transform.get("value_kind", "")
         item.control_kind = transform.get("control_kind", "")
@@ -283,11 +326,25 @@ def _populate_timl_controller_transform_items(scene_props, sampled_result=None, 
         item = scene_props.timl_controller_transforms.add()
         item.type_index = int(identity[0])
         item.transform_index = int(identity[1])
+        item.identity_label = build_timl_transform_labels(
+            type_index=item.type_index,
+            transform_index=item.transform_index,
+        )["identity_label"]
 
         if sampled_transform is not None:
+            labels = build_timl_transform_labels(
+                type_index=item.type_index,
+                transform_index=item.transform_index,
+                timeline_hash=int(getattr(sampled_transform, "timeline_parameter_hash", 0)),
+                datatype_hash=int(getattr(sampled_transform, "datatype_hash", 0)),
+                data_type_name=str(getattr(sampled_transform, "data_type_name", "") or ""),
+            )
             item.property_name = str(getattr(sampled_transform, "property_name", "") or "")
-            item.timeline_display = f"0x{int(getattr(sampled_transform, 'timeline_parameter_hash', 0)) & 0xFFFFFFFF:08X}"
-            item.datatype_display = f"0x{int(getattr(sampled_transform, 'datatype_hash', 0)) & 0xFFFFFFFF:08X}"
+            item.semantic_label = labels["semantic_label"]
+            item.timeline_display = labels["timeline_label"]
+            item.datatype_display = labels["datatype_label"]
+            item.raw_timeline_display = labels["raw_timeline_label"]
+            item.raw_datatype_display = labels["raw_datatype_label"]
             item.data_type_name = str(getattr(sampled_transform, "data_type_name", "") or "")
             item.value_kind = str(getattr(sampled_transform, "value_kind", "") or "")
             item.control_kind = str(getattr(sampled_transform, "control_kind", "") or "")
@@ -300,6 +357,18 @@ def _populate_timl_controller_transform_items(scene_props, sampled_result=None, 
                 item.first_value_preview = _preview_value_text(getattr(keyframes[0], "value", ()))
             item.interpolation_summary = _interpolation_summary_for_sampled_transform(sampled_transform)
         elif plan_item is not None:
+            labels = build_timl_transform_labels(
+                type_index=item.type_index,
+                transform_index=item.transform_index,
+                timeline_hash=int(getattr(plan_item, "timeline_parameter_hash", 0)),
+                datatype_hash=int(getattr(plan_item, "datatype_hash", 0)),
+                data_type_name=timl_data_type_name(int(getattr(plan_item, "data_type", 0))),
+            )
+            item.semantic_label = labels["semantic_label"]
+            item.timeline_display = labels["timeline_label"]
+            item.datatype_display = labels["datatype_label"]
+            item.raw_timeline_display = labels["raw_timeline_label"]
+            item.raw_datatype_display = labels["raw_datatype_label"]
             item.data_type_name = timl_data_type_name(int(getattr(plan_item, "data_type", 0)))
 
         if plan_item is not None:
@@ -324,6 +393,60 @@ def _populate_timl_controller_transform_items(scene_props, sampled_result=None, 
             item.source_advanced = source_advanced
         else:
             item.writeback_reason = "Source-backed writeback analysis is not available for this controller yet."
+
+    _populate_timl_controller_block_items(scene_props)
+
+
+def _build_timl_editor_transform_views(scene_props):
+    transforms: list[TimlEditorTransformView] = []
+    for item in scene_props.timl_controller_transforms:
+        transforms.append(
+            TimlEditorTransformView(
+                type_index=int(item.type_index),
+                transform_index=int(item.transform_index),
+                property_name=str(item.property_name or ""),
+                timeline_hash=int(item.raw_timeline_display.replace("0x", ""), 16) if str(item.raw_timeline_display).startswith("0x") else 0,
+                timeline_label=str(item.timeline_display or ""),
+                datatype_hash=int(item.raw_datatype_display.replace("0x", ""), 16) if str(item.raw_datatype_display).startswith("0x") else 0,
+                datatype_label=str(item.datatype_display or ""),
+                data_type_name=str(item.data_type_name or ""),
+                keyframe_count=int(item.keyframe_count),
+                first_frame=float(item.first_frame) if int(item.keyframe_count) else None,
+                last_frame=float(item.last_frame) if int(item.keyframe_count) else None,
+                semantic_label=str(item.semantic_label or ""),
+                writeback_status_code=str(item.writeback_status_code or ""),
+                writeback_status_label=str(item.writeback_status_label or ""),
+                edit_policy_code=str(item.edit_policy_code or ""),
+                edit_policy_label=str(item.edit_policy_label or ""),
+            )
+        )
+    return transforms
+
+
+def _populate_timl_controller_block_items(scene_props):
+    scene_props.timl_blocks.clear()
+    scene_props.selected_timl_block_index = 0
+    transforms = _build_timl_editor_transform_views(scene_props)
+    for block in build_timl_editor_block_views(transforms):
+        item = scene_props.timl_blocks.add()
+        item.type_index = int(block.type_index)
+        item.timeline_hash = int(block.timeline_hash)
+        item.timeline_label = str(block.timeline_label or "")
+        item.raw_timeline_label = str(block.raw_timeline_label or "")
+        item.block_label = str(block.block_label or "")
+        item.help_text = str(block.help_text or "")
+        item.transform_count = int(block.transform_count)
+        item.keyframe_count = int(block.keyframe_count)
+        if block.first_frame is not None:
+            item.first_frame = float(block.first_frame)
+        if block.last_frame is not None:
+            item.last_frame = float(block.last_frame)
+        item.datatype_summary = str(block.datatype_summary or "")
+        item.writeback_summary = str(block.writeback_summary or "")
+        item.edit_policy_summary = str(block.edit_policy_summary or "")
+        item.transform_labels_json = json.dumps(list(block.transform_labels))
+        item.property_names_json = json.dumps(list(block.property_names))
+        item.known_semantic = bool(block.known_semantic)
 
 
 def selected_entry_update(self, _context):
@@ -353,6 +476,8 @@ def clear_timl_analysis(scene_props):
     scene_props.last_timl_shared_controller_status = ""
     scene_props.timl_controller_transforms.clear()
     scene_props.selected_timl_controller_transform_index = 0
+    scene_props.timl_blocks.clear()
+    scene_props.selected_timl_block_index = 0
 
 
 def set_timl_writeback_summary(scene_props, statuses):
@@ -405,6 +530,15 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
         description="Imported TIML controller object for the active TIML editing workflow",
         type=bpy.types.Object,
         poll=timl_controller_object_poll,
+    )
+    timl_editor_tab: bpy.props.EnumProperty(
+        name="TIML Editor Tab",
+        description="Choose the main TIML editor view",
+        items=(
+            ("SEMANTIC", "Semantic", "Known timelines and block meanings"),
+            ("RAW", "Raw", "Full transform-level TIML structure"),
+        ),
+        default="SEMANTIC",
     )
     export_action: bpy.props.PointerProperty(
         name="Export Action",
@@ -652,6 +786,12 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
         min=0,
     )
     timl_controller_transforms: bpy.props.CollectionProperty(type=MhwAnimToolsTimlControllerTransformItem)
+    selected_timl_block_index: bpy.props.IntProperty(
+        name="Selected TIML Block",
+        default=0,
+        min=0,
+    )
+    timl_blocks: bpy.props.CollectionProperty(type=MhwAnimToolsTimlBlockItem)
     selected_diagnostic_index: bpy.props.IntProperty(
         name="Selected Diagnostic",
         default=0,
@@ -665,6 +805,7 @@ classes = (
     MhwAnimToolsLmtTrackItem,
     MhwAnimToolsTimlTransformItem,
     MhwAnimToolsTimlControllerTransformItem,
+    MhwAnimToolsTimlBlockItem,
     MhwAnimToolsDiagnosticItem,
     MhwAnimToolsSceneProperties,
 )

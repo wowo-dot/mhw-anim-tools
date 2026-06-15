@@ -83,9 +83,8 @@ class MHWANIMTOOLS_UL_timl_transforms(bpy.types.UIList):
         del context, data, icon, active_data, active_propname, index
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row(align=True)
-            row.label(text=f"T{item.type_index:02d}:{item.transform_index:02d}")
-            row.label(text=item.data_type_name or "?")
-            row.label(text=item.timeline_parameter_label or item.datatype_label or "?")
+            row.label(text=item.identity_label or f"Type {item.type_index:02d} / Transform {item.transform_index:02d}")
+            row.label(text=item.semantic_label or item.timeline_parameter_label or item.datatype_label or "?")
             row.label(text=f"{item.keyframe_count} keys")
         elif self.layout_type == "GRID":
             layout.alignment = "CENTER"
@@ -119,6 +118,32 @@ class MHWANIMTOOLS_UL_diagnostics(bpy.types.UIList):
             layout.label(text=item.level[:1])
 
 
+class MHWANIMTOOLS_UL_timl_blocks(bpy.types.UIList):
+    bl_idname = "MHWANIMTOOLS_UL_timl_blocks"
+
+    def draw_item(
+        self,
+        context,
+        layout,
+        data,
+        item,
+        icon,
+        active_data,
+        active_propname,
+        index,
+    ):
+        del context, data, icon, active_data, active_propname, index
+        if self.layout_type in {"DEFAULT", "COMPACT"}:
+            row = layout.row(align=True)
+            row.label(text=item.block_label or item.timeline_label or item.raw_timeline_label or "TIML Block")
+            row.label(text=f"Type {item.type_index:02d}")
+            row.label(text=f"{item.transform_count} tr")
+            row.label(text=f"{item.keyframe_count} keys")
+        elif self.layout_type == "GRID":
+            layout.alignment = "CENTER"
+            layout.label(text=str(item.type_index))
+
+
 class MHWANIMTOOLS_UL_timl_controller_transforms(bpy.types.UIList):
     bl_idname = "MHWANIMTOOLS_UL_timl_controller_transforms"
 
@@ -136,8 +161,8 @@ class MHWANIMTOOLS_UL_timl_controller_transforms(bpy.types.UIList):
         del context, data, icon, active_data, active_propname, index
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row(align=True)
-            row.label(text=f"T{item.type_index:02d}:{item.transform_index:02d}")
-            row.label(text=item.data_type_name or "?")
+            row.label(text=item.identity_label or f"Type {item.type_index:02d} / Transform {item.transform_index:02d}")
+            row.label(text=item.semantic_label or item.data_type_name or "?")
             row.label(text=f"{item.keyframe_count} keys")
             if item.edit_policy_label:
                 row.label(text=item.edit_policy_label, icon=timl_edit_policy_icon(item.edit_policy_code))
@@ -153,6 +178,7 @@ classes = (
     MHWANIMTOOLS_UL_lmt_tracks,
     MHWANIMTOOLS_UL_timl_transforms,
     MHWANIMTOOLS_UL_diagnostics,
+    MHWANIMTOOLS_UL_timl_blocks,
     MHWANIMTOOLS_UL_timl_controller_transforms,
 )
 

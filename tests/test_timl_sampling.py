@@ -153,6 +153,33 @@ class TimlSamplingTests(unittest.TestCase):
         self.assertEqual(color_transform.keyframes[0].value, (16.0, 32.0, 64.0, 255.0))
         self.assertEqual(color_transform.keyframes[1].value, (32.0, 64.0, 96.0, 128.0))
 
+    def test_empty_attached_timl_controller_is_analyzable_without_fake_error(self):
+        action = _attached_timl_action(
+            "TIML::empty::005",
+            [],
+            transform_count=0,
+        )
+        controller = FakeController(
+            "TIML Controller::empty::005",
+            action=action,
+            **{
+                TIML_SOURCE_LMT_KEY: "empty.lmt",
+                TIML_ENTRY_ID_KEY: 5,
+                TIML_SOURCE_OFFSET_KEY: 0x440,
+                TIML_ACTION_NAME_KEY: action.name,
+                TIML_BINDINGS_KEY: "[]",
+            },
+        )
+
+        result = sample_timl_controller_action(controller)
+
+        self.assertEqual(result.error_count, 0)
+        self.assertEqual(result.warning_count, 0)
+        self.assertEqual(result.sampled_transform_count, 0)
+        self.assertEqual(result.keyframe_count, 0)
+        self.assertIsNotNone(result.metadata)
+        self.assertEqual(result.metadata.transform_count, 0)
+
     def test_mismatched_channel_keyframe_times_are_rejected(self):
         action = _attached_timl_action(
             "TIML::broken::000",

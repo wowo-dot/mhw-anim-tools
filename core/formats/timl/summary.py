@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections import Counter
 import math
 
-from .semantics import format_hash_label
+from .semantics import format_datatype_hash_label
+from .semantics import format_timeline_parameter_label
 from .semantics import get_data_type_semantics
 from .semantics import get_interpolation_label
 
@@ -52,9 +53,9 @@ def build_transform_summary(
         "type_index": int(type_index),
         "transform_index": int(transform_index),
         "datatype_hash": int(transform.datatype_hash),
-        "datatype_label": format_hash_label(int(transform.datatype_hash), datatype_hash_names),
+        "datatype_label": format_datatype_hash_label(int(transform.datatype_hash), datatype_hash_names),
         "timeline_parameter_hash": int(timeline_parameter_hash),
-        "timeline_parameter_label": format_hash_label(int(timeline_parameter_hash), timeline_parameter_names),
+        "timeline_parameter_label": format_timeline_parameter_label(int(timeline_parameter_hash), timeline_parameter_names),
         "data_type": int(transform.data_type),
         "data_type_name": semantics.name,
         "value_kind": semantics.value_kind,

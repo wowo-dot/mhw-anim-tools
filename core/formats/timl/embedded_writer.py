@@ -154,6 +154,179 @@ def _keyframe_bytes(sampled_transform, *, source_label: str) -> bytes:
     return b"".join(chunks)
 
 
+def build_embedded_timl_data_payload_from_sampled(
+    sampled_transforms,
+    *,
+    base_offset: int,
+    data_index_a: int,
+    data_index_b: int,
+    animation_length: float,
+    loop_start_point: float,
+    loop_control: int,
+    label_hash: int,
+) -> tuple[bytes, tuple[int, ...]]:
+    """Build a full embedded TIML payload from sampled transforms.
+
+    This is intentionally conservative:
+    - type indices must be contiguous from 0..N-1
+    - transform indices inside each type must be contiguous from 0..M-1
+    - only currently writable scalar/color TIML data types are accepted
+    - keyframe interpolation stays limited to CONSTANT/LINEAR
+    """
+
+    if not sampled_transforms:
+        raise ValidationError("Cannot build an embedded TIML payload from zero sampled transforms.")
+
+    grouped: dict[int, dict[str, object]] = {}
+    seen_identities: set[tuple[int, int]] = set()
+    for sampled_transform in sampled_transforms:
+        type_index = int(sampled_transform.type_index)
+        transform_index = int(sampled_transform.transform_index)
+        identity = (type_index, transform_index)
+        if identity in seen_identities:
+            raise ValidationError(
+                f"Duplicate TIML sampled transform identity type={type_index} transform={transform_index}."
+            )
+        seen_identities.add(identity)
+        group = grouped.setdefault(
+            type_index,
+            {
+                "timeline_hash": int(sampled_transform.timeline_parameter_hash),
+                "transforms": {},
+            },
+        )
+        if int(group["timeline_hash"]) != int(sampled_transform.timeline_parameter_hash):
+            raise ValidationError(
+                f"TIML type {type_index:02d} mixes multiple timeline hashes and cannot be written safely."
+            )
+        group["transforms"][transform_index] = sampled_transform
+
+    ordered_type_indices = sorted(grouped)
+    expected_type_indices = list(range(len(ordered_type_indices)))
+    if ordered_type_indices != expected_type_indices:
+        raise ValidationError(
+            "TIML sampled type indices must be contiguous from 0 when building a new embedded payload."
+        )
+
+    type_records = []
+    highest_frame = 0.0
+    for type_index in ordered_type_indices:
+        transform_map = grouped[type_index]["transforms"]
+        ordered_transform_indices = sorted(transform_map)
+        expected_transform_indices = list(range(len(ordered_transform_indices)))
+        if ordered_transform_indices != expected_transform_indices:
+            raise ValidationError(
+                f"TIML type {type_index:02d} has non-contiguous transform indices and cannot be written safely."
+            )
+        transform_records = []
+        for transform_index in ordered_transform_indices:
+            sampled_transform = transform_map[transform_index]
+            source_label = f"TIML {type_index:02d}:{transform_index:02d}"
+            keyframe_blob = _keyframe_bytes(sampled_transform, source_label=source_label)
+            if sampled_transform.keyframes:
+                highest_frame = max(
+                    highest_frame,
+                    max(float(keyframe.frame) for keyframe in sampled_transform.keyframes),
+                )
+            transform_records.append(
+                {
+                    "datatype_hash": int(sampled_transform.datatype_hash),
+                    "data_type": int(sampled_transform.data_type),
+                    "keyframe_blob": keyframe_blob,
+                    "keyframe_count": len(sampled_transform.keyframes),
+                    "keyframe_offset": 0,
+                    "relative_offset": 0,
+                }
+            )
+        type_records.append(
+            {
+                "timeline_hash": int(grouped[type_index]["timeline_hash"]),
+                "transforms": transform_records,
+                "transform_table_offset": 0,
+                "relative_offset": 0,
+            }
+        )
+
+    data_size = DATA_STRUCT.size
+    type_table_offset = _align(data_size, 16)
+    current_offset = type_table_offset + (TYPE_STRUCT.size * len(type_records))
+    current_offset = _align(current_offset, 16)
+
+    rebase_offsets: list[int] = []
+    if type_records:
+        rebase_offsets.append(0)
+
+    for type_index, type_record in enumerate(type_records):
+        type_record["relative_offset"] = type_table_offset + (type_index * TYPE_STRUCT.size)
+        if type_record["transforms"]:
+            type_record["transform_table_offset"] = current_offset
+            rebase_offsets.append(int(type_record["relative_offset"]))
+            current_offset += TRANSFORM_STRUCT.size * len(type_record["transforms"])
+            current_offset = _align(current_offset, 16)
+
+    for type_record in type_records:
+        transforms = type_record["transforms"]
+        for transform_index, transform_record in enumerate(transforms):
+            transform_record["relative_offset"] = (
+                type_record["transform_table_offset"] + (transform_index * TRANSFORM_STRUCT.size)
+            )
+            if transform_record["keyframe_blob"]:
+                transform_record["keyframe_offset"] = current_offset
+                rebase_offsets.append(int(transform_record["relative_offset"]))
+                current_offset += len(transform_record["keyframe_blob"])
+                current_offset = _align(current_offset, 16)
+
+    payload = bytearray(current_offset)
+    absolute_type_table_offset = int(base_offset) + int(type_table_offset) if type_records else 0
+    DATA_STRUCT.pack_into(
+        payload,
+        0,
+        absolute_type_table_offset,
+        len(type_records),
+        int(data_index_a),
+        int(data_index_b),
+        float(max(float(animation_length), float(highest_frame))),
+        float(loop_start_point),
+        int(loop_control),
+        int(label_hash) & 0xFFFFFFFF,
+    )
+
+    for type_record in type_records:
+        absolute_transform_offset = (
+            int(base_offset) + int(type_record["transform_table_offset"])
+            if type_record["transforms"]
+            else 0
+        )
+        TYPE_STRUCT.pack_into(
+            payload,
+            int(type_record["relative_offset"]),
+            absolute_transform_offset,
+            len(type_record["transforms"]),
+            int(type_record["timeline_hash"]),
+            0,
+        )
+        for transform_record in type_record["transforms"]:
+            absolute_keyframe_offset = (
+                int(base_offset) + int(transform_record["keyframe_offset"])
+                if transform_record["keyframe_blob"]
+                else 0
+            )
+            TRANSFORM_STRUCT.pack_into(
+                payload,
+                int(transform_record["relative_offset"]),
+                absolute_keyframe_offset,
+                int(transform_record["keyframe_count"]),
+                int(transform_record["datatype_hash"]),
+                int(transform_record["data_type"]),
+            )
+            keyframe_offset = int(transform_record["keyframe_offset"])
+            keyframe_blob = bytes(transform_record["keyframe_blob"])
+            if keyframe_offset and keyframe_blob:
+                payload[keyframe_offset : keyframe_offset + len(keyframe_blob)] = keyframe_blob
+
+    return bytes(payload), tuple(int(offset) for offset in rebase_offsets)
+
+
 def _can_preserve_source_curve_semantics(source_transform, sampled_transform) -> bool:
     if int(sampled_transform.data_type) != int(source_transform.data_type):
         return False

@@ -370,6 +370,8 @@ def sample_timl_controller_action(controller_object, action=None) -> TimlSamplin
 
     bindings = _parse_timl_bindings(controller_object)
     if not bindings:
+        if metadata.transform_count == 0:
+            return result
         result.add("ERROR", "timl.controller", "TIML controller is missing binding metadata.")
         return result
     duplicate_identities = _duplicate_binding_labels(
@@ -512,6 +514,6 @@ def sample_timl_controller_action(controller_object, action=None) -> TimlSamplin
                 f"but imported action metadata expected {expected_transform_count}."
             ),
         )
-    if result.sampled_transform_count == 0 and not result.error_count:
+    if result.sampled_transform_count == 0 and not result.error_count and metadata.transform_count > 0:
         result.add("ERROR", "timl.controller", "No TIML controller transforms were analyzable from the selected action.")
     return result

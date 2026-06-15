@@ -10,18 +10,24 @@ try:
     from ..core.diagnostics.errors import ValidationError
     from ..core.formats.lmt.export_context import RawTimlPayload
     from ..core.formats.timl.embedded_writer import build_embedded_timl_data_payload
+    from ..core.formats.timl.embedded_writer import build_embedded_timl_data_payload_from_sampled
     from .timl_export import extract_action_timl_metadata
     from .timl_sampling import extract_timl_controller_metadata
     from .timl_sampling import is_imported_timl_controller
+    from .timl_templates import get_timl_template_header
+    from .timl_templates import get_timl_template_kind
     from .timl_writeback_plan import plan_timl_controller_writeback
 except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.diagnostics.errors import BinaryFormatError
     from core.diagnostics.errors import ValidationError
     from core.formats.lmt.export_context import RawTimlPayload
     from core.formats.timl.embedded_writer import build_embedded_timl_data_payload
+    from core.formats.timl.embedded_writer import build_embedded_timl_data_payload_from_sampled
     from blender_adapter.timl_export import extract_action_timl_metadata
     from blender_adapter.timl_sampling import extract_timl_controller_metadata
     from blender_adapter.timl_sampling import is_imported_timl_controller
+    from blender_adapter.timl_templates import get_timl_template_header
+    from blender_adapter.timl_templates import get_timl_template_kind
     from blender_adapter.timl_writeback_plan import plan_timl_controller_writeback
 
 
@@ -197,6 +203,12 @@ def assess_timl_controller_shared_payload(controller_object, controller_objects,
 def _payload_signature(payload, rebase_offsets) -> tuple[bytes, tuple[int, ...]]:
     return (bytes(payload), tuple(int(offset) for offset in rebase_offsets))
 
+
+def _source_entry_has_no_transforms(source_entry) -> bool:
+    if source_entry is None:
+        return True
+    return not any(getattr(type_entry, "transforms", ()) for type_entry in getattr(source_entry, "types", ()))
+
 def build_matching_timl_writeback(export_action, controller_objects, *, source_lmt, source_bytes: bytes) -> TimlWritebackResult:
     result = TimlWritebackResult()
     action_metadata = extract_action_timl_metadata(export_action)
@@ -270,11 +282,36 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
             continue
 
         try:
-            payload, rebase_offsets = build_embedded_timl_data_payload(
-                plan.source_entry,
-                changed_transforms,
-                base_offset=source_offset,
-            )
+            if _source_entry_has_no_transforms(plan.source_entry):
+                template_header = get_timl_template_header(controller)
+                template_kind = get_timl_template_kind(controller)
+                if template_header is None or not template_kind:
+                    result.add(
+                        "ERROR",
+                        "timl.writeback",
+                        (
+                            f"TIML controller '{controller_name}' edits an empty attached TIML container, "
+                            "but no template metadata was found to build a new payload safely."
+                        ),
+                    )
+                    invalid_controller_names.append(controller_name)
+                    continue
+                payload, rebase_offsets = build_embedded_timl_data_payload_from_sampled(
+                    changed_transforms,
+                    base_offset=source_offset,
+                    data_index_a=int(template_header.data_index_a),
+                    data_index_b=int(template_header.data_index_b),
+                    animation_length=float(template_header.animation_length),
+                    loop_start_point=float(template_header.loop_start_point),
+                    loop_control=int(template_header.loop_control),
+                    label_hash=int(template_header.label_hash),
+                )
+            else:
+                payload, rebase_offsets = build_embedded_timl_data_payload(
+                    plan.source_entry,
+                    changed_transforms,
+                    base_offset=source_offset,
+                )
         except (BinaryFormatError, ValidationError, ValueError) as exc:
             result.add("ERROR", "timl.writeback", str(exc))
             invalid_controller_names.append(controller_name)
