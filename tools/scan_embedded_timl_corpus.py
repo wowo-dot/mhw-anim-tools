@@ -42,6 +42,18 @@ STATE_SCHEMA_VERSION = 6
 
 BODY_INFO_TOKEN_PATTERN = re.compile(r"npc\\common\\body_info\\([^\\\x00]+)")
 
+# Some common-motion LMTS ship without local companion metadata. Keep these
+# overrides explicit, narrow, and backed by real Blender smoke validation so
+# corpus suites can exercise shared TIML paths without inventing broad rules.
+KNOWN_COMPANION_FALLBACKS = {
+    "npc\\common\\mot\\ncom151_09\\ncom151_09.lmt": (
+        "Assets\\evm\\evm055\\evm055_00\\mod\\evm055_00.mod3",
+        "Assets\\evm\\evm045\\evm045_00\\mod\\evm045_00.mod3",
+        "Assets\\evm\\evm532\\evm532_00\\mod\\evm532_00.mod3",
+        "Assets\\evm\\evm560\\evm560_00\\mod\\evm560_00.mod3",
+    ),
+}
+
 
 def iter_lmt_files(root: Path, limit: int | None):
     count = 0
@@ -291,6 +303,23 @@ def _body_profile_fallback_candidates(asset_root: Path, *, limit: int = 5) -> li
     return results
 
 
+def _known_companion_fallback_candidates(lmt_path: Path) -> list[str]:
+    chunk_root = _find_chunk_root(lmt_path)
+    if chunk_root is None:
+        return []
+    try:
+        relative_key = str(lmt_path.relative_to(chunk_root)).replace("/", "\\").lower()
+    except ValueError:
+        return []
+    candidates = KNOWN_COMPANION_FALLBACKS.get(relative_key, ())
+    results: list[str] = []
+    for relative_path in candidates:
+        absolute_path = chunk_root / relative_path
+        if absolute_path.is_file():
+            results.append(str(absolute_path))
+    return results
+
+
 def _nearby_mod3_candidates_for_lmt(lmt_path: Path, *, limit: int = 5) -> list[str]:
     stem = lmt_path.stem.lower()
     clip_folder = lmt_path.parent.name.lower()
@@ -341,6 +370,11 @@ def _nearby_mod3_candidates_for_lmt(lmt_path: Path, *, limit: int = 5) -> list[s
                 continue
             seen.add(candidate_path)
             ranked.append((6 + int(index), candidate_path))
+        for index, candidate_path in enumerate(_known_companion_fallback_candidates(lmt_path)):
+            if candidate_path in seen:
+                continue
+            seen.add(candidate_path)
+            ranked.append((12 + int(index), candidate_path))
         for index, candidate_path in enumerate(_body_profile_fallback_candidates(asset_root)):
             if candidate_path in seen:
                 continue

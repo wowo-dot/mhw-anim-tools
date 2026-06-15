@@ -107,6 +107,22 @@ class EmbeddedTimlCorpusScanTests(unittest.TestCase):
 
             self.assertIn(str(model_path), candidates)
 
+    def test_nearby_mod3_candidates_can_use_known_common_motion_fallbacks(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            chunk_root = Path(tmpdir) / "chunk"
+            lmt_path = chunk_root / "npc" / "common" / "mot" / "ncom151_09" / "ncom151_09.lmt"
+            model_path = chunk_root / "Assets" / "evm" / "evm055" / "evm055_00" / "mod" / "evm055_00.mod3"
+
+            lmt_path.parent.mkdir(parents=True, exist_ok=True)
+            model_path.parent.mkdir(parents=True, exist_ok=True)
+
+            lmt_path.write_bytes(b"")
+            model_path.write_bytes(b"")
+
+            candidates = _nearby_mod3_candidates_for_lmt(lmt_path, limit=5)
+
+            self.assertIn(str(model_path), candidates)
+
     def test_ranked_example_retention_prefers_runnable_shared_examples(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             live_mod3 = Path(tmpdir) / "live.mod3"
