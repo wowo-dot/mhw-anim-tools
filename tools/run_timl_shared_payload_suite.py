@@ -23,17 +23,21 @@ def _load_json(path: Path) -> dict[str, object]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _collect_examples(summary_paths: list[Path]) -> list[dict[str, object]]:
+def _collect_examples(summary_paths: list[Path]) -> tuple[list[dict[str, object]], list[str]]:
     examples: list[dict[str, object]] = []
+    missing_example_key_summaries: list[str] = []
     for summary_path in summary_paths:
         payload = _load_json(summary_path)
+        if "shared_payload_examples" not in payload:
+            missing_example_key_summaries.append(str(summary_path))
+            continue
         for example in payload.get("shared_payload_examples", ()):
             if not isinstance(example, dict):
                 continue
             cloned = dict(example)
             cloned["_summary_path"] = str(summary_path)
             examples.append(cloned)
-    return examples
+    return examples, missing_example_key_summaries
 
 
 def _expand_examples_by_entry(raw_examples: list[dict[str, object]]) -> list[dict[str, object]]:
@@ -220,7 +224,7 @@ def main():
     if missing_summaries:
         raise SystemExit(f"Missing scan summary file(s): {', '.join(missing_summaries)}")
 
-    raw_examples = _collect_examples(args.scan_summaries)
+    raw_examples, missing_example_key_summaries = _collect_examples(args.scan_summaries)
     if args.expand_shared_entries:
         raw_examples = _expand_examples_by_entry(raw_examples)
     selected_examples = _select_examples(
@@ -229,6 +233,13 @@ def main():
         unique_lmt=not bool(args.allow_same_lmt),
     )
     if not selected_examples:
+        if missing_example_key_summaries:
+            joined = ", ".join(missing_example_key_summaries)
+            raise SystemExit(
+                "Provided embedded TIML scan summary file(s) do not contain "
+                "'shared_payload_examples'. Regenerate them with the current "
+                f"scan tool before running this suite: {joined}"
+            )
         raise SystemExit("No runnable shared TIML payload examples were found in the provided scan summaries.")
 
     print(
