@@ -35,7 +35,7 @@ from core.formats.timl.semantics import get_interpolation_label
 
 
 SUPPORTED_TIML_DATA_TYPES = {0, 1, 2, 3, 4}
-STATE_SCHEMA_VERSION = 4
+STATE_SCHEMA_VERSION = 5
 
 
 def iter_lmt_files(root: Path, limit: int | None):
@@ -76,6 +76,70 @@ def _is_integral_frame(value: float) -> bool:
     return math.isclose(float(value), float(rounded), rel_tol=0.0, abs_tol=1e-6)
 
 
+def _existing_mod3_coverage(primary_path: str, candidates: list[str]) -> int:
+    if primary_path and Path(primary_path).is_file():
+        return 2
+    if any(candidate and Path(candidate).is_file() for candidate in candidates):
+        return 1
+    return 0
+
+
+def _record_ranked_example(
+    items: list[dict[str, object]],
+    item: dict[str, object],
+    *,
+    rank_key,
+    unique_key,
+    limit: int = 20,
+) -> None:
+    rank = rank_key(item)
+    item_key = unique_key(item)
+    for index, existing in enumerate(items):
+        if unique_key(existing) != item_key:
+            continue
+        if rank > rank_key(existing):
+            items[index] = item
+        return
+    if len(items) < int(limit):
+        items.append(item)
+        return
+    worst_index = min(range(len(items)), key=lambda idx: rank_key(items[idx]))
+    if rank > rank_key(items[worst_index]):
+        items[worst_index] = item
+
+
+def _shared_payload_example_rank(item: dict[str, object]) -> tuple[int, int, int, int]:
+    primary_path = str(item.get("mod3_path", "") or "")
+    candidates = [str(candidate or "") for candidate in item.get("mod3_candidates", ())]
+    return (
+        _existing_mod3_coverage(primary_path, candidates),
+        int(item.get("shared_action_count", 0) or 0),
+        int(item.get("supported_transform_count", 0) or 0),
+        int(item.get("transform_count", 0) or 0),
+    )
+
+
+def _rebuild_friendly_example_rank(item: dict[str, object]) -> tuple[int, int, int]:
+    primary_path = str(item.get("mod3_path", "") or "")
+    candidates = [str(candidate or "") for candidate in item.get("mod3_candidates", ())]
+    return (
+        _existing_mod3_coverage(primary_path, candidates),
+        int(item.get("supported_transform_count", 0) or 0),
+        int(item.get("transform_count", 0) or 0),
+    )
+
+
+def _iter_mod3_search_roots(asset_root: Path) -> list[Path]:
+    roots: list[Path] = []
+    direct_mod_root = asset_root / "mod"
+    if direct_mod_root.is_dir():
+        roots.append(direct_mod_root)
+    # Some assets keep the usable model directly under the asset root or inside
+    # alternative subfolders rather than a strict `mod/` container.
+    roots.append(asset_root)
+    return roots
+
+
 def _nearby_mod3_candidates_for_lmt(lmt_path: Path, *, limit: int = 5) -> list[str]:
     stem = lmt_path.stem.lower()
     clip_folder = lmt_path.parent.name.lower()
@@ -91,38 +155,38 @@ def _nearby_mod3_candidates_for_lmt(lmt_path: Path, *, limit: int = 5) -> list[s
     ranked: list[tuple[int, str]] = []
     seen: set[str] = set()
     for asset_root in asset_roots:
-        mod_root = asset_root / "mod"
-        if not mod_root.is_dir():
-            continue
         asset_name = asset_root.name.lower()
-        for candidate in mod_root.rglob("*.mod3"):
-            candidate_path = str(candidate)
-            if candidate_path in seen:
+        for search_root in _iter_mod3_search_roots(asset_root):
+            if not search_root.is_dir():
                 continue
-            seen.add(candidate_path)
-            candidate_stem = candidate.stem.lower()
-            score = 10
-            if candidate_stem == stem:
-                score = 0
-            elif candidate_stem == clip_folder:
-                score = 1
-            elif candidate_stem == asset_name:
-                score = 2
-            elif candidate_stem.startswith(asset_name):
-                score = 3
-            elif asset_name and asset_name in candidate_stem:
-                score = 4
-            elif stem and stem in candidate_stem:
-                score = 5
-            ranked.append((score, candidate_path))
+            for candidate in search_root.rglob("*.mod3"):
+                candidate_parts = {part.lower() for part in candidate.relative_to(search_root).parts[:-1]}
+                if {"mot", "sound", "text"} & candidate_parts:
+                    continue
+                candidate_path = str(candidate)
+                if candidate_path in seen:
+                    continue
+                seen.add(candidate_path)
+                candidate_stem = candidate.stem.lower()
+                score = 10
+                if candidate_stem == stem:
+                    score = 0
+                elif candidate_stem == clip_folder:
+                    score = 1
+                elif candidate_stem == asset_name:
+                    score = 2
+                elif candidate_stem.startswith(asset_name):
+                    score = 3
+                elif asset_name and asset_name in candidate_stem:
+                    score = 4
+                elif stem and stem in candidate_stem:
+                    score = 5
+                if search_root == asset_root:
+                    score += 1
+                score += max(0, len(candidate.relative_to(search_root).parts) - 1)
+                ranked.append((score, candidate_path))
     ranked.sort(key=lambda item: (item[0], item[1].lower()))
     return [path for _score, path in ranked[: int(limit)]]
-
-
-def _guess_mod3_path_for_lmt(lmt_path: Path) -> str:
-    candidates = _nearby_mod3_candidates_for_lmt(lmt_path, limit=1)
-    return candidates[0] if candidates else ""
-
 
 def _new_state(asset_root: Path, total_files: int, limit: int | None) -> dict[str, object]:
     return {
@@ -355,37 +419,45 @@ def _process_payload(
             },
         )
     if (not payload_has_advanced_source) and (not payload_unsupported_types) and payload_transform_count > 0:
-        _append_capped(
+        mod3_candidates = _nearby_mod3_candidates_for_lmt(lmt_path)
+        example = {
+            "path": str(lmt_path),
+            "mod3_path": mod3_candidates[0] if mod3_candidates else "",
+            "mod3_candidates": mod3_candidates,
+            "payload_offset": int(payload_offset),
+            "action_ids": [int(action_id) for action_id in payload_action_ids],
+            "entry_indices": [int(entry_index) for entry_index in payload_entry_indices],
+            "selected_entry_index": int(payload_entry_indices[0]) if payload_entry_indices else -1,
+            "transform_count": int(payload_transform_count),
+            "supported_transform_count": int(payload_supported_transform_count),
+        }
+        _record_ranked_example(
             state["rebuild_friendly_payload_examples"],
-            {
-                "path": str(lmt_path),
-                "mod3_path": _guess_mod3_path_for_lmt(lmt_path),
-                "mod3_candidates": _nearby_mod3_candidates_for_lmt(lmt_path),
-                "payload_offset": int(payload_offset),
-                "action_ids": [int(action_id) for action_id in payload_action_ids],
-                "entry_indices": [int(entry_index) for entry_index in payload_entry_indices],
-                "selected_entry_index": int(payload_entry_indices[0]) if payload_entry_indices else -1,
-                "transform_count": int(payload_transform_count),
-                "supported_transform_count": int(payload_supported_transform_count),
-            },
+            example,
+            rank_key=_rebuild_friendly_example_rank,
+            unique_key=lambda item: (str(item.get("path", "")), int(item.get("payload_offset", 0) or 0)),
         )
     if len(payload_action_ids) > 1 and payload_transform_count > 0:
-        _append_capped(
+        mod3_candidates = _nearby_mod3_candidates_for_lmt(lmt_path)
+        example = {
+            "path": str(lmt_path),
+            "mod3_path": mod3_candidates[0] if mod3_candidates else "",
+            "mod3_candidates": mod3_candidates,
+            "payload_offset": int(payload_offset),
+            "action_ids": [int(action_id) for action_id in payload_action_ids],
+            "entry_indices": [int(entry_index) for entry_index in payload_entry_indices],
+            "selected_entry_index": int(payload_entry_indices[0]) if payload_entry_indices else -1,
+            "shared_action_count": len(payload_action_ids),
+            "transform_count": int(payload_transform_count),
+            "supported_transform_count": int(payload_supported_transform_count),
+            "simple_source_transform_count": int(payload_simple_source_transform_count),
+            "advanced_source_transform_count": int(payload_advanced_source_transform_count),
+        }
+        _record_ranked_example(
             state["shared_payload_examples"],
-            {
-                "path": str(lmt_path),
-                "mod3_path": _guess_mod3_path_for_lmt(lmt_path),
-                "mod3_candidates": _nearby_mod3_candidates_for_lmt(lmt_path),
-                "payload_offset": int(payload_offset),
-                "action_ids": [int(action_id) for action_id in payload_action_ids],
-                "entry_indices": [int(entry_index) for entry_index in payload_entry_indices],
-                "selected_entry_index": int(payload_entry_indices[0]) if payload_entry_indices else -1,
-                "shared_action_count": len(payload_action_ids),
-                "transform_count": int(payload_transform_count),
-                "supported_transform_count": int(payload_supported_transform_count),
-                "simple_source_transform_count": int(payload_simple_source_transform_count),
-                "advanced_source_transform_count": int(payload_advanced_source_transform_count),
-            },
+            example,
+            rank_key=_shared_payload_example_rank,
+            unique_key=lambda item: (str(item.get("path", "")), int(item.get("payload_offset", 0) or 0)),
         )
 
 
