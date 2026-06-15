@@ -56,6 +56,28 @@ def _draw_timl_payload_scope(layout, scene_props):
     scope_box.label(text=scene_props.last_timl_payload_scope)
 
 
+def _timl_shared_controller_status_label(status: str) -> str:
+    labels = {
+        "single": "Single Imported Controller",
+        "consistent": "Controllers Consistent",
+        "conflict": "Controller Conflict",
+    }
+    return labels.get(str(status or ""), "")
+
+
+def _draw_timl_shared_controller_summary(layout, scene_props):
+    if not scene_props.last_timl_matching_controller_count:
+        return
+    summary_box = layout.box()
+    summary_box.label(text="Shared Controller State", icon="OUTLINER_OB_EMPTY")
+    summary_box.label(text=f"Matching controllers: {scene_props.last_timl_matching_controller_count}")
+    status_label = _timl_shared_controller_status_label(scene_props.last_timl_shared_controller_status)
+    if status_label:
+        summary_box.label(text=f"Status: {status_label}")
+    if scene_props.last_timl_matching_controller_names:
+        summary_box.label(text=scene_props.last_timl_matching_controller_names)
+
+
 def _draw_workspace_header(layout, scene_props):
     header_box = layout.box()
     header_box.label(text="Session Browser", icon="ANIM_DATA")
@@ -357,6 +379,7 @@ def _draw_timl_workflow_section(layout, scene_props):
             _draw_timl_edit_policy_counts(analysis_box, scene_props)
             _draw_timl_writeback_counts(analysis_box, scene_props)
             _draw_timl_payload_scope(analysis_box, scene_props)
+            _draw_timl_shared_controller_summary(analysis_box, scene_props)
     panel_body.label(text="Deep TIML details live in Object Properties > TIML Inspector.", icon="PROPERTIES")
 
 
@@ -497,6 +520,7 @@ def draw_timl_inspector_panel(layout, context):
             _draw_timl_edit_policy_counts(analysis_box, scene_props)
             _draw_timl_writeback_counts(analysis_box, scene_props)
             _draw_timl_payload_scope(analysis_box, scene_props)
+            _draw_timl_shared_controller_summary(analysis_box, scene_props)
         else:
             analysis_box.label(text="Source-backed writeback modes are not available for this controller yet.", icon="INFO")
     else:

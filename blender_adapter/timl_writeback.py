@@ -53,6 +53,15 @@ class TimlWritebackResult:
         return sum(1 for item in self.diagnostics if item.level == "ERROR")
 
 
+@dataclass(frozen=True)
+class TimlSharedPayloadAssessment:
+    source_offset: int = 0
+    shared_action_ids: tuple[int, ...] = ()
+    matching_controller_names: tuple[str, ...] = ()
+    status: str = ""
+    diagnostics: tuple[TimlWritebackDiagnostic, ...] = ()
+
+
 def matching_timl_controllers_for_export_action(export_action, controller_objects) -> tuple[object, ...]:
     action_metadata = extract_action_timl_metadata(export_action)
     if not action_metadata.source_lmt or action_metadata.entry_id < 0:
@@ -98,6 +107,91 @@ def _shared_source_action_ids(source_lmt, source_offset: int) -> tuple[int, ...]
 
 def shared_source_action_ids(source_lmt, source_offset: int) -> tuple[int, ...]:
     return _shared_source_action_ids(source_lmt, source_offset)
+
+
+def assess_timl_controller_shared_payload(controller_object, controller_objects, *, source_lmt, source_bytes: bytes) -> TimlSharedPayloadAssessment:
+    metadata = extract_timl_controller_metadata(controller_object)
+    if not metadata.source_lmt or int(metadata.source_offset) <= 0:
+        return TimlSharedPayloadAssessment()
+
+    export_action = {
+        "name": metadata.action_name or metadata.carrier_name,
+        "mhw_anim_tools_import_kind": "lmt_action",
+        "mhw_anim_tools_source_lmt": metadata.source_lmt,
+        "mhw_anim_tools_entry_id": int(metadata.entry_id),
+        "mhw_anim_tools_source_timl_offset": int(metadata.source_offset),
+        "mhw_anim_tools_source_has_timl": True,
+    }
+    shared_action_ids = shared_source_action_ids(source_lmt, int(metadata.source_offset))
+    matches = matching_timl_controllers_for_export_action(export_action, controller_objects)
+    matching_controller_names = tuple(
+        sorted(
+            {
+                str(getattr(controller, "name", "") or "")
+                for controller in matches
+                if str(getattr(controller, "name", "") or "")
+            }
+        )
+    )
+    if not matches:
+        return TimlSharedPayloadAssessment(
+            source_offset=int(metadata.source_offset),
+            shared_action_ids=shared_action_ids,
+            matching_controller_names=(),
+        )
+
+    if len(matches) == 1:
+        diagnostics: list[TimlWritebackDiagnostic] = []
+        if len(shared_action_ids) > 1:
+            shared_labels = ", ".join(f"{action_id:03d}" for action_id in shared_action_ids)
+            controller_label = matching_controller_names[0] if matching_controller_names else str(getattr(controller_object, "name", "") or "")
+            diagnostics.append(
+                TimlWritebackDiagnostic(
+                    level="INFO",
+                    source="timl.writeback",
+                    message=(
+                        f"Embedded TIML payload is shared by source actions {shared_labels}, "
+                        f"but only one imported controller currently matches it ({controller_label})."
+                    ),
+                )
+            )
+        return TimlSharedPayloadAssessment(
+            source_offset=int(metadata.source_offset),
+            shared_action_ids=shared_action_ids,
+            matching_controller_names=matching_controller_names,
+            status="single",
+            diagnostics=tuple(diagnostics),
+        )
+
+    result = build_matching_timl_writeback(
+        export_action,
+        controller_objects,
+        source_lmt=source_lmt,
+        source_bytes=source_bytes,
+    )
+    if result.error_count:
+        status = "conflict"
+        level = "ERROR"
+        message = (
+            "Multiple imported TIML controllers match this shared embedded payload, "
+            "but they do not currently resolve to one consistent writeback payload."
+        )
+    else:
+        status = "consistent"
+        level = "INFO"
+        message = (
+            "Multiple imported TIML controllers match this shared embedded payload "
+            "and currently resolve to one consistent writeback payload."
+        )
+    return TimlSharedPayloadAssessment(
+        source_offset=int(metadata.source_offset),
+        shared_action_ids=shared_action_ids,
+        matching_controller_names=matching_controller_names,
+        status=status,
+        diagnostics=(
+            TimlWritebackDiagnostic(level=level, source="timl.writeback", message=message),
+        ),
+    )
 
 
 def _payload_signature(payload, rebase_offsets) -> tuple[bytes, tuple[int, ...]]:

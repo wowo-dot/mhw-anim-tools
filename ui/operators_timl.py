@@ -5,10 +5,12 @@ from pathlib import Path
 
 import bpy
 
-from ..blender_adapter.timl_writeback import shared_source_action_ids
+from ..blender_adapter.timl_writeback import assess_timl_controller_shared_payload
 from ..blender_adapter.timl_sampling import is_imported_timl_controller
 from ..blender_adapter.timl_sampling import sample_timl_controller_action
 from ..blender_adapter.timl_writeback_plan import plan_timl_controller_writeback
+from ..core.diagnostics.errors import BinaryFormatError
+from ..core.diagnostics.errors import ValidationError
 from ..core.formats.lmt.reader import read_lmt_bytes
 from .properties import add_diagnostic
 from .properties import clear_diagnostics
@@ -16,6 +18,7 @@ from .properties import clear_timl_analysis
 from .properties import _populate_timl_controller_transform_items
 from .properties import set_timl_edit_policy_summary
 from .properties import set_timl_payload_scope_summary
+from .properties import set_timl_shared_controller_summary
 from .properties import set_timl_writeback_summary
 
 
@@ -113,6 +116,7 @@ class MHWANIMTOOLS_OT_analyze_timl_controller(bpy.types.Operator):
         scene_props.last_timl_analysis_warning_count = result.warning_count
         scene_props.last_timl_analysis_error_count = result.error_count
         writeback_plan = None
+        shared_payload_assessment = None
         source_lmt = None
         source_bytes = None
         if not result.error_count:
@@ -124,6 +128,13 @@ class MHWANIMTOOLS_OT_analyze_timl_controller(bpy.types.Operator):
                         metadata,
                         source_bytes=source_bytes,
                     )
+                    if source_lmt is not None:
+                        shared_payload_assessment = assess_timl_controller_shared_payload(
+                            controller,
+                            bpy.data.objects,
+                            source_lmt=source_lmt,
+                            source_bytes=source_bytes,
+                        )
             except OSError as exc:
                 add_diagnostic(
                     scene_props,
@@ -131,7 +142,7 @@ class MHWANIMTOOLS_OT_analyze_timl_controller(bpy.types.Operator):
                     "timl.writeback",
                     f"Could not read source TIML container for writeback planning: {exc}",
                 )
-            except Exception as exc:
+            except (BinaryFormatError, ValidationError, ValueError, TypeError) as exc:
                 add_diagnostic(
                     scene_props,
                     "WARNING",
@@ -149,11 +160,14 @@ class MHWANIMTOOLS_OT_analyze_timl_controller(bpy.types.Operator):
                 scene_props,
                 writeback_plan.transform_plans,
             )
-            if source_lmt is not None and metadata is not None:
-                set_timl_payload_scope_summary(
-                    scene_props,
-                    shared_source_action_ids(source_lmt, int(getattr(metadata, "source_offset", 0))),
-                )
+        if shared_payload_assessment is not None:
+            for diagnostic in shared_payload_assessment.diagnostics:
+                add_diagnostic(scene_props, diagnostic.level, diagnostic.source, diagnostic.message)
+            set_timl_payload_scope_summary(
+                scene_props,
+                shared_payload_assessment.shared_action_ids,
+            )
+            set_timl_shared_controller_summary(scene_props, shared_payload_assessment)
         _populate_timl_controller_transform_items(
             scene_props,
             sampled_result=result,

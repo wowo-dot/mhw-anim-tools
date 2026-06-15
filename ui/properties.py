@@ -348,6 +348,9 @@ def clear_timl_analysis(scene_props):
     scene_props.last_timl_edit_rebuild_capable_count = 0
     scene_props.last_timl_edit_blocked_count = 0
     scene_props.last_timl_payload_scope = ""
+    scene_props.last_timl_matching_controller_count = 0
+    scene_props.last_timl_matching_controller_names = ""
+    scene_props.last_timl_shared_controller_status = ""
     scene_props.timl_controller_transforms.clear()
     scene_props.selected_timl_controller_transform_index = 0
 
@@ -378,6 +381,16 @@ def set_timl_edit_policy_summary(scene_props, plan_items):
 
 def set_timl_payload_scope_summary(scene_props, action_ids):
     scene_props.last_timl_payload_scope = timl_payload_scope_label(action_ids)
+
+
+def set_timl_shared_controller_summary(scene_props, assessment):
+    scene_props.last_timl_matching_controller_count = len(getattr(assessment, "matching_controller_names", ()) or ())
+    scene_props.last_timl_matching_controller_names = ", ".join(
+        str(name)
+        for name in (getattr(assessment, "matching_controller_names", ()) or ())
+        if str(name)
+    )
+    scene_props.last_timl_shared_controller_status = str(getattr(assessment, "status", "") or "")
 
 
 class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
@@ -493,6 +506,19 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
     )
     last_timl_payload_scope: bpy.props.StringProperty(
         name="TIML Payload Scope",
+        default="",
+    )
+    last_timl_matching_controller_count: bpy.props.IntProperty(
+        name="TIML Matching Controller Count",
+        default=0,
+        min=0,
+    )
+    last_timl_matching_controller_names: bpy.props.StringProperty(
+        name="TIML Matching Controller Names",
+        default="",
+    )
+    last_timl_shared_controller_status: bpy.props.StringProperty(
+        name="TIML Shared Controller Status",
         default="",
     )
     last_export_action_name: bpy.props.StringProperty(
