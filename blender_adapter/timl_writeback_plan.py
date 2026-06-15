@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from dataclasses import field
+import math
 
 try:
     from ..core.formats.timl.embedded_writer import preserved_source_curve_identities
@@ -20,6 +21,10 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
 
 
 WRITABLE_BLENDER_INTERPOLATIONS = {"CONSTANT", "LINEAR"}
+EXACT_INTEGER_FLOAT_LIMIT = 16_777_216
+INT32_MIN = -(1 << 31)
+INT32_MAX = (1 << 31) - 1
+UINT32_MAX = (1 << 32) - 1
 
 
 @dataclass(frozen=True)
@@ -119,6 +124,53 @@ def _source_component_count(source_transform) -> int:
     if int(source_transform.data_type) == 3:
         return 4
     return 1
+
+
+def _is_integral_value(value: float) -> bool:
+    return math.isclose(float(value), round(float(value)), rel_tol=0.0, abs_tol=1e-6)
+
+
+def _sampled_transform_writeback_block_reason(sampled_transform) -> str:
+    data_type = int(sampled_transform.data_type)
+    components = tuple(
+        float(component)
+        for keyframe in sampled_transform.keyframes
+        for component in keyframe.value
+    )
+    if data_type == 0:
+        if any((not math.isfinite(value)) or int(round(value)) < INT32_MIN or int(round(value)) > INT32_MAX for value in components):
+            return "integer_range"
+        if any(abs(value) > EXACT_INTEGER_FLOAT_LIMIT for value in components):
+            return "integer_precision_risk"
+        if any(not _is_integral_value(value) for value in components):
+            return "integer_off_grid"
+    elif data_type == 1:
+        if any((not math.isfinite(value)) or int(round(value)) < 0 or int(round(value)) > UINT32_MAX for value in components):
+            return "integer_range"
+        if any(abs(value) > EXACT_INTEGER_FLOAT_LIMIT for value in components):
+            return "integer_precision_risk"
+        if any(not _is_integral_value(value) for value in components):
+            return "integer_off_grid"
+    elif data_type == 4:
+        if any(
+            not math.isclose(float(value), 0.0, rel_tol=0.0, abs_tol=1e-6)
+            and not math.isclose(float(value), 1.0, rel_tol=0.0, abs_tol=1e-6)
+            for value in components
+        ):
+            return "boolean_off_grid"
+    return ""
+
+
+def _sampled_transform_writeback_block_message(reason: str) -> str:
+    if reason == "integer_range":
+        return "integer preview values fall outside the writable range for this TIML data type"
+    if reason == "integer_precision_risk":
+        return "integer preview values exceed exact Blender float precision and would round unpredictably"
+    if reason == "integer_off_grid":
+        return "integer preview values are off-grid and would require lossy quantization"
+    if reason == "boolean_off_grid":
+        return "boolean preview values are not limited to 0 or 1 and would require lossy quantization"
+    return "preview values are not safely writable"
 
 
 def _sampled_source_mismatch_reason(source_type, source_transform, sampled_transform) -> str:
@@ -281,6 +333,29 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
                             source_transform=source_transform,
                             sampled_transform=sampled_transform,
                         ),
+                    ),
+                )
+                continue
+            value_block_reason = _sampled_transform_writeback_block_reason(sampled_transform)
+            if value_block_reason:
+                transform_plans.append(
+                    TimlTransformWritebackPlan(
+                        type_index=type_index,
+                        transform_index=transform_index,
+                        status="unsupported_rebuild",
+                        data_type=int(source_transform.data_type),
+                        source_advanced=source_advanced,
+                        reason=value_block_reason,
+                    )
+                )
+                plan.add(
+                    "ERROR",
+                    "timl.writeback",
+                    "TIML transform %02d:%02d cannot be written safely because %s."
+                    % (
+                        int(type_index),
+                        int(transform_index),
+                        _sampled_transform_writeback_block_message(value_block_reason),
                     ),
                 )
                 continue

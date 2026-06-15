@@ -32,6 +32,15 @@ class TimlUiLabelTests(unittest.TestCase):
         message = timl_writeback_reason_label("unsupported_rebuild", reason="advanced_source_rebuild")
         self.assertIn("source-only easing/interpolation semantics", message)
 
+    def test_reason_label_mentions_quantization_for_integer_blocks(self):
+        message = timl_writeback_reason_label("unsupported_rebuild", reason="integer_off_grid")
+        self.assertIn("lossy quantization", message)
+        self.assertIn("whole-number", message)
+
+    def test_reason_label_mentions_boolean_domain_for_boolean_blocks(self):
+        message = timl_writeback_reason_label("unsupported_rebuild", reason="boolean_off_grid")
+        self.assertIn("0 or 1", message)
+
     def test_status_counter_tracks_each_writeback_mode(self):
         counts = count_timl_writeback_statuses(
             [

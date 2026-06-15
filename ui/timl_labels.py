@@ -99,6 +99,14 @@ def timl_writeback_reason_label(status: str, *, reason: str = "", source_advance
             return "Controller binding metadata no longer matches the imported TIML source transform, so export is blocked."
         if reason == "advanced_source_rebuild":
             return "This transform uses source-only easing/interpolation semantics, so structural edits are blocked for now. Value-only edits remain safe."
+        if reason == "integer_off_grid":
+            return "This integer transform currently uses non-integral preview values and would need lossy quantization, so export is blocked until the keys are set to exact whole-number values."
+        if reason == "integer_precision_risk":
+            return "This integer transform exceeds exact Blender float precision, so export is blocked until the keys are re-entered as safe whole-number values."
+        if reason == "integer_range":
+            return "This integer transform is outside the writable TIML integer range, so export is blocked until the values are brought back into range."
+        if reason == "boolean_off_grid":
+            return "This boolean transform currently uses preview values other than 0 or 1, so export is blocked until the keys are made explicitly boolean."
         return "This transform needs a structural rebuild, but current preview interpolation is unsupported. Use CONSTANT or LINEAR for now."
     return ""
 

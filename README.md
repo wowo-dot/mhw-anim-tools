@@ -91,6 +91,7 @@ Useful smoke scripts:
 - `tools/smoke_import_attached_timl.py`
 - `tools/smoke_analyze_timl_controller.py`
 - `tools/smoke_merge_export_with_timl_edit.py`
+- `tools/smoke_merge_export_with_timl_integer_quantization_block.py`
 - `tools/smoke_merge_export_with_shared_timl_value_edit.py`
 - `tools/smoke_merge_export_with_timl_simple_structural_edit.py`
 - `tools/smoke_merge_export_with_timl_structural_edit.py`
