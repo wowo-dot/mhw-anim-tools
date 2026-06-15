@@ -110,6 +110,7 @@ Useful corpus scans:
 Release planning:
 
 - `docs/v1-release-checklist.md`
+- `docs/v1-validation-matrix.md`
 
 Writer-readiness scan notes:
 
