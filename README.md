@@ -93,6 +93,7 @@ Useful smoke scripts:
 - `tools/smoke_merge_export_with_timl_edit.py`
 - `tools/smoke_merge_export_with_timl_simple_structural_edit.py`
 - `tools/smoke_merge_export_with_timl_structural_edit.py`
+- `tools/run_timl_simple_structural_suite.py`
 - `tools/smoke_sample_export_action.py`
 - `tools/smoke_write_lmt_roundtrip.py`
 

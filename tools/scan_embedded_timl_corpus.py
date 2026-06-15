@@ -35,6 +35,7 @@ from core.formats.timl.semantics import get_interpolation_label
 
 
 SUPPORTED_TIML_DATA_TYPES = {0, 1, 2, 3, 4}
+STATE_SCHEMA_VERSION = 3
 
 
 def iter_lmt_files(root: Path, limit: int | None):
@@ -125,7 +126,7 @@ def _guess_mod3_path_for_lmt(lmt_path: Path) -> str:
 
 def _new_state(asset_root: Path, total_files: int, limit: int | None) -> dict[str, object]:
     return {
-        "schema_version": 2,
+        "schema_version": STATE_SCHEMA_VERSION,
         "asset_root": str(asset_root.resolve()),
         "limit": limit,
         "total_files": int(total_files),
@@ -165,6 +166,11 @@ def _new_state(asset_root: Path, total_files: int, limit: int | None) -> dict[st
 
 def _load_state(state_path: Path, *, asset_root: Path, total_files: int, limit: int | None) -> dict[str, object]:
     data = json.loads(state_path.read_text(encoding="utf-8"))
+    if int(data.get("schema_version", 0)) != int(STATE_SCHEMA_VERSION):
+        raise SystemExit(
+            f"State file '{state_path}' uses schema_version={data.get('schema_version')}, "
+            f"but this tool expects schema_version={STATE_SCHEMA_VERSION}."
+        )
     expected_root = str(asset_root.resolve())
     if data.get("asset_root") != expected_root:
         raise SystemExit(
@@ -246,7 +252,15 @@ def _progress_message(state: dict[str, object]) -> str:
     )
 
 
-def _process_payload(state: dict[str, object], *, lmt_path: Path, payload_offset: int, payload_action_ids: list[int], source_bytes: bytes) -> None:
+def _process_payload(
+    state: dict[str, object],
+    *,
+    lmt_path: Path,
+    payload_offset: int,
+    payload_action_ids: list[int],
+    payload_entry_indices: list[int],
+    source_bytes: bytes,
+) -> None:
     try:
         data_entry = read_timl_data_bytes(
             source_bytes,
@@ -262,6 +276,7 @@ def _process_payload(state: dict[str, object], *, lmt_path: Path, payload_offset
                 "path": str(lmt_path),
                 "payload_offset": int(payload_offset),
                 "action_ids": [int(action_id) for action_id in payload_action_ids],
+                "entry_indices": [int(entry_index) for entry_index in payload_entry_indices],
                 "error": str(exc),
             },
         )
@@ -318,6 +333,7 @@ def _process_payload(state: dict[str, object], *, lmt_path: Path, payload_offset
                 "path": str(lmt_path),
                 "payload_offset": int(payload_offset),
                 "action_ids": [int(action_id) for action_id in payload_action_ids],
+                "entry_indices": [int(entry_index) for entry_index in payload_entry_indices],
                 "transform_count": sum(len(type_entry.transforms) for type_entry in data_entry.types),
             },
         )
@@ -328,6 +344,7 @@ def _process_payload(state: dict[str, object], *, lmt_path: Path, payload_offset
                 "path": str(lmt_path),
                 "payload_offset": int(payload_offset),
                 "action_ids": [int(action_id) for action_id in payload_action_ids],
+                "entry_indices": [int(entry_index) for entry_index in payload_entry_indices],
                 "data_types": sorted(set(int(value) for value in payload_unsupported_types)),
             },
         )
@@ -340,6 +357,8 @@ def _process_payload(state: dict[str, object], *, lmt_path: Path, payload_offset
                 "mod3_candidates": _nearby_mod3_candidates_for_lmt(lmt_path),
                 "payload_offset": int(payload_offset),
                 "action_ids": [int(action_id) for action_id in payload_action_ids],
+                "entry_indices": [int(entry_index) for entry_index in payload_entry_indices],
+                "selected_entry_index": int(payload_entry_indices[0]) if payload_entry_indices else -1,
                 "transform_count": int(payload_transform_count),
                 "supported_transform_count": int(payload_supported_transform_count),
             },
@@ -365,21 +384,30 @@ def _process_file(path: Path, state: dict[str, object]) -> None:
     if not actions_with_timl:
         return
 
-    payload_groups: dict[int, list[int]] = {}
-    for action in actions_with_timl:
-        payload_groups.setdefault(int(action.header.timl_offset), []).append(int(action.id))
+    payload_groups: dict[int, dict[str, list[int]]] = {}
+    for entry_index, action in enumerate(lmt.actions):
+        if not (bool(action.has_timl) and int(action.header.timl_offset) > 0):
+            continue
+        payload_entry = payload_groups.setdefault(
+            int(action.header.timl_offset),
+            {"action_ids": [], "entry_indices": []},
+        )
+        payload_entry["action_ids"].append(int(action.id))
+        payload_entry["entry_indices"].append(int(entry_index))
 
-    for action_ids in payload_groups.values():
+    for payload_info in payload_groups.values():
+        action_ids = payload_info["action_ids"]
         if len(action_ids) > 1:
             state["shared_payload_group_count"] = int(state["shared_payload_group_count"]) + 1
             state["shared_payload_reference_count"] = int(state["shared_payload_reference_count"]) + len(action_ids)
 
-    for payload_offset, payload_action_ids in sorted(payload_groups.items()):
+    for payload_offset, payload_info in sorted(payload_groups.items()):
         _process_payload(
             state,
             lmt_path=path,
             payload_offset=int(payload_offset),
-            payload_action_ids=payload_action_ids,
+            payload_action_ids=payload_info["action_ids"],
+            payload_entry_indices=payload_info["entry_indices"],
             source_bytes=source_bytes,
         )
 
