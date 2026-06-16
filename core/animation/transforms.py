@@ -108,6 +108,34 @@ def scale_vector_xyz(values: tuple[float, float, float], factor: float) -> tuple
     return tuple(float(component) * float(factor) for component in values)
 
 
+def multiply_vector_xyz(
+    left: tuple[float, float, float],
+    right: tuple[float, float, float],
+) -> tuple[float, float, float]:
+    return tuple(float(l_component) * float(r_component) for l_component, r_component in zip(left, right))
+
+
+def divide_vector_xyz(
+    left: tuple[float, float, float],
+    right: tuple[float, float, float],
+) -> tuple[float, float, float]:
+    result = []
+    for l_component, r_component in zip(left, right):
+        divisor = float(r_component)
+        if abs(divisor) <= QUATERNION_EPSILON:
+            result.append(float(l_component))
+        else:
+            result.append(float(l_component) / divisor)
+    return tuple(result)
+
+
+def add_vector_xyz(
+    left: tuple[float, float, float],
+    right: tuple[float, float, float],
+) -> tuple[float, float, float]:
+    return tuple(float(l_component) + float(r_component) for l_component, r_component in zip(left, right))
+
+
 def subtract_vector_xyz(
     left: tuple[float, float, float],
     right: tuple[float, float, float],
@@ -129,18 +157,66 @@ def transform_blender_object_translation_to_mhw(values: tuple[float, float, floa
 def transform_mhw_pose_translation_to_delta(
     values: tuple[float, float, float],
     rest_local_translation: tuple[float, float, float],
+    rest_local_rotation_wxyz: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0),
+    rest_local_scale_xyz: tuple[float, float, float] = (1.0, 1.0, 1.0),
 ) -> tuple[float, float, float]:
     scaled = scale_vector_xyz(values, MHW_UNIT_SCALE)
-    return subtract_vector_xyz(scaled, rest_local_translation)
+    local_offset = subtract_vector_xyz(scaled, rest_local_translation)
+    unrotated = rotate_vector_by_quaternion_wxyz(
+        local_offset,
+        quaternion_inverse_wxyz(normalize_quaternion_wxyz(rest_local_rotation_wxyz)),
+    )
+    return divide_vector_xyz(unrotated, rest_local_scale_xyz)
 
 
 def transform_blender_pose_translation_delta_to_mhw(
     values: tuple[float, float, float],
     rest_local_translation: tuple[float, float, float],
+    rest_local_rotation_wxyz: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0),
+    rest_local_scale_xyz: tuple[float, float, float] = (1.0, 1.0, 1.0),
 ) -> tuple[float, float, float]:
-    absolute = tuple(float(value) + float(baseline) for value, baseline in zip(values, rest_local_translation))
+    scaled_delta = multiply_vector_xyz(values, rest_local_scale_xyz)
+    rotated = rotate_vector_by_quaternion_wxyz(
+        scaled_delta,
+        normalize_quaternion_wxyz(rest_local_rotation_wxyz),
+    )
+    absolute = add_vector_xyz(rotated, rest_local_translation)
     inverse_scale = 1.0 / MHW_UNIT_SCALE
     return scale_vector_xyz(absolute, inverse_scale)
+
+
+def transform_mhw_pose_quaternion_to_basis_wxyz(
+    values: tuple[float, float, float, float],
+    rest_local_rotation_wxyz: tuple[float, float, float, float],
+) -> tuple[float, float, float, float]:
+    current = normalize_quaternion_wxyz(values)
+    rest_rotation = normalize_quaternion_wxyz(rest_local_rotation_wxyz)
+    basis = quaternion_multiply_wxyz(quaternion_inverse_wxyz(rest_rotation), current)
+    return normalize_quaternion_wxyz(basis)
+
+
+def transform_blender_pose_basis_quaternion_to_mhw_wxyz(
+    values: tuple[float, float, float, float],
+    rest_local_rotation_wxyz: tuple[float, float, float, float],
+) -> tuple[float, float, float, float]:
+    basis = normalize_quaternion_wxyz(values)
+    rest_rotation = normalize_quaternion_wxyz(rest_local_rotation_wxyz)
+    transformed = quaternion_multiply_wxyz(rest_rotation, basis)
+    return normalize_quaternion_wxyz(transformed)
+
+
+def transform_mhw_pose_scale_to_basis(
+    values: tuple[float, float, float],
+    rest_local_scale_xyz: tuple[float, float, float],
+) -> tuple[float, float, float]:
+    return divide_vector_xyz(values, rest_local_scale_xyz)
+
+
+def transform_blender_pose_basis_scale_to_mhw(
+    values: tuple[float, float, float],
+    rest_local_scale_xyz: tuple[float, float, float],
+) -> tuple[float, float, float]:
+    return multiply_vector_xyz(values, rest_local_scale_xyz)
 
 
 def transform_mhw_object_quaternion_wxyz(
