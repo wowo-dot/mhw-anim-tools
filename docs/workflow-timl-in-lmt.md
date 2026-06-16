@@ -100,7 +100,7 @@ Standalone `.timl` files now have their own direct path:
 1. `3D View > Sidebar > MHW Anim > TIML Inspector > Inspect TIML`
 2. in the TIML Workspace `Entries` section, use `Import Selected` or `Import All`
 3. edit in the TIML Workspace
-4. `Export > Write TIML`
+4. `Export > Export TIML`
 
 That path saves the whole standalone TIML file. This page is still specifically
 about embedded TIML that lives inside an `.lmt`.

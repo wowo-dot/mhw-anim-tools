@@ -33,7 +33,7 @@ Common first tasks:
 - import all actions from one source file: `LMT Inspector > Import All`
 - edit embedded TIML: `Import TIML`, then `Open TIML Workspace`
 - inspect a standalone TIML: `TIML Inspector > Inspect TIML`
-- save a standalone TIML session: `Export > Write TIML`
+- save a standalone TIML session: `Export > Export TIML`
 - export the edited source file: `Export > Write Full LMT`
 - check for add-on updates: `Edit > Preferences > Add-ons > MHW Anim Tools`
 
@@ -87,8 +87,8 @@ Current export-prep scope:
 - conservative export planning that chooses candidate buffer families per track and reports unsupported shapes before binary writing
 - duplicate track-slot/source-index validation plus value-dimension validation
   before writing
-- raw duplicate-track identity import/export through technical `LMT Raw ...`
-  Graph Editor slots on the armature object
+- raw duplicate-track identity import/export through technical raw channels on
+  the resolved pose bone when possible, with armature-level fallback when not
 - binary writer coverage for basis vector/quaternion tracks, float vector key tracks, and q14 quaternion key tracks
 - q14 writer safety that rejects frame deltas above 255 instead of wrapping them silently
 - basis-only exports preserve a nonzero action duration when the reconstructed action range is explicit

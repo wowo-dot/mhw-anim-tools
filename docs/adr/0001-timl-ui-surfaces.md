@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-TIML support is now strong enough that the rewrite needs a stable UI contract
+TIML support is now strong enough that the add-on needs a stable UI contract
  before deeper editing/export milestones land. The current sidebar can launch
  the workflow, but it is not the right place for dense transform-by-transform
  inspection.

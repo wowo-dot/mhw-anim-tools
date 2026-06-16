@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Small utility operators for the milestone-one UI."""
+"""Small utility operators for the shared workspace UI."""
 
 import bpy
 
@@ -18,9 +18,9 @@ class MHWANIMTOOLS_OT_refresh_workspace(bpy.types.Operator):
         summary = get_workspace_summary(context, scene_props.target_armature)
         addon_status = summary["addon_status"]
         if addon_status["enabled"]:
-            mode = "MHW_Model_Editor active"
+            mode = "MHW Model Editor integration active"
         elif addon_status["available"]:
-            mode = "MHW_Model_Editor installed but disabled"
+            mode = "MHW Model Editor installed but disabled"
         else:
             mode = "Standalone mode"
         target_name = summary["target_armature"].name if summary["target_armature"] is not None else "none"

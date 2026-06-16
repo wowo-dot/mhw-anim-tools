@@ -17,8 +17,10 @@ Corpus frequency in the full extracted game corpus:
 
 Current add-on behavior:
 
-- these tracks are imported as clearly named `LMT Raw ...` custom-property
-  FCurves on the target armature object
+- these tracks are imported as clearly named raw custom-property FCurves on
+  the resolved pose bone when Blender has a real bone target
+- if Blender cannot attach them to a pose bone, they fall back to an
+  armature-level raw channel
 - they stay inside the same Blender action, so they are editable in the Graph
   Editor and preserved by source-backed export
 - they do not drive direct armature pose preview, because Blender cannot map

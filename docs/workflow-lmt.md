@@ -61,6 +61,16 @@ Supported motion channels for export:
 Keep the final result baked into normal FCurves if you use constraints,
 retargeting, or procedural rigs.
 
+When an action contains duplicate raw source tracks with the same
+`bone_id + usage` identity, the add-on keeps them editable as raw custom
+properties:
+
+- on the resolved pose bone when Blender has a real bone target
+- on the armature object when the slot has to stay armature-level
+
+Those slots are still technical/raw channels. They round-trip through export,
+but they do not pretend to be one ordinary transform lane.
+
 ## 5. Analyze before writing
 
 In the `Export` section:
@@ -90,8 +100,8 @@ that same source file.
 ## What still needs care
 
 - unsupported FCurve paths are skipped
-- duplicate raw track-identity source actions import as technical `LMT Raw ...`
-  Graph Editor slots on the armature object, not normal pose preview channels
+- duplicate raw track-identity source actions import as technical raw
+  pose-bone/armature channels, not normal pose preview channels
 - export confidence is strongest on the supported rotation/translation/scale
   path, not on arbitrary Blender rig logic
 - a small remaining quaternion edge-case family is still called out in

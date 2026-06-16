@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Focused export-prep operators for the rewrite."""
+"""Focused export operators for source-backed LMT and TIML workflows."""
 
 from pathlib import Path
 import re
@@ -139,7 +139,7 @@ class MHWANIMTOOLS_OT_analyze_export_action(bpy.types.Operator):
 
 class MHWANIMTOOLS_OT_export_source_lmt(bpy.types.Operator, ExportHelper):
     bl_idname = "mhw_anim_tools.export_source_lmt"
-    bl_label = "Export Source LMT"
+    bl_label = "Export Full LMT"
     bl_description = "Write the full source LMT using every imported Blender action from that source file"
 
     filename_ext = ".lmt"
@@ -217,7 +217,7 @@ class MHWANIMTOOLS_OT_export_source_lmt(bpy.types.Operator, ExportHelper):
 
 class MHWANIMTOOLS_OT_save_timl_file(bpy.types.Operator, ExportHelper):
     bl_idname = "mhw_anim_tools.save_timl_file"
-    bl_label = "Write TIML File"
+    bl_label = "Export TIML"
     bl_description = "Write the full standalone TIML file from the current imported TIML controller session"
 
     filename_ext = ".timl"
@@ -226,8 +226,8 @@ class MHWANIMTOOLS_OT_save_timl_file(bpy.types.Operator, ExportHelper):
     @staticmethod
     def _missing_controller_message(scene_props) -> str:
         if str(getattr(scene_props, "last_timl_path", "") or ""):
-            return "Import at least one standalone TIML entry before saving."
-        return "Choose an imported standalone TIML controller before saving."
+            return "Import at least one standalone TIML entry before exporting."
+        return "Choose an imported standalone TIML controller before exporting."
 
     def invoke(self, context, _event):
         scene_props = context.scene.mhw_anim_tools
@@ -263,7 +263,7 @@ class MHWANIMTOOLS_OT_save_timl_file(bpy.types.Operator, ExportHelper):
         _publish_standalone_timl_diagnostics(scene_props, analysis.diagnostics)
         if analysis.error_count:
             scene_props.last_status = (
-                f"TIML save analysis failed: {analysis.error_count} error(s), "
+                f"TIML export analysis failed: {analysis.error_count} error(s), "
                 f"{analysis.warning_count} warning(s)."
             )
             self.report({"WARNING"}, scene_props.last_status)
@@ -273,12 +273,12 @@ class MHWANIMTOOLS_OT_save_timl_file(bpy.types.Operator, ExportHelper):
             output_path = write_standalone_timl_file(self.filepath, analysis)
         except (ValidationError, BinaryFormatError, OSError, ValueError) as exc:
             add_diagnostic(scene_props, "ERROR", "timl.export", str(exc))
-            scene_props.last_status = f"TIML save failed: {exc}"
+            scene_props.last_status = f"TIML export failed: {exc}"
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
 
         scene_props.last_status = (
-            f"Saved {output_path.name}: "
+            f"Exported {output_path.name}: "
             f"edited_entries={analysis.sampled_entry_count}, "
             f"source_entries={analysis.source_entry_count}, "
             f"transforms={analysis.sampled_transform_count}, "

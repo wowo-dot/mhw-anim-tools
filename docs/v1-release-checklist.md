@@ -19,7 +19,7 @@ What is already true today:
 - attached TIML controllers can be imported, analyzed, edited, and written back
   conservatively inside source-backed LMT export
 - import-all-actions and source-container impact analysis already exist
-- unit tests and smoke tools cover the core rewrite path far beyond the first
+- unit tests and smoke tools cover the core add-on path far beyond the first
   grindstone sample
 
 What is not ready to call "release done" yet:
@@ -189,7 +189,7 @@ Current known public-cleanup references to revisit before release:
 
 Current status note:
 
-- the repo already reads like a rewrite much more than a patch pile
+- the repo already reads like a cohesive add-on much more than a patch pile
 - comment wording and user-facing naming are much cleaner now
 - before public release we still need one deliberate call on whether the
   local-only legacy comparison helpers stay in-tree as internal utilities

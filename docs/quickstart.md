@@ -65,7 +65,7 @@ This is still the main path for TIML that came from an `.lmt`.
 5. In `Graph Editor > Sidebar > MHW Anim > Entries`, use `Import Selected`
    or `Import All`
 6. Edit `Header`, `Types`, `Transforms`, and the Graph Editor curves
-7. In `Export`, click `Write TIML`
+7. In `Export`, click `Export TIML`
 
 ## Good habits
 

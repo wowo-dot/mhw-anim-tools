@@ -14,7 +14,7 @@ Location: `3D View > Sidebar > MHW Anim`
 | `LMT Inspector` | Load an `.lmt`, browse entries, inspect tracks, import actions, import attached TIML | `Inspect LMT`, `Import Selected`, `Import All`, `Import TIML`, `Focus TIML` |
 | `TIML Inspector` | Inspect and summarize a standalone `.timl` session | `Inspect TIML` |
 | `Diagnostics` | Read current session warnings and errors | diagnostic list |
-| `Export` | Analyze and write back edited actions or save standalone TIML sessions | `Export Action`, `Analyze Export Action`, `Write Full LMT`, `Write TIML` |
+| `Export` | Analyze and write back edited actions or save standalone TIML sessions | `Export Action`, `Analyze Export Action`, `Write Full LMT`, `Export TIML` |
 
 Notes:
 
@@ -84,6 +84,6 @@ Notes:
 | import all actions from one source file | `LMT Inspector > Import All` |
 | import attached TIML for one entry | `LMT Inspector > Import TIML` |
 | browse and edit raw TIML structure | `Graph Editor > MHW Anim > TIML Workspace` |
-| save a standalone TIML file | `3D View > MHW Anim > Export > Write TIML` |
+| save a standalone TIML file | `3D View > MHW Anim > Export > Export TIML` |
 | check export readiness | `3D View > MHW Anim > Export > Analyze Export Action` |
 | write the whole source file back | `3D View > MHW Anim > Export > Write Full LMT` |

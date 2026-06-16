@@ -10,6 +10,7 @@ sys.modules.setdefault("bpy", MagicMock())
 
 from blender_adapter.actions import import_lmt_action_to_armature
 from blender_adapter.lmt_track_metadata import load_lmt_import_track_bindings
+from blender_adapter.lmt_track_metadata import save_lmt_import_track_bindings
 from core.formats.lmt.model import LmtAction
 from core.formats.lmt.model import LmtActionHeader
 from core.formats.lmt.model import LmtFile
@@ -61,14 +62,111 @@ class _FakeAction(dict):
         self.name = name
 
 
+class _FakeBone:
+    def __init__(self, name: str, parent=None):
+        self.name = name
+        self.parent = parent
+
+
+class _FakeBones(dict):
+    def __iter__(self):
+        return iter(self.values())
+
+
+class _FakePoseBone(dict):
+    def __init__(self, name: str):
+        super().__init__()
+        self.name = name
+
+
 class _FakeArmature(dict):
-    def __init__(self):
+    def __init__(self, bone_names=()):
         super().__init__()
         self.type = "ARMATURE"
+        bones = [_FakeBone(name) for name in bone_names]
+        self.data = SimpleNamespace(bones=_FakeBones((bone.name, bone) for bone in bones))
+        self.pose = SimpleNamespace(bones={name: _FakePoseBone(name) for name in bone_names})
+        self.name = "FakeArmature"
 
 
 class LmtActionImportTests(unittest.TestCase):
     def test_import_warns_when_source_action_has_duplicate_raw_track_identities(self):
+        action = LmtAction(
+            header=LmtActionHeader(
+                id=0,
+                fcurve_offset=0,
+                fcurve_count=2,
+                frame_count=10,
+                loop_frame=-1,
+                null0=(0, 0, 0),
+                translation=(0.0, 0.0, 0.0, 0.0),
+                rotation_lerp=(0.0, 0.0, 0.0, 1.0),
+                flags=0,
+                null2=b"\x00\x00",
+                flags2=0,
+                null3=(0, 0, 0, 0, 0),
+                timl_offset=0,
+            ),
+            tracks=(
+                _track(bone_id=0, usage=1),
+                _track(bone_id=0, usage=1),
+            ),
+        )
+        lmt = LmtFile(
+            source_name="duplicate.lmt",
+            file_size=0,
+            header=LmtHeader(signature=b"LMT\x00", version=95, entry_count=1, unknown=b"\x00" * 8),
+            entry_offsets=(32,),
+            actions=(action,),
+        )
+        armature_object = _FakeArmature(bone_names=("MhBone_000",))
+        fake_action = _FakeAction("LMT::duplicate::000")
+        fake_animation_data = SimpleNamespace(action=None)
+
+        with patch(
+            "blender_adapter.actions.decode_action_tracks",
+            return_value=SimpleNamespace(
+                tracks=(
+                    _FakeDecodedTrack(0, bone_id=0, usage=1),
+                    _FakeDecodedTrack(1, bone_id=0, usage=1),
+                )
+            ),
+        ):
+            with patch("blender_adapter.actions.ensure_action", return_value=fake_action):
+                with patch(
+                    "blender_adapter.actions.ensure_armature_animation_data",
+                    return_value=fake_animation_data,
+                ):
+                    with patch(
+                        "blender_adapter.actions.create_action_fcurves",
+                        return_value=[object(), object(), object()],
+                    ):
+                        result = import_lmt_action_to_armature(
+                            lmt,
+                            0,
+                            armature_object,
+                            source_path="duplicate.lmt",
+                        )
+
+        self.assertTrue(
+            any(
+                "raw duplicate pose-bone or armature channels" in diagnostic.message
+                for diagnostic in result.diagnostics
+            )
+        )
+        self.assertTrue(fake_action["mhw_anim_tools_source_has_duplicate_track_identities"])
+        self.assertIn("bone_id=0, usage=1, count=2", fake_action["mhw_anim_tools_source_duplicate_track_identities"])
+        bindings = load_lmt_import_track_bindings(fake_action)
+        self.assertEqual(len(bindings), 2)
+        self.assertTrue(all(binding["import_mode"] == "raw_duplicate" for binding in bindings))
+        self.assertTrue(all(binding["display_name"].startswith("Raw Duplicate ") for binding in bindings))
+        self.assertTrue(all(binding["owner_kind"] == "bone" for binding in bindings))
+        self.assertTrue(all(binding["owner_name"] == "MhBone_000" for binding in bindings))
+        self.assertTrue(all(binding["action_group"] == "MhBone_000 / LMT Raw" for binding in bindings))
+        self.assertTrue(all(binding["data_path"].startswith('pose.bones["MhBone_000"]["') for binding in bindings))
+        self.assertIn(bindings[0]["property_name"], armature_object.pose.bones["MhBone_000"])
+
+    def test_import_falls_back_to_armature_object_when_duplicate_pose_target_is_missing(self):
         action = LmtAction(
             header=LmtActionHeader(
                 id=0,
@@ -126,18 +224,92 @@ class LmtActionImportTests(unittest.TestCase):
                             source_path="duplicate.lmt",
                         )
 
-        self.assertTrue(
-            any(
-                "raw Graph Editor slots" in diagnostic.message
-                for diagnostic in result.diagnostics
-            )
-        )
-        self.assertTrue(fake_action["mhw_anim_tools_source_has_duplicate_track_identities"])
-        self.assertIn("bone_id=0, usage=1, count=2", fake_action["mhw_anim_tools_source_duplicate_track_identities"])
         bindings = load_lmt_import_track_bindings(fake_action)
-        self.assertEqual(len(bindings), 2)
-        self.assertTrue(all(binding["import_mode"] == "raw_duplicate" for binding in bindings))
+        self.assertEqual(bindings[0]["owner_kind"], "object")
+        self.assertEqual(bindings[0]["data_path"], f'["{bindings[0]["property_name"]}"]')
         self.assertIn(bindings[0]["property_name"], armature_object)
+        self.assertTrue(any("armature-attached raw slot" in diagnostic.message for diagnostic in result.diagnostics))
+
+    def test_reimport_clears_legacy_armature_raw_slot_before_migrating_to_pose_bone(self):
+        action = LmtAction(
+            header=LmtActionHeader(
+                id=0,
+                fcurve_offset=0,
+                fcurve_count=2,
+                frame_count=10,
+                loop_frame=-1,
+                null0=(0, 0, 0),
+                translation=(0.0, 0.0, 0.0, 0.0),
+                rotation_lerp=(0.0, 0.0, 0.0, 1.0),
+                flags=0,
+                null2=b"\x00\x00",
+                flags2=0,
+                null3=(0, 0, 0, 0, 0),
+                timl_offset=0,
+            ),
+            tracks=(
+                _track(bone_id=0, usage=1),
+                _track(bone_id=0, usage=1),
+            ),
+        )
+        lmt = LmtFile(
+            source_name="duplicate.lmt",
+            file_size=0,
+            header=LmtHeader(signature=b"LMT\x00", version=95, entry_count=1, unknown=b"\x00" * 8),
+            entry_offsets=(32,),
+            actions=(action,),
+        )
+        armature_object = _FakeArmature(bone_names=("MhBone_000",))
+        fake_action = _FakeAction("LMT::duplicate::000")
+        fake_animation_data = SimpleNamespace(action=None)
+        legacy_property_name = "lmt_raw_duplicate_a000_t00_b0_u1"
+        armature_object[legacy_property_name] = [9.0, 9.0, 9.0]
+        save_lmt_import_track_bindings(
+            fake_action,
+            [
+                {
+                    "track_index": 0,
+                    "bone_id": 0,
+                    "usage": 1,
+                    "buffer_type": 3,
+                    "import_mode": "raw_duplicate",
+                    "property_name": legacy_property_name,
+                    "channel_count": 3,
+                    "display_name": "Legacy Raw Duplicate",
+                    "transform": "location",
+                }
+            ],
+        )
+
+        with patch(
+            "blender_adapter.actions.decode_action_tracks",
+            return_value=SimpleNamespace(
+                tracks=(
+                    _FakeDecodedTrack(0, bone_id=0, usage=1),
+                    _FakeDecodedTrack(1, bone_id=0, usage=1),
+                )
+            ),
+        ):
+            with patch("blender_adapter.actions.ensure_action", return_value=fake_action):
+                with patch(
+                    "blender_adapter.actions.ensure_armature_animation_data",
+                    return_value=fake_animation_data,
+                ):
+                    with patch(
+                        "blender_adapter.actions.create_action_fcurves",
+                        return_value=[object(), object(), object()],
+                    ):
+                        result = import_lmt_action_to_armature(
+                            lmt,
+                            0,
+                            armature_object,
+                            source_path="duplicate.lmt",
+                        )
+
+        self.assertNotIn(legacy_property_name, armature_object)
+        bindings = load_lmt_import_track_bindings(fake_action)
+        self.assertIn(bindings[0]["property_name"], armature_object.pose.bones["MhBone_000"])
+        self.assertTrue(any("stale raw duplicate-slot" in diagnostic.message for diagnostic in result.diagnostics))
 
 
 if __name__ == "__main__":

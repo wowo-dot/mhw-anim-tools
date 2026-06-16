@@ -123,7 +123,7 @@ def _payload_for_plan(plan: StandaloneTimlEntryPlan, *, base_offset: int) -> byt
 def analyze_standalone_timl_export(controller_object, *, controller_objects) -> StandaloneTimlExportAnalysis:
     analysis = StandaloneTimlExportAnalysis()
     if controller_object is None or not is_imported_timl_controller(controller_object):
-        analysis.add("ERROR", "timl.export", "Choose an imported standalone TIML controller before saving.")
+        analysis.add("ERROR", "timl.export", "Choose an imported standalone TIML controller before exporting.")
         return analysis
 
     metadata = extract_timl_controller_metadata(controller_object)

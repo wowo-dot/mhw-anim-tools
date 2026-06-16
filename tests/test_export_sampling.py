@@ -239,6 +239,51 @@ class ExportSamplingTests(unittest.TestCase):
         self.assertEqual(track.source_track_index, 3)
         self.assertEqual(track.frames[2].value, (2.0, 3.0, 4.0))
 
+    def test_samples_pose_bone_attached_raw_duplicate_track_slots(self):
+        root = FakeBone("Root")
+        local = FakeBone("MhBone_000", parent=root)
+        armature = FakeArmatureObject([root, local])
+        property_name = "lmt_raw_test_a000_t03_b0_u1"
+        data_path = f'pose.bones["MhBone_000"]["{property_name}"]'
+        action = FakeAction(
+            "DuplicateRawPoseSlot",
+            [
+                FakeFCurve(data_path, 0, {0: 0.0, 2: 2.0}, authored_frames=(0, 2)),
+                FakeFCurve(data_path, 1, {0: 1.0, 2: 3.0}, authored_frames=(0, 2)),
+                FakeFCurve(data_path, 2, {0: 2.0, 2: 4.0}, authored_frames=(0, 2)),
+            ],
+            frame_range=(0.0, 2.0),
+        )
+        save_lmt_import_track_bindings(
+            action,
+            [
+                {
+                    "track_index": 3,
+                    "bone_id": 0,
+                    "usage": 1,
+                    "buffer_type": 3,
+                    "import_mode": "raw_duplicate",
+                    "property_name": property_name,
+                    "channel_count": 3,
+                    "display_name": "T03 Bone 0 Translation",
+                    "transform": "location",
+                    "owner_kind": "bone",
+                    "owner_name": "MhBone_000",
+                    "data_path": data_path,
+                }
+            ],
+        )
+
+        result = sample_action_for_lmt_export(action, armature)
+
+        self.assertEqual(result.error_count, 0)
+        self.assertEqual(result.sampled_track_count, 1)
+        track = result.sampled_tracks[0]
+        self.assertEqual((track.bone_id, track.usage), (0, 1))
+        self.assertEqual(track.source_kind, "raw_duplicate")
+        self.assertEqual(track.source_track_index, 3)
+        self.assertEqual(track.frames[2].value, (2.0, 3.0, 4.0))
+
 
 if __name__ == "__main__":
     unittest.main()

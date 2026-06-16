@@ -127,9 +127,9 @@ def _draw_workspace_section(layout, context, scene_props):
         return
     addon_status = summary["addon_status"]
     if addon_status["enabled"]:
-        panel_body.label(text="MHW_Model_Editor active", icon="CHECKMARK")
+        panel_body.label(text="MHW Model Editor integration active", icon="CHECKMARK")
     elif addon_status["available"]:
-        panel_body.label(text="MHW_Model_Editor installed but disabled", icon="INFO")
+        panel_body.label(text="MHW Model Editor installed but disabled", icon="INFO")
     else:
         panel_body.label(text="Standalone mode", icon="INFO")
     panel_body.prop(scene_props, "target_armature")
@@ -400,15 +400,15 @@ def _draw_timl_export_summary(panel_body, scene_props):
                 )
             )
         if imported_count <= 0:
-            timl_box.label(text="Import at least one TIML entry before writing.", icon="INFO")
+            timl_box.label(text="Import at least one TIML entry before exporting.", icon="INFO")
         elif imported_count < importable_count:
-            timl_box.label(text="Write TIML will update imported entries and preserve untouched source entries.", icon="INFO")
+            timl_box.label(text="Export TIML will update imported entries and preserve untouched source entries.", icon="INFO")
         else:
-            timl_box.label(text="Write TIML is ready to rewrite all imported standalone entries.", icon="CHECKMARK")
+            timl_box.label(text="Export TIML is ready to write all imported standalone entries back to the file.", icon="CHECKMARK")
         timl_row = timl_box.row(align=True)
         timl_row.scale_y = 1.05
         timl_row.enabled = imported_count > 0
-        timl_row.operator("mhw_anim_tools.save_timl_file", icon="FILE_TICK", text="Write TIML")
+        timl_row.operator("mhw_anim_tools.save_timl_file", icon="FILE_TICK", text="Export TIML")
 
 
 def _draw_timl_inspector_section(layout, scene_props):

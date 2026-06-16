@@ -19,9 +19,15 @@ try:
     from .lmt_track_metadata import clear_lmt_import_track_bindings
     from .lmt_track_metadata import ensure_raw_duplicate_property
     from .lmt_track_metadata import LMT_ARMATURE_IMPORT_MODE
+    from .lmt_track_metadata import LMT_RAW_DUPLICATE_OWNER_BONE
+    from .lmt_track_metadata import LMT_RAW_DUPLICATE_OWNER_OBJECT
     from .lmt_track_metadata import LMT_RAW_DUPLICATE_IMPORT_MODE
     from .lmt_track_metadata import QUATERNION_LERP_BUFFER_TYPES
     from .lmt_track_metadata import raw_duplicate_action_group
+    from .lmt_track_metadata import raw_duplicate_data_path
+    from .lmt_track_metadata import raw_duplicate_display_name
+    from .lmt_track_metadata import raw_duplicate_group_name
+    from .lmt_track_metadata import load_lmt_import_track_bindings
     from .lmt_track_metadata import raw_duplicate_property_name
     from .lmt_track_metadata import save_lmt_import_track_bindings
     from .lmt_track_metadata import track_display_name
@@ -40,9 +46,15 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from blender_adapter.lmt_track_metadata import clear_lmt_import_track_bindings
     from blender_adapter.lmt_track_metadata import ensure_raw_duplicate_property
     from blender_adapter.lmt_track_metadata import LMT_ARMATURE_IMPORT_MODE
+    from blender_adapter.lmt_track_metadata import LMT_RAW_DUPLICATE_OWNER_BONE
+    from blender_adapter.lmt_track_metadata import LMT_RAW_DUPLICATE_OWNER_OBJECT
     from blender_adapter.lmt_track_metadata import LMT_RAW_DUPLICATE_IMPORT_MODE
     from blender_adapter.lmt_track_metadata import QUATERNION_LERP_BUFFER_TYPES
     from blender_adapter.lmt_track_metadata import raw_duplicate_action_group
+    from blender_adapter.lmt_track_metadata import raw_duplicate_data_path
+    from blender_adapter.lmt_track_metadata import raw_duplicate_display_name
+    from blender_adapter.lmt_track_metadata import raw_duplicate_group_name
+    from blender_adapter.lmt_track_metadata import load_lmt_import_track_bindings
     from blender_adapter.lmt_track_metadata import raw_duplicate_property_name
     from blender_adapter.lmt_track_metadata import save_lmt_import_track_bindings
     from blender_adapter.lmt_track_metadata import track_display_name
@@ -112,6 +124,116 @@ def _format_duplicate_track_identities(duplicate_track_identities) -> str:
     )
 
 
+def _resolved_pose_bone(armature_object, bone_name: str):
+    pose = getattr(armature_object, "pose", None)
+    pose_bones = getattr(pose, "bones", None)
+    if pose_bones is None:
+        return None
+    getter = getattr(pose_bones, "get", None)
+    if callable(getter):
+        return getter(bone_name)
+    try:
+        return pose_bones[bone_name]
+    except Exception:
+        return None
+
+
+def _delete_custom_property(owner, property_name: str) -> bool:
+    if owner is None or not property_name:
+        return False
+    try:
+        if property_name in owner:
+            del owner[property_name]
+            return True
+    except Exception:
+        return False
+    return False
+
+
+def _clear_existing_raw_duplicate_slots(armature_object, bindings) -> int:
+    removed = 0
+    seen_targets: set[tuple[str, str]] = set()
+    for binding in bindings or ():
+        if str(binding.get("import_mode", "") or "") != LMT_RAW_DUPLICATE_IMPORT_MODE:
+            continue
+        property_name = str(binding.get("property_name", "") or "")
+        if not property_name:
+            continue
+
+        target, _target_error = resolve_track_binding_target(
+            armature_object,
+            int(binding.get("bone_id", 0)),
+            int(binding.get("usage", 0)),
+        )
+        candidate_bone_names = {
+            str(binding.get("owner_name", "") or ""),
+        }
+        if target is not None and str(target.kind or "") == LMT_RAW_DUPLICATE_OWNER_BONE:
+            candidate_bone_names.add(str(target.name or ""))
+
+        if ("object", property_name) not in seen_targets:
+            removed += int(_delete_custom_property(armature_object, property_name))
+            seen_targets.add(("object", property_name))
+
+        for bone_name in sorted(name for name in candidate_bone_names if name):
+            key = (bone_name, property_name)
+            if key in seen_targets:
+                continue
+            removed += int(_delete_custom_property(_resolved_pose_bone(armature_object, bone_name), property_name))
+            seen_targets.add(key)
+    return removed
+
+
+def _resolve_raw_duplicate_target(armature_object, *, bone_id: int, usage: int, track_index: int):
+    target, target_error = resolve_track_binding_target(armature_object, bone_id, usage)
+    fallback_group = raw_duplicate_action_group(
+        bone_id=bone_id,
+        usage=usage,
+        track_index=track_index,
+    )
+    if target is not None:
+        if str(target.kind or "") == LMT_RAW_DUPLICATE_OWNER_BONE:
+            pose_bone = _resolved_pose_bone(armature_object, str(target.name or ""))
+            if pose_bone is not None:
+                return {
+                    "owner": pose_bone,
+                    "owner_kind": LMT_RAW_DUPLICATE_OWNER_BONE,
+                    "owner_name": str(target.name or ""),
+                    "action_group": raw_duplicate_group_name(
+                        bone_id=bone_id,
+                        usage=usage,
+                        track_index=track_index,
+                        owner_kind=LMT_RAW_DUPLICATE_OWNER_BONE,
+                        owner_name=str(target.name or ""),
+                        action_group=str(target.action_group or ""),
+                    ),
+                    "fallback_warning": "",
+                }
+            target_error = f"Resolved pose bone '{target.name}' is missing from the target armature pose."
+        elif str(target.kind or "") == LMT_RAW_DUPLICATE_OWNER_OBJECT:
+            return {
+                "owner": armature_object,
+                "owner_kind": LMT_RAW_DUPLICATE_OWNER_OBJECT,
+                "owner_name": str(target.name or getattr(armature_object, "name", "")),
+                "action_group": raw_duplicate_group_name(
+                    bone_id=bone_id,
+                    usage=usage,
+                    track_index=track_index,
+                    owner_kind=LMT_RAW_DUPLICATE_OWNER_OBJECT,
+                    owner_name=str(target.name or getattr(armature_object, "name", "")),
+                    action_group=str(target.action_group or ""),
+                ),
+                "fallback_warning": "",
+            }
+    return {
+        "owner": armature_object,
+        "owner_kind": LMT_RAW_DUPLICATE_OWNER_OBJECT,
+        "owner_name": str(getattr(armature_object, "name", "") or ""),
+        "action_group": fallback_group,
+        "fallback_warning": str(target_error or ""),
+    }
+
+
 def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, source_path: str) -> ImportActionResult:
     result = ImportActionResult()
     if armature_object is None or armature_object.type != "ARMATURE":
@@ -130,7 +252,9 @@ def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, so
     }
     action_name = _action_name_for_import(source_path, source_action.id)
     blender_action = ensure_action(action_name)
+    existing_import_track_bindings = load_lmt_import_track_bindings(blender_action)
     clear_lmt_import_track_bindings(blender_action)
+    cleared_duplicate_slot_count = _clear_existing_raw_duplicate_slots(armature_object, existing_import_track_bindings)
     blender_action["mhw_anim_tools_source_lmt"] = source_path
     blender_action["mhw_anim_tools_entry_id"] = int(source_action.id)
     blender_action["mhw_anim_tools_import_kind"] = "lmt_action"
@@ -155,10 +279,16 @@ def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, so
             (
                 "Source action contains duplicate raw track identities: "
                 f"{blender_action['mhw_anim_tools_source_duplicate_track_identities']}. "
-                "These tracks are imported as raw Graph Editor slots on the armature object instead of normal pose "
-                "channels, so they remain editable and source-backed exportable without pretending Blender can map "
-                "them to one bone transform."
+                "These tracks are imported as raw duplicate pose-bone or armature channels instead of normal transform lanes, "
+                "so they remain editable and source-backed exportable without pretending Blender can collapse them "
+                "into one ordinary pose transform."
             ),
+        )
+    if cleared_duplicate_slot_count:
+        result.add(
+            "INFO",
+            "import",
+            f"Cleared {cleared_duplicate_slot_count} stale raw duplicate-slot properties before re-import.",
         )
 
     for decoded_track in decoded_action.tracks:
@@ -188,6 +318,14 @@ def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, so
                 bone_id=int(decoded_track.bone_id),
                 usage=int(decoded_track.usage),
             )
+            duplicate_target = _resolve_raw_duplicate_target(
+                armature_object,
+                bone_id=int(decoded_track.bone_id),
+                usage=int(decoded_track.usage),
+                track_index=int(decoded_track.track_index),
+            )
+            owner_kind = str(duplicate_target["owner_kind"])
+            owner_name = str(duplicate_target["owner_name"])
             binding = {
                 "track_index": int(decoded_track.track_index),
                 "bone_id": int(decoded_track.bone_id),
@@ -199,24 +337,36 @@ def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, so
                 "transform": str(usage_info.blender_path_hint or ""),
                 "property_name": property_name,
                 "channel_count": len(tuple(decoded_track.basis_value)),
-                "display_name": track_display_name(
+                "display_name": raw_duplicate_display_name(
                     bone_id=int(decoded_track.bone_id),
                     usage=int(decoded_track.usage),
                     track_index=int(decoded_track.track_index),
                 ),
-                "action_group": raw_duplicate_action_group(
-                    bone_id=int(decoded_track.bone_id),
-                    usage=int(decoded_track.usage),
-                    track_index=int(decoded_track.track_index),
+                "action_group": str(duplicate_target["action_group"]),
+                "owner_kind": owner_kind,
+                "owner_name": owner_name,
+                "data_path": raw_duplicate_data_path(
+                    property_name=property_name,
+                    owner_kind=owner_kind,
+                    owner_name=owner_name,
                 ),
                 "preserve_raw_quaternion_values": bool(
                     usage_info.is_quaternion and int(decoded_track.buffer_type) in QUATERNION_LERP_BUFFER_TYPES
                 ),
             }
-            ensure_raw_duplicate_property(armature_object, binding, basis_value=decoded_track.basis_value)
+            if str(duplicate_target.get("fallback_warning", "") or ""):
+                result.add(
+                    "WARNING",
+                    source_label,
+                    (
+                        "Imported duplicate track as an armature-attached raw slot because the resolved pose target "
+                        f"could not be used: {duplicate_target['fallback_warning']}"
+                    ),
+                )
+            ensure_raw_duplicate_property(duplicate_target["owner"], binding, basis_value=decoded_track.basis_value)
             created_fcurves = create_action_fcurves(
                 blender_action,
-                data_path=f'["{property_name}"]',
+                data_path=str(binding["data_path"]),
                 action_group=str(binding["action_group"]),
                 channel_values=build_channel_value_lists(frames),
             )

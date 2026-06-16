@@ -4,7 +4,7 @@ from __future__ import annotations
 
 
 class MhwAnimToolsError(Exception):
-    """Base error for the rewrite."""
+    """Base error for the add-on."""
 
 
 class BinaryFormatError(MhwAnimToolsError):

@@ -309,8 +309,8 @@ def resolve_source_action_export_metadata(
                 "lmt.export.track_identity",
                 (
                     "Source action contains duplicate raw track identities, but this imported Blender action does not "
-                    f"carry the required per-track raw-slot bindings yet: {duplicate_labels}. Re-import it with a "
-                    "build that supports raw duplicate-track slots."
+                    f"carry the required per-track raw-slot bindings yet: {duplicate_labels}. Re-import the action "
+                    "to refresh its raw duplicate-slot bindings."
                 ),
             )
     return metadata, report

@@ -24,7 +24,7 @@ try:
     from ..integration.mhw_bones import is_mhbone_name
     from .armature import find_root_bone_name
     from .lmt_track_metadata import import_track_binding_by_identity
-    from .lmt_track_metadata import raw_duplicate_binding_by_property
+    from .lmt_track_metadata import raw_duplicate_binding_by_data_path
     from .space import TrackSpaceTarget
     from .space import adapt_track_frames_for_export_space
 except ImportError:  # pragma: no cover - test runner imports from addon root
@@ -39,13 +39,12 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from integration.mhw_bones import is_mhbone_name
     from blender_adapter.armature import find_root_bone_name
     from blender_adapter.lmt_track_metadata import import_track_binding_by_identity
-    from blender_adapter.lmt_track_metadata import raw_duplicate_binding_by_property
+    from blender_adapter.lmt_track_metadata import raw_duplicate_binding_by_data_path
     from blender_adapter.space import TrackSpaceTarget
     from blender_adapter.space import adapt_track_frames_for_export_space
 
 
 POSE_BONE_PATH = re.compile(r'^pose\.bones\["(?P<name>.+)"\]\.(?P<transform>rotation_quaternion|location|scale)$')
-CUSTOM_PROPERTY_PATH = re.compile(r'^\["(?P<name>.+)"\]$')
 OBJECT_TRANSFORMS = {"rotation_quaternion": 4, "location": 3, "scale": 3}
 USAGE_BY_SCOPE_AND_TRANSFORM = {
     ("local", "rotation_quaternion"): 0,
@@ -138,7 +137,7 @@ def _parse_fcurve_path(data_path: str):
     return ("bone", match.group("name"), match.group("transform"))
 
 
-def _collect_supported_groups(action, raw_duplicate_bindings_by_property):
+def _collect_supported_groups(action, raw_duplicate_bindings_by_data_path):
     groups: dict[tuple[str, str, str], dict[str, object]] = {}
     unsupported_paths: list[str] = []
     for fcurve in getattr(action, "fcurves", ()):
@@ -151,13 +150,11 @@ def _collect_supported_groups(action, raw_duplicate_bindings_by_property):
             group["channel_map"][int(fcurve.array_index)] = fcurve
             continue
 
-        match = CUSTOM_PROPERTY_PATH.match(data_path)
-        property_name = str(match.group("name")) if match else ""
-        binding = raw_duplicate_bindings_by_property.get(property_name)
+        binding = raw_duplicate_bindings_by_data_path.get(data_path)
         if binding is None:
             unsupported_paths.append(data_path)
             continue
-        group_key = ("raw_duplicate", property_name, "")
+        group_key = ("raw_duplicate", data_path, "")
         group = groups.setdefault(
             group_key,
             {"kind": "raw_duplicate", "binding": binding, "channel_map": {}},
@@ -259,7 +256,7 @@ def sample_action_for_lmt_export(action, armature_object, *, sample_frames=None)
     result.frame_end = frame_numbers[-1] if frame_numbers else 0
 
     identity_bindings = import_track_binding_by_identity(action)
-    raw_duplicate_bindings = raw_duplicate_binding_by_property(action)
+    raw_duplicate_bindings = raw_duplicate_binding_by_data_path(action)
     grouped_fcurves, unsupported_paths = _collect_supported_groups(action, raw_duplicate_bindings)
     for path in unsupported_paths:
         result.add("WARNING", "fcurve", f"Skipped unsupported data path '{path}'.")
@@ -268,13 +265,13 @@ def sample_action_for_lmt_export(action, armature_object, *, sample_frames=None)
         for group_key, group in grouped_fcurves.items()
         if str(group.get("kind", "")) == "raw_duplicate"
     }
-    for property_name, binding in sorted(raw_duplicate_bindings.items()):
-        if property_name in seen_raw_duplicate_paths:
+    for data_path, binding in sorted(raw_duplicate_bindings.items()):
+        if data_path in seen_raw_duplicate_paths:
             continue
         result.skipped_track_count += 1
         result.add(
             "ERROR",
-            str(binding.get("display_name", "") or property_name),
+            str(binding.get("display_name", "") or data_path),
             "Missing raw duplicate-track fcurves for this imported source track slot.",
         )
 

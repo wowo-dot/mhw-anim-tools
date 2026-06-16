@@ -13,7 +13,7 @@ Guiding phrase:
 
 ## Why this exists
 
-The rewrite is now far enough along that the main risk is not "missing a parser
+The add-on is now far enough along that the main risk is not "missing a parser
 detail." The main risk is letting future feature work smear responsibilities
 back together:
 

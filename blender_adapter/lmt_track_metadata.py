@@ -15,6 +15,8 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
 LMT_IMPORT_TRACK_BINDINGS_KEY = "mhw_anim_tools_lmt_import_track_bindings"
 LMT_ARMATURE_IMPORT_MODE = "armature"
 LMT_RAW_DUPLICATE_IMPORT_MODE = "raw_duplicate"
+LMT_RAW_DUPLICATE_OWNER_OBJECT = "object"
+LMT_RAW_DUPLICATE_OWNER_BONE = "bone"
 QUATERNION_LERP_BUFFER_TYPES = frozenset({7, 11, 12, 13, 14, 15})
 
 _SOURCE_TAG_PATTERN = re.compile(r"[^0-9A-Za-z]+")
@@ -48,8 +50,39 @@ def track_display_name(*, bone_id: int, usage: int, track_index: int | None = No
     return f"T{int(track_index):02d} {target_label} {transform_label}"
 
 
+def raw_duplicate_display_name(*, bone_id: int, usage: int, track_index: int) -> str:
+    return f"Raw Duplicate {track_display_name(bone_id=bone_id, usage=usage, track_index=track_index)}"
+
+
 def raw_duplicate_action_group(*, bone_id: int, usage: int, track_index: int) -> str:
-    return f"LMT Raw {track_display_name(bone_id=bone_id, usage=usage, track_index=track_index)}"
+    return f"LMT Raw / {track_display_name(bone_id=bone_id, usage=usage, track_index=track_index)}"
+
+
+def raw_duplicate_data_path(*, property_name: str, owner_kind: str = "", owner_name: str = "") -> str:
+    if str(owner_kind or "") == LMT_RAW_DUPLICATE_OWNER_BONE and str(owner_name or ""):
+        return f'pose.bones["{owner_name}"]["{property_name}"]'
+    return f'["{property_name}"]'
+
+
+def raw_duplicate_group_name(
+    *,
+    bone_id: int,
+    usage: int,
+    track_index: int,
+    owner_kind: str = "",
+    owner_name: str = "",
+    action_group: str = "",
+) -> str:
+    if str(owner_kind or "") == LMT_RAW_DUPLICATE_OWNER_BONE:
+        base_name = str(action_group or owner_name or "")
+        if base_name:
+            return f"{base_name} / LMT Raw"
+    if str(owner_kind or "") == LMT_RAW_DUPLICATE_OWNER_OBJECT and (int(usage) >= 3 or int(bone_id) == -1):
+        base_name = str(action_group or "Root Motion")
+        return f"{base_name} / LMT Raw"
+    if str(action_group or ""):
+        return f"{action_group} / LMT Raw"
+    return raw_duplicate_action_group(bone_id=bone_id, usage=usage, track_index=track_index)
 
 
 def raw_duplicate_property_name(
@@ -84,23 +117,88 @@ def _binding_from_raw(binding) -> dict[str, object] | None:
             "channel_count": int(binding.get("channel_count", 0) or 0),
             "display_name": str(binding.get("display_name", "") or ""),
             "action_group": str(binding.get("action_group", "") or ""),
+            "owner_kind": str(binding.get("owner_kind", "") or ""),
+            "owner_name": str(binding.get("owner_name", "") or ""),
+            "data_path": str(binding.get("data_path", "") or ""),
             "preserve_raw_quaternion_values": bool(binding.get("preserve_raw_quaternion_values", False)),
         }
     except (TypeError, ValueError):
         return None
     if not normalized["display_name"]:
-        normalized["display_name"] = track_display_name(
-            bone_id=normalized["bone_id"],
-            usage=normalized["usage"],
-            track_index=normalized["track_index"],
-        )
-    if not normalized["action_group"] and normalized["import_mode"] == LMT_RAW_DUPLICATE_IMPORT_MODE:
-        normalized["action_group"] = raw_duplicate_action_group(
-            bone_id=normalized["bone_id"],
-            usage=normalized["usage"],
-            track_index=normalized["track_index"],
-        )
+        if normalized["import_mode"] == LMT_RAW_DUPLICATE_IMPORT_MODE:
+            normalized["display_name"] = raw_duplicate_display_name(
+                bone_id=normalized["bone_id"],
+                usage=normalized["usage"],
+                track_index=normalized["track_index"],
+            )
+        else:
+            normalized["display_name"] = track_display_name(
+                bone_id=normalized["bone_id"],
+                usage=normalized["usage"],
+                track_index=normalized["track_index"],
+            )
+    if normalized["import_mode"] == LMT_RAW_DUPLICATE_IMPORT_MODE:
+        if not normalized["action_group"]:
+            normalized["action_group"] = raw_duplicate_group_name(
+                bone_id=normalized["bone_id"],
+                usage=normalized["usage"],
+                track_index=normalized["track_index"],
+                owner_kind=normalized["owner_kind"],
+                owner_name=normalized["owner_name"],
+            )
+        if not normalized["data_path"] and normalized["property_name"]:
+            normalized["data_path"] = raw_duplicate_data_path(
+                property_name=normalized["property_name"],
+                owner_kind=normalized["owner_kind"],
+                owner_name=normalized["owner_name"],
+            )
     return normalized
+
+
+def _binding_property_path(binding: dict[str, object]) -> str:
+    data_path = str(binding.get("data_path", "") or "")
+    if data_path:
+        return data_path
+    property_name = str(binding.get("property_name", "") or "")
+    if not property_name:
+        return ""
+    return raw_duplicate_data_path(
+        property_name=property_name,
+        owner_kind=str(binding.get("owner_kind", "") or ""),
+        owner_name=str(binding.get("owner_name", "") or ""),
+    )
+
+
+def raw_duplicate_binding_by_data_path(action) -> dict[str, dict[str, object]]:
+    bindings = load_lmt_import_track_bindings(action)
+    result: dict[str, dict[str, object]] = {}
+    for binding in bindings:
+        if binding.get("import_mode") != LMT_RAW_DUPLICATE_IMPORT_MODE:
+            continue
+        data_path = _binding_property_path(binding)
+        if not data_path:
+            continue
+        result[data_path] = binding
+    return result
+
+
+def ensure_raw_duplicate_property(target_object, binding: dict[str, object], *, basis_value) -> None:
+    property_name = str(binding.get("property_name", "") or "")
+    values = tuple(float(component) for component in tuple(basis_value or ()))
+    if not property_name:
+        return
+    if len(values) == 1:
+        target_object[property_name] = float(values[0])
+    else:
+        target_object[property_name] = [float(component) for component in values]
+    id_properties_ui = getattr(target_object, "id_properties_ui", None)
+    if callable(id_properties_ui):
+        try:
+            id_properties_ui(property_name).update(
+                description=str(binding.get("display_name", "") or property_name),
+            )
+        except Exception:  # pragma: no cover - Blender UI metadata only
+            pass
 
 
 def save_lmt_import_track_bindings(action, bindings) -> None:
@@ -144,34 +242,6 @@ def import_track_binding_by_identity(action) -> dict[tuple[int, int], dict[str, 
             continue
         by_identity[identity] = binding
     return by_identity
-
-
-def raw_duplicate_binding_by_property(action) -> dict[str, dict[str, object]]:
-    bindings = load_lmt_import_track_bindings(action)
-    return {
-        str(binding["property_name"]): binding
-        for binding in bindings
-        if binding.get("import_mode") == LMT_RAW_DUPLICATE_IMPORT_MODE and str(binding.get("property_name", "") or "")
-    }
-
-
-def ensure_raw_duplicate_property(target_object, binding: dict[str, object], *, basis_value) -> None:
-    property_name = str(binding.get("property_name", "") or "")
-    values = tuple(float(component) for component in tuple(basis_value or ()))
-    if not property_name:
-        return
-    if len(values) == 1:
-        target_object[property_name] = float(values[0])
-    else:
-        target_object[property_name] = [float(component) for component in values]
-    id_properties_ui = getattr(target_object, "id_properties_ui", None)
-    if callable(id_properties_ui):
-        try:
-            id_properties_ui(property_name).update(
-                description=str(binding.get("display_name", "") or property_name),
-            )
-        except Exception:  # pragma: no cover - Blender UI metadata only
-            pass
 
 
 def bindings_cover_duplicate_identities(bindings, duplicate_track_identities) -> bool:
