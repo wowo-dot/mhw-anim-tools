@@ -22,6 +22,7 @@ try:
     from ..core.formats.lmt.export_context import LmtSourceActionExportContext
     from ..core.formats.lmt.export_plan import plan_reconstructed_action_export
     from ..core.formats.lmt.merge_writer import write_merged_lmt_file
+    from ..core.formats.lmt.merge_writer import write_multi_merged_lmt_file
     from ..core.formats.lmt.quaternion_source_diagnostics import identify_raw_sensitive_quaternion_identities
     from ..core.formats.lmt.reader import read_lmt_bytes
     from ..core.formats.lmt.reconstruction import reconstruct_sampled_action
@@ -44,6 +45,7 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.lmt.export_context import LmtSourceActionExportContext
     from core.formats.lmt.export_plan import plan_reconstructed_action_export
     from core.formats.lmt.merge_writer import write_merged_lmt_file
+    from core.formats.lmt.merge_writer import write_multi_merged_lmt_file
     from core.formats.lmt.quaternion_source_diagnostics import identify_raw_sensitive_quaternion_identities
     from core.formats.lmt.reader import read_lmt_bytes
     from core.formats.lmt.reconstruction import reconstruct_sampled_action
@@ -80,7 +82,7 @@ class ExportSourceMetadata:
     export_mode: str = "standalone"
     preserve_source_track_identities: frozenset[tuple[int, int]] = frozenset()
     raw_quaternion_source_identities: frozenset[tuple[int, int]] = frozenset()
-    replacement_timl_payloads: dict[int, bytes] = field(default_factory=dict)
+    replacement_timl_payloads: dict[int, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -118,6 +120,30 @@ def effective_export_action(scene_props):
 
 def _default_export_metadata() -> ExportSourceMetadata:
     return ExportSourceMetadata()
+
+
+def _safe_action_get(action, key: str, default=None):
+    getter = getattr(action, "get", None)
+    if callable(getter):
+        return getter(key, default)
+    if isinstance(action, dict):
+        return action.get(key, default)
+    return default
+
+
+def _safe_action_import_kind(action) -> str:
+    return str(_safe_action_get(action, "mhw_anim_tools_import_kind", "") or "")
+
+
+def _safe_action_source_lmt(action) -> str:
+    return str(_safe_action_get(action, "mhw_anim_tools_source_lmt", "") or "")
+
+
+def _safe_action_entry_id(action, default: int = 0) -> int:
+    try:
+        return int(_safe_action_get(action, "mhw_anim_tools_entry_id", default))
+    except (TypeError, ValueError):
+        return default
 
 
 def _workflow_diagnostic(level: str, source: str, message: str) -> ExportWorkflowDiagnostic:
@@ -183,7 +209,12 @@ def _standalone_metadata_from_context(
     )
 
 
-def resolve_source_action_export_metadata(scene_props, action) -> tuple[ExportSourceMetadata, Report]:
+def resolve_source_action_export_metadata(
+    scene_props,
+    action,
+    *,
+    source_cache: dict[str, tuple[bytes, object]] | None = None,
+) -> tuple[ExportSourceMetadata, Report]:
     metadata = _default_export_metadata()
     report = Report()
     source_path = ""
@@ -213,8 +244,14 @@ def resolve_source_action_export_metadata(scene_props, action) -> tuple[ExportSo
         return _standalone_metadata_from_context(fallback_context, report=report), report
 
     try:
-        source_bytes = Path(source_path).read_bytes()
-        lmt = read_lmt_bytes(source_bytes, source_name=source_path)
+        cached_source = source_cache.get(source_path) if source_cache is not None else None
+        if cached_source is None:
+            source_bytes = Path(source_path).read_bytes()
+            lmt = read_lmt_bytes(source_bytes, source_name=source_path)
+            if source_cache is not None:
+                source_cache[source_path] = (source_bytes, lmt)
+        else:
+            source_bytes, lmt = cached_source
     except (OSError, ValueError, TypeError, BinaryFormatError) as exc:
         report.add_warning(
             "lmt.export.source_read",
@@ -245,6 +282,77 @@ def resolve_source_action_export_metadata(scene_props, action) -> tuple[ExportSo
         export_mode="merge",
     )
     return metadata, report
+
+
+def source_export_actions(scene_props, *, actions, action=None) -> tuple[str, tuple[object, ...], Report]:
+    report = Report()
+    anchor_action = action if action is not None else effective_export_action(scene_props)
+    if anchor_action is None:
+        report.add_error(
+            "lmt.export.source_action",
+            "Choose an imported LMT action before exporting the full source file.",
+        )
+        return "", (), report
+
+    import_kind = _safe_action_import_kind(anchor_action)
+    if import_kind != "lmt_action":
+        report.add_error(
+            "lmt.export.source_action",
+            (
+                f"Action '{getattr(anchor_action, 'name', '')}' is not an imported LMT action. "
+                "Full source export requires a source-backed LMT action, not a TIML controller or standalone action."
+            ),
+        )
+        return "", (), report
+
+    source_path = _safe_action_source_lmt(anchor_action) or str(scene_props.last_lmt_path or "")
+    if not source_path:
+        report.add_error(
+            "lmt.export.source_path",
+            "Selected imported LMT action is missing its source file path, so full-source export cannot continue.",
+        )
+        return "", (), report
+
+    source_actions_by_id: dict[int, object] = {}
+    duplicate_ids: set[int] = set()
+    invalid_actions: list[str] = []
+    for candidate in actions:
+        if _safe_action_import_kind(candidate) != "lmt_action":
+            continue
+        if _safe_action_source_lmt(candidate) != source_path:
+            continue
+        entry_id = _safe_action_entry_id(candidate, default=-1)
+        if entry_id < 0:
+            invalid_actions.append(str(getattr(candidate, "name", "") or "<unnamed action>"))
+            continue
+        if entry_id in source_actions_by_id:
+            duplicate_ids.add(entry_id)
+            continue
+        source_actions_by_id[entry_id] = candidate
+
+    if invalid_actions:
+        invalid_labels = ", ".join(invalid_actions)
+        report.add_error(
+            "lmt.export.source_entry",
+            f"Imported LMT action metadata is missing a valid source entry id for: {invalid_labels}.",
+        )
+    if duplicate_ids:
+        duplicate_labels = ", ".join(f"{entry_id:03d}" for entry_id in sorted(duplicate_ids))
+        report.add_error(
+            "lmt.export.source_entry",
+            (
+                "Found multiple imported Blender actions mapped to the same source LMT entry id(s): "
+                f"{duplicate_labels}."
+            ),
+        )
+
+    ordered_actions = tuple(candidate for _entry_id, candidate in sorted(source_actions_by_id.items()))
+    if not ordered_actions:
+        report.add_error(
+            "lmt.export.source_action",
+            f"No imported LMT actions from '{source_path}' are available for full-source export.",
+        )
+    return source_path, ordered_actions, report
 
 
 def _augment_source_metadata_with_action(
@@ -334,8 +442,14 @@ def _augment_source_metadata_with_action(
     )
 
 
-def analyze_export_action(scene_props, *, actions, objects) -> ExportAnalysis:
-    action = effective_export_action(scene_props)
+def analyze_action_for_export(
+    scene_props,
+    action,
+    *,
+    actions,
+    objects,
+    source_cache: dict[str, tuple[bytes, object]] | None = None,
+) -> ExportAnalysis:
     workflow_diagnostics: list[ExportWorkflowDiagnostic] = []
 
     readiness_report = assess_timl_export_readiness(action, actions) if action is not None else Report()
@@ -372,7 +486,11 @@ def analyze_export_action(scene_props, *, actions, objects) -> ExportAnalysis:
         for diagnostic in sampling_result.diagnostics
     )
 
-    metadata, metadata_report = resolve_source_action_export_metadata(scene_props, action)
+    metadata, metadata_report = resolve_source_action_export_metadata(
+        scene_props,
+        action,
+        source_cache=source_cache,
+    )
     metadata = _augment_source_metadata_with_action(
         metadata,
         action,
@@ -418,6 +536,44 @@ def analyze_export_action(scene_props, *, actions, objects) -> ExportAnalysis:
     )
 
 
+def analyze_export_action(scene_props, *, actions, objects) -> ExportAnalysis:
+    return analyze_action_for_export(
+        scene_props,
+        effective_export_action(scene_props),
+        actions=actions,
+        objects=objects,
+    )
+
+
+def analyze_source_export_actions(
+    scene_props,
+    *,
+    actions,
+    objects,
+    action=None,
+) -> tuple[str, tuple[ExportAnalysis, ...], Report]:
+    source_path, export_actions, report = source_export_actions(
+        scene_props,
+        actions=actions,
+        action=action,
+    )
+    if report.error_count:
+        return source_path, (), report
+
+    source_cache: dict[str, tuple[bytes, object]] = {}
+    analyses = tuple(
+        analyze_action_for_export(
+            scene_props,
+            export_action,
+            actions=actions,
+            objects=objects,
+            source_cache=source_cache,
+        )
+        for export_action in export_actions
+    )
+    return source_path, analyses, report
+
+
 def write_export_file(filepath: str, analysis: ExportAnalysis):
     if analysis.reconstructed is None or analysis.plan is None:
         raise ValidationError("Export analysis is incomplete; run analysis before writing an LMT file.")
@@ -448,4 +604,90 @@ def write_export_file(filepath: str, analysis: ExportAnalysis):
         flags2=metadata.flags2,
         track_metadata_by_identity=metadata.track_metadata_by_identity,
         raw_quaternion_source_identities=metadata.raw_quaternion_source_identities,
+    )
+
+
+def _timl_payload_signature(raw_timl_payload) -> tuple[bytes, tuple[int, ...]]:
+    return (
+        bytes(getattr(raw_timl_payload, "payload", b"")),
+        tuple(int(offset) for offset in getattr(raw_timl_payload, "rebase_offsets", ())),
+    )
+
+
+def write_source_export_file(filepath: str, analyses: tuple[ExportAnalysis, ...] | list[ExportAnalysis]):
+    normalized_analyses = tuple(analyses)
+    if not normalized_analyses:
+        raise ValidationError("No analyzed source actions were provided for full LMT export.")
+
+    anchor_analysis = normalized_analyses[0]
+    anchor_metadata = anchor_analysis.metadata
+    anchor_source_name = str(getattr(getattr(anchor_metadata, "source_context", None), "source_name", "") or "")
+    if anchor_metadata.source_lmt is None or anchor_metadata.source_bytes is None or not anchor_source_name:
+        raise ValidationError("Full LMT export requires source-backed imported actions with readable source metadata.")
+
+    reconstructed_actions_by_id: dict[int, object] = {}
+    track_metadata_by_action_id: dict[int, dict[tuple[int, int], dict[str, object]] | None] = {}
+    preserve_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]]] = {}
+    raw_quaternion_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]]] = {}
+    replacement_timl_payloads: dict[int, object] = {}
+
+    for analysis in normalized_analyses:
+        if analysis.reconstructed is None or analysis.plan is None:
+            raise ValidationError("Full LMT export analysis is incomplete; analyze each source action before writing.")
+        if analysis.error_count:
+            raise ValidationError(
+                f"Cannot write full source LMT while action '{getattr(analysis.action, 'name', '')}' still has export errors."
+            )
+
+        metadata = analysis.metadata
+        source_name = str(getattr(getattr(metadata, "source_context", None), "source_name", "") or "")
+        if metadata.source_lmt is None or metadata.source_bytes is None or not source_name:
+            raise ValidationError(
+                f"Action '{getattr(analysis.action, 'name', '')}' is not source-backed, so it cannot participate in full LMT export."
+            )
+        if source_name != anchor_source_name:
+            raise ValidationError(
+                "Full LMT export can only combine Blender actions imported from the same source LMT file."
+            )
+        if bytes(metadata.source_bytes) != bytes(anchor_metadata.source_bytes):
+            raise ValidationError(
+                "Source LMT bytes changed between analyzed actions; re-run export analysis before writing the full file."
+            )
+
+        action_id = int(metadata.action_id)
+        if action_id in reconstructed_actions_by_id:
+            raise ValidationError(
+                f"Source LMT entry {action_id:03d} was analyzed more than once for full export."
+            )
+
+        reconstructed_actions_by_id[action_id] = analysis.reconstructed
+        track_metadata_by_action_id[action_id] = metadata.track_metadata_by_identity
+        preserve_source_identities_by_action_id[action_id] = metadata.preserve_source_track_identities
+        raw_quaternion_source_identities_by_action_id[action_id] = metadata.raw_quaternion_source_identities
+
+        for source_offset, payload in dict(metadata.replacement_timl_payloads or {}).items():
+            normalized_source_offset = int(source_offset)
+            existing_payload = replacement_timl_payloads.get(normalized_source_offset)
+            if existing_payload is None:
+                replacement_timl_payloads[normalized_source_offset] = payload
+                continue
+            if _timl_payload_signature(existing_payload) != _timl_payload_signature(payload):
+                raise ValidationError(
+                    (
+                        "Conflicting TIML writeback payloads were produced for shared source offset "
+                        f"{normalized_source_offset} while exporting '{anchor_source_name}'."
+                    )
+                )
+
+    return write_multi_merged_lmt_file(
+        filepath,
+        anchor_metadata.source_lmt,
+        anchor_metadata.source_bytes,
+        reconstructed_actions_by_id,
+        version=anchor_metadata.version,
+        header_unknown=anchor_metadata.header_unknown,
+        track_metadata_by_action_id=track_metadata_by_action_id,
+        preserve_source_identities_by_action_id=preserve_source_identities_by_action_id,
+        raw_quaternion_source_identities_by_action_id=raw_quaternion_source_identities_by_action_id,
+        replacement_timl_payloads=replacement_timl_payloads,
     )

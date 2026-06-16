@@ -335,7 +335,9 @@ def _draw_export_section(layout, scene_props):
     row = panel_body.row(align=True)
     row.scale_y = 1.1
     row.operator("mhw_anim_tools.analyze_export_action", icon="EXPORT")
-    row.operator("mhw_anim_tools.export_lmt_action", icon="FILE_TICK", text="Write LMT")
+    row.operator("mhw_anim_tools.export_source_lmt", icon="FILE_TICK", text="Write Full LMT")
+    single_row = panel_body.row(align=True)
+    single_row.operator("mhw_anim_tools.export_lmt_action", icon="ACTION", text="Write Action Only")
     if not scene_props.last_export_action_name:
         return
     stats_box = panel_body.box()

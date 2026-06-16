@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 """Focused export-prep operators for the rewrite."""
 
+from pathlib import Path
 import re
 
 import bpy
 from bpy_extras.io_utils import ExportHelper
 
 from ..blender_adapter.export_workflow import analyze_export_action
+from ..blender_adapter.export_workflow import analyze_source_export_actions
 from ..blender_adapter.export_workflow import effective_export_action
+from ..blender_adapter.export_workflow import source_export_actions
 from ..blender_adapter.export_workflow import write_export_file
+from ..blender_adapter.export_workflow import write_source_export_file
 from ..core.diagnostics.errors import BinaryFormatError
 from ..core.diagnostics.errors import ValidationError
 from .properties import add_diagnostic
@@ -25,6 +29,11 @@ def _sanitize_export_name(name: str) -> str:
 def _publish_export_diagnostics(scene_props, diagnostics):
     for diagnostic in diagnostics:
         add_diagnostic(scene_props, diagnostic.level, diagnostic.source, diagnostic.message)
+
+
+def _publish_report_diagnostics(scene_props, report):
+    for diagnostic in report.diagnostics:
+        add_diagnostic(scene_props, diagnostic.level, diagnostic.code, diagnostic.message)
 
 
 def _apply_export_summary(scene_props, analysis):
@@ -147,12 +156,91 @@ class MHWANIMTOOLS_OT_export_lmt_action(bpy.types.Operator, ExportHelper):
         return {"FINISHED"}
 
 
+class MHWANIMTOOLS_OT_export_source_lmt(bpy.types.Operator, ExportHelper):
+    bl_idname = "mhw_anim_tools.export_source_lmt"
+    bl_label = "Export Source LMT"
+    bl_description = "Write the full source LMT using every imported Blender action from that source file"
+
+    filename_ext = ".lmt"
+    filter_glob: bpy.props.StringProperty(default="*.lmt", options={"HIDDEN"}, maxlen=255)
+
+    def invoke(self, context, _event):
+        scene_props = context.scene.mhw_anim_tools
+        source_path, _export_actions, report = source_export_actions(scene_props, actions=bpy.data.actions)
+        if report.error_count:
+            scene_props.last_status = report.diagnostics[0].message if report.diagnostics else "Full LMT export is not available for the current selection."
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        if not self.filepath:
+            source_name = Path(source_path).stem if source_path else getattr(effective_export_action(scene_props), "name", "export")
+            self.filepath = _sanitize_export_name(source_name) + self.filename_ext
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
+    def execute(self, context):
+        scene_props = context.scene.mhw_anim_tools
+        clear_diagnostics(scene_props)
+        clear_export_analysis(scene_props)
+
+        source_path, analyses, report = analyze_source_export_actions(
+            scene_props,
+            actions=bpy.data.actions,
+            objects=bpy.data.objects,
+        )
+        _publish_report_diagnostics(scene_props, report)
+        for analysis in analyses:
+            _publish_export_diagnostics(scene_props, analysis.diagnostics)
+
+        if report.error_count or not analyses:
+            scene_props.last_status = report.diagnostics[0].message if report.diagnostics else "Full LMT export could not start."
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        anchor_analysis = analyses[0]
+        _apply_export_summary(scene_props, anchor_analysis)
+
+        total_warning_count = report.warning_count + sum(int(analysis.warning_count) for analysis in analyses)
+        total_error_count = report.error_count + sum(int(analysis.error_count) for analysis in analyses)
+        if total_error_count:
+            scene_props.last_export_warning_count = total_warning_count
+            scene_props.last_export_error_count = total_error_count
+            scene_props.last_status = (
+                f"Full LMT export analysis failed: {total_error_count} error(s), "
+                f"{total_warning_count} warning(s)."
+            )
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        try:
+            output_path = write_source_export_file(self.filepath, analyses)
+        except (ValidationError, BinaryFormatError, OSError, ValueError) as exc:
+            add_diagnostic(scene_props, "ERROR", "writer", str(exc))
+            scene_props.last_export_warning_count = total_warning_count
+            scene_props.last_export_error_count = total_error_count + 1
+            scene_props.last_status = f"Full LMT export failed: {exc}"
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        scene_props.last_export_warning_count = total_warning_count
+        scene_props.last_export_error_count = total_error_count
+        scene_props.last_status = (
+            f"Exported full source LMT {Path(source_path).name or output_path.name}: "
+            f"edited_actions={len(analyses)}, "
+            f"source_actions={anchor_analysis.impact_summary.source_action_count}, "
+            f"warnings={total_warning_count}, "
+            f"mode=merge"
+        )
+        self.report({"INFO"}, scene_props.last_status)
+        return {"FINISHED"}
+
+
 def _menu_export(self, _context):
     self.layout.operator(MHWANIMTOOLS_OT_export_lmt_action.bl_idname, text="MHW Anim Tools LMT (.lmt)")
 
 
 classes = (
     MHWANIMTOOLS_OT_analyze_export_action,
+    MHWANIMTOOLS_OT_export_source_lmt,
     MHWANIMTOOLS_OT_export_lmt_action,
 )
 

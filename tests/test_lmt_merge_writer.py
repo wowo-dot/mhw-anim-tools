@@ -7,6 +7,7 @@ from core.formats.lmt.export_context import RawTimlPayload
 from core.formats.lmt.decoder import decode_action_tracks
 from core.formats.lmt.export_context import extract_raw_timl_payload_layouts
 from core.formats.lmt.merge_writer import write_merged_lmt_bytes
+from core.formats.lmt.merge_writer import write_multi_merged_lmt_bytes
 from core.formats.lmt.reader import read_lmt_bytes
 from core.formats.lmt.reconstructed import LmtReconstructedAction
 from core.formats.lmt.reconstructed import LmtReconstructedKeyframe
@@ -107,6 +108,62 @@ def _build_source_container_with_shared_timl() -> tuple[bytes, bytes]:
 
 
 class LmtMergeWriterTests(unittest.TestCase):
+    def test_merge_writer_can_replace_multiple_source_actions_in_one_pass(self):
+        source_bytes, _timl_payload = _build_source_container_with_shared_timl()
+        source_lmt = read_lmt_bytes(source_bytes, source_name="merge-source.lmt")
+        reconstructed0 = LmtReconstructedAction(
+            action_name="EditedAction0",
+            frame_start=0,
+            frame_end=6,
+            tracks=(
+                LmtReconstructedTrack(
+                    bone_id=3,
+                    usage=1,
+                    basis_value=(0.5, 1.0, 1.5),
+                    keyframes=(
+                        LmtReconstructedKeyframe(frame=1, value=(1.25, 2.5, -3.75)),
+                        LmtReconstructedKeyframe(frame=6, value=(4.0, 5.0, 6.0)),
+                    ),
+                ),
+            ),
+        )
+        reconstructed1 = LmtReconstructedAction(
+            action_name="EditedAction1",
+            frame_start=0,
+            frame_end=12,
+            tracks=(
+                LmtReconstructedTrack(
+                    bone_id=9,
+                    usage=1,
+                    basis_value=(0.0, 0.0, 0.0),
+                    keyframes=(
+                        LmtReconstructedKeyframe(frame=0, value=(0.0, 1.0, 2.0)),
+                        LmtReconstructedKeyframe(frame=12, value=(3.0, 4.0, 5.0)),
+                    ),
+                ),
+            ),
+        )
+
+        merged_bytes = write_multi_merged_lmt_bytes(
+            source_lmt,
+            source_bytes,
+            {
+                0: reconstructed0,
+                1: reconstructed1,
+            },
+        )
+        merged_lmt = read_lmt_bytes(merged_bytes, source_name="merge-output.lmt")
+        decoded0 = decode_action_tracks(merged_lmt.actions[0], strict=True)
+        decoded1 = decode_action_tracks(merged_lmt.actions[1], strict=True)
+
+        self.assertEqual(tuple(action.id for action in merged_lmt.actions), (0, 1))
+        self.assertEqual(len(merged_lmt.actions[0].tracks), 1)
+        self.assertEqual(len(merged_lmt.actions[1].tracks), 1)
+        self.assertEqual([sample.frame for sample in decoded0.tracks[0].keyframes], [1, 6])
+        self.assertEqual([sample.frame for sample in decoded1.tracks[0].keyframes], [1, 13])
+        self.assertEqual(decoded1.tracks[0].keyframes[-1].value, (3.0, 4.0, 5.0))
+        self.assertEqual(merged_lmt.actions[0].header.timl_offset, merged_lmt.actions[1].header.timl_offset)
+
     def test_merge_writer_preserves_siblings_and_shared_raw_timl(self):
         source_bytes, timl_payload = _build_source_container_with_shared_timl()
         source_lmt = read_lmt_bytes(source_bytes, source_name="merge-source.lmt")

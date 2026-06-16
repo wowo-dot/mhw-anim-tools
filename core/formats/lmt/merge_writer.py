@@ -349,13 +349,68 @@ def write_merged_lmt_bytes(
     raw_quaternion_source_identities: frozenset[tuple[int, int]] | set[tuple[int, int]] | None = None,
     replacement_timl_payloads: dict[int, object] | None = None,
 ) -> bytes:
-    source_action = _action_by_id(source_lmt, action_id)
+    return write_multi_merged_lmt_bytes(
+        source_lmt,
+        source_bytes,
+        {int(action_id): reconstructed_action},
+        version=version,
+        header_unknown=header_unknown,
+        track_metadata_by_action_id={int(action_id): track_metadata_by_identity} if track_metadata_by_identity is not None else None,
+        preserve_source_identities_by_action_id={int(action_id): preserve_source_identities} if preserve_source_identities is not None else None,
+        raw_quaternion_source_identities_by_action_id={int(action_id): raw_quaternion_source_identities} if raw_quaternion_source_identities is not None else None,
+        replacement_timl_payloads=replacement_timl_payloads,
+    )
+
+
+def write_multi_merged_lmt_bytes(
+    source_lmt,
+    source_bytes: bytes,
+    reconstructed_actions_by_id: dict[int, object],
+    *,
+    version: int | None = None,
+    header_unknown: bytes | None = None,
+    track_metadata_by_action_id: dict[int, dict[tuple[int, int], dict[str, object]] | None] | None = None,
+    preserve_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]] | set[tuple[int, int]] | None] | None = None,
+    raw_quaternion_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]] | set[tuple[int, int]] | None] | None = None,
+    replacement_timl_payloads: dict[int, object] | None = None,
+) -> bytes:
+    if not reconstructed_actions_by_id:
+        raise ValidationError("At least one reconstructed source action is required for merged LMT export.")
+
+    normalized_reconstructed_actions_by_id = {
+        int(action_id): reconstructed_action
+        for action_id, reconstructed_action in dict(reconstructed_actions_by_id).items()
+    }
+    track_metadata_by_action_id = {
+        int(action_id): metadata
+        for action_id, metadata in dict(track_metadata_by_action_id or {}).items()
+    }
+    preserve_source_identities_by_action_id = {
+        int(action_id): identities
+        for action_id, identities in dict(preserve_source_identities_by_action_id or {}).items()
+    }
+    raw_quaternion_source_identities_by_action_id = {
+        int(action_id): identities
+        for action_id, identities in dict(raw_quaternion_source_identities_by_action_id or {}).items()
+    }
+
+    source_actions_by_id = {int(action.id): action for action in source_lmt.actions}
+    missing_action_ids = sorted(
+        action_id
+        for action_id in normalized_reconstructed_actions_by_id
+        if action_id not in source_actions_by_id
+    )
+    if missing_action_ids:
+        labels = ", ".join(f"{action_id:03d}" for action_id in missing_action_ids)
+        raise ValidationError(
+            f"Could not find source action id(s) {labels} in '{source_lmt.source_name}'."
+        )
+
     timl_payloads = dict(extract_raw_timl_payload_layouts(source_lmt, source_bytes))
     if replacement_timl_payloads:
         timl_payloads.update({int(offset): payload for offset, payload in replacement_timl_payloads.items()})
 
     action_records_by_id: dict[int, _SerializedAction] = {}
-    source_actions_by_id = {int(action.id): action for action in source_lmt.actions}
     for entry_id, entry_offset in enumerate(source_lmt.entry_offsets):
         if int(entry_offset) == 0:
             continue
@@ -364,13 +419,13 @@ def write_merged_lmt_bytes(
             raise ValidationError(
                 f"Source LMT entry {entry_id} points to an action offset but no parsed action was available."
             )
-        if entry_id == int(action_id):
+        if entry_id in normalized_reconstructed_actions_by_id:
             action_records_by_id[entry_id] = _serialize_reconstructed_action(
-                reconstructed_action,
-                source_action,
-                track_metadata_by_identity=track_metadata_by_identity,
-                preserve_source_identities=preserve_source_identities,
-                raw_quaternion_source_identities=raw_quaternion_source_identities,
+                normalized_reconstructed_actions_by_id[entry_id],
+                source_entry_action,
+                track_metadata_by_identity=track_metadata_by_action_id.get(entry_id),
+                preserve_source_identities=preserve_source_identities_by_action_id.get(entry_id),
+                raw_quaternion_source_identities=raw_quaternion_source_identities_by_action_id.get(entry_id),
             )
         else:
             action_records_by_id[entry_id] = _serialize_source_action(source_entry_action)
@@ -471,6 +526,25 @@ def write_merged_lmt_file(
             source_lmt,
             source_bytes,
             reconstructed_action,
+            **kwargs,
+        )
+    )
+    return output_path
+
+
+def write_multi_merged_lmt_file(
+    path: str | Path,
+    source_lmt,
+    source_bytes: bytes,
+    reconstructed_actions_by_id: dict[int, object],
+    **kwargs,
+) -> Path:
+    output_path = Path(path)
+    output_path.write_bytes(
+        write_multi_merged_lmt_bytes(
+            source_lmt,
+            source_bytes,
+            reconstructed_actions_by_id,
             **kwargs,
         )
     )
