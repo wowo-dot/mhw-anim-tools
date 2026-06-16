@@ -92,6 +92,9 @@ def _draw_workspace_header(layout, scene_props):
     header_box = layout.box()
     header_box.label(text="Session Browser", icon="ANIM_DATA")
     header_box.label(text=scene_props.last_status)
+    actions = header_box.row(align=True)
+    actions.scale_y = 1.05
+    actions.operator("mhw_anim_tools.open_timl_workspace", icon="WORKSPACE", text="Open TIML Workspace")
 
 
 def _draw_workspace_section(layout, context, scene_props):
@@ -118,49 +121,24 @@ def _draw_workspace_section(layout, context, scene_props):
     refresh_row = panel_body.row(align=True)
     refresh_row.scale_y = 1.1
     refresh_row.operator("mhw_anim_tools.refresh_workspace", icon="FILE_REFRESH")
-    panel_body.label(text=f"Candidate armatures: {summary['candidate_count']}")
+    details_header, details_body = panel_body.panel(
+        idname="MHWANIMTOOLS_PT_workspace_details",
+        default_closed=True,
+    )
+    details_header.label(text="Armature Details")
+    if details_body is None:
+        return
+    details_body.label(text=f"Candidate armatures: {summary['candidate_count']}")
     target = summary["target_armature"]
     if target is not None:
-        panel_body.label(text=f"Target MhBones: {mhbone_count(target)}")
-        panel_body.label(text=f"Target BoneFunctions: {bonefunction_count(target)}")
+        details_body.label(text=f"Target MhBones: {mhbone_count(target)}")
+        details_body.label(text=f"Target BoneFunctions: {bonefunction_count(target)}")
         if uses_mhw_model_editor_space_adapter(target):
-            panel_body.label(text="Target space: MHW MOD3 adapter", icon="ORIENTATION_GLOBAL")
+            details_body.label(text="Target space: MHW MOD3 adapter", icon="ORIENTATION_GLOBAL")
         else:
-            panel_body.label(text="Target space: direct / generic", icon="INFO")
+            details_body.label(text="Target space: direct / generic", icon="INFO")
     else:
-        panel_body.label(text="No target armature selected", icon="ERROR")
-
-
-def _draw_entry_timl_summary(panel_body, scene_props, entry, details):
-    details.label(text="TIML attached" if entry.has_timl else "No TIML attached")
-    if not entry.has_timl:
-        details.label(text="This LMT entry has no attached TIML controller payload.", icon="INFO")
-        return
-    timl_box = details.box()
-    timl_box.label(text=f"Attached TIML @ {entry.timl_source_offset_display or 'unknown'}", icon="NODETREE")
-    if entry.timl_parse_error:
-        timl_box.label(text=f"Parse issue: {entry.timl_parse_error}", icon="ERROR")
-        return
-    timl_box.label(text=f"Types: {entry.timl_type_count}")
-    timl_box.label(text=f"Transforms: {entry.timl_transform_count}")
-    timl_box.label(text=f"Keyframes: {entry.timl_keyframe_count}")
-    timl_box.label(text=f"Anim length: {entry.timl_animation_length:.3f}")
-    timl_box.label(text=f"Loop start: {entry.timl_loop_start_point:.3f}")
-    timl_box.label(text=f"Loop control: {entry.timl_loop_control}")
-    if entry.timl_data_type_breakdown:
-        timl_box.label(text=entry.timl_data_type_breakdown)
-    if entry.timl_timeline_breakdown:
-        timl_box.label(text=entry.timl_timeline_breakdown)
-    import_timl_row = timl_box.row(align=True)
-    import_timl_row.scale_y = 1.1
-    import_timl_row.operator("mhw_anim_tools.import_selected_attached_timl", icon="NODETREE")
-    if scene_props.last_imported_timl_action_name:
-        timl_box.label(
-            text=(
-                f"Last TIML import: {scene_props.last_imported_timl_action_name} "
-                f"on {scene_props.last_imported_timl_object_name}"
-            )
-        )
+        details_body.label(text="No target armature selected", icon="ERROR")
 
 
 def _draw_entry_binding_summary(details, scene_props, entry):
@@ -195,11 +173,17 @@ def _draw_entry_binding_summary(details, scene_props, entry):
 
 
 def _draw_entry_import_section(panel_body, scene_props, entry):
-    del entry
     import_row = panel_body.row(align=True)
     import_row.scale_y = 1.1
     import_row.operator("mhw_anim_tools.import_selected_lmt_action", icon="ACTION", text="Import Selected")
     import_row.operator("mhw_anim_tools.import_all_lmt_actions", icon="ACTION_TWEAK", text="Import All")
+    if entry.has_timl:
+        timl_row = panel_body.row(align=True)
+        timl_row.scale_y = 1.05
+        timl_row.operator("mhw_anim_tools.import_selected_attached_timl", icon="IMPORT", text="Import TIML")
+        timl_row.operator("mhw_anim_tools.focus_selected_entry_timl_controller", icon="RESTRICT_SELECT_OFF", text="Focus TIML")
+        if entry.timl_parse_error:
+            panel_body.label(text=f"TIML parse issue: {entry.timl_parse_error}", icon="ERROR")
     if not scene_props.last_imported_action_name:
         return
     if scene_props.last_imported_action_count > 1:
@@ -254,7 +238,7 @@ def _draw_track_details(panel_body, scene_props):
 def _draw_lmt_inspector_section(layout, scene_props):
     panel_header, panel_body = layout.panel(
         idname="MHWANIMTOOLS_PT_lmt_inspector_section",
-        default_closed=True,
+        default_closed=False,
     )
     panel_header.label(text="LMT Inspector")
     if panel_body is None:
@@ -286,95 +270,31 @@ def _draw_lmt_inspector_section(layout, scene_props):
     if not (0 <= scene_props.selected_entry_index < len(scene_props.lmt_entries)):
         return
     entry = scene_props.lmt_entries[scene_props.selected_entry_index]
-    details = panel_body.box()
-    details.label(text=f"Entry {entry.entry_id:03d}", icon="ACTION")
-    details.label(text=f"Frames: {entry.frame_count}")
-    details.label(text=f"Loop frame: {entry.loop_frame}")
-    details.label(text=f"Tracks: {entry.track_count}")
-    details.label(text=f"Flags: {entry.flags_hex} / {entry.flags2_hex}")
-    details.label(text=f"Action translation: {entry.translation_preview}")
-    details.label(text=f"Action rotation basis: {entry.rotation_preview}")
-    _draw_entry_timl_summary(panel_body, scene_props, entry, details)
-    _draw_entry_binding_summary(details, scene_props, entry)
-    _draw_entry_import_section(details, scene_props, entry)
-    _draw_track_details(panel_body, scene_props)
-
-
-def _draw_timl_workflow_section(layout, scene_props):
-    panel_header, panel_body = layout.panel(idname="MHWANIMTOOLS_PT_timl_controller_section", default_closed=False)
-    panel_header.label(text="TIML Workflow")
-    if panel_body is None:
-        return
-    panel_body.prop(scene_props, "timl_controller")
-    analyze_row = panel_body.row(align=True)
-    analyze_row.scale_y = 1.1
-    analyze_row.operator("mhw_anim_tools.open_timl_workspace", icon="WORKSPACE", text="Open TIML Workspace")
-    analyze_row.operator("mhw_anim_tools.select_timl_controller", icon="RESTRICT_SELECT_OFF", text="Select")
-    analyze_row.operator("mhw_anim_tools.analyze_timl_controller", icon="FCURVE", text="Analyze")
-    if scene_props.last_imported_timl_action_name and scene_props.last_imported_timl_object_name:
-        panel_body.label(text=f"{scene_props.last_imported_timl_action_name} | {scene_props.last_imported_timl_object_name}")
-    controller = scene_props.timl_controller
-    if controller is None:
-        panel_body.label(text="No TIML controller selected yet.", icon="INFO")
-        return
-
-    details = panel_body.box()
-    details.label(text=controller.name, icon="EMPTY_DATA")
-    action = controller.animation_data.action if controller.animation_data else None
-    if action is not None:
-        details.label(text=f"Action: {action.name}", icon="ACTION")
-    else:
-        details.label(text="No active TIML action on controller", icon="ERROR")
-    source_path = str(controller.get("mhw_anim_tools_timl_source_lmt", ""))
-    entry_id = controller.get("mhw_anim_tools_timl_entry_id")
-    source_offset = controller.get("mhw_anim_tools_timl_source_offset")
-    source_summary = build_timl_source_summary(
-        source_name=source_path,
-        entry_id=int(entry_id) if entry_id is not None else None,
-        source_offset=int(source_offset) if source_offset is not None else None,
+    details_header, details_body = panel_body.panel(
+        idname="MHWANIMTOOLS_PT_lmt_selected_entry",
+        default_closed=True,
     )
-    if source_summary:
-        details.label(text=source_summary, icon="CURRENT_FILE")
-    if scene_props.last_timl_analysis_controller_name == controller.name and scene_props.last_timl_analysis_action_name:
-        analysis_box = panel_body.box()
-        analysis_box.label(text=f"Last analyzed: {scene_props.last_timl_analysis_action_name}", icon="CHECKMARK")
-        analysis_box.label(
-            text=build_timl_analysis_summary(
-                transform_count=scene_props.last_timl_analysis_transform_count,
-                keyframe_count=scene_props.last_timl_analysis_keyframe_count,
-                frame_end=scene_props.last_timl_analysis_frame_end,
-                warning_count=scene_props.last_timl_analysis_warning_count,
-                error_count=scene_props.last_timl_analysis_error_count,
-            )
-        )
-        if scene_props.last_timl_writeback_available:
-            analysis_box.label(
-                text=build_timl_edit_policy_summary(
-                    value_only_count=scene_props.last_timl_edit_value_only_count,
-                    rebuild_capable_count=scene_props.last_timl_edit_rebuild_capable_count,
-                    blocked_count=scene_props.last_timl_edit_blocked_count,
-                ),
-                icon="KEYFRAME",
-            )
-            analysis_box.label(
-                text=build_timl_writeback_summary(
-                    preserve_raw_count=scene_props.last_timl_writeback_preserve_raw_count,
-                    patch_values_count=scene_props.last_timl_writeback_patch_values_count,
-                    rebuild_count=scene_props.last_timl_writeback_rebuild_count,
-                    blocked_count=scene_props.last_timl_writeback_blocked_count,
-                ),
-                icon="FILE_REFRESH",
-            )
-            if scene_props.last_timl_payload_scope:
-                analysis_box.label(text=scene_props.last_timl_payload_scope, icon="LINKED")
-            if scene_props.last_timl_matching_controller_count:
-                status_label = _timl_shared_controller_status_label(scene_props.last_timl_shared_controller_status)
-                if status_label:
-                    analysis_box.label(
-                        text=f"{status_label} ({scene_props.last_timl_matching_controller_count})",
-                        icon="OUTLINER_OB_EMPTY",
-                    )
-    panel_body.label(text="Graph Editor workspace")
+    details_header.label(text=f"Entry {entry.entry_id:03d}")
+    if details_body is not None:
+        details_box = details_body.box()
+        details_box.label(text=f"Frames: {entry.frame_count}", icon="ACTION")
+        details_box.label(text=f"Loop frame: {entry.loop_frame}")
+        details_box.label(text=f"Tracks: {entry.track_count}")
+        details_box.label(text=f"Flags: {entry.flags_hex} / {entry.flags2_hex}")
+        details_box.label(text=f"Action translation: {entry.translation_preview}")
+        details_box.label(text=f"Action rotation basis: {entry.rotation_preview}")
+        if entry.has_timl:
+            details_box.label(text="TIML attached", icon="NODETREE")
+        _draw_entry_binding_summary(details_box, scene_props, entry)
+        _draw_entry_import_section(details_body, scene_props, entry)
+
+    tracks_header, tracks_body = panel_body.panel(
+        idname="MHWANIMTOOLS_PT_lmt_tracks_browser",
+        default_closed=True,
+    )
+    tracks_header.label(text="Tracks")
+    if tracks_body is not None:
+        _draw_track_details(tracks_body, scene_props)
 
 
 def _draw_diagnostics_section(layout, scene_props):
@@ -467,7 +387,6 @@ def draw_workspace_panel(layout, context):
     _draw_workspace_header(layout, scene_props)
     _draw_workspace_section(layout, context, scene_props)
     _draw_lmt_inspector_section(layout, scene_props)
-    _draw_timl_workflow_section(layout, scene_props)
     _draw_diagnostics_section(layout, scene_props)
     _draw_export_section(layout, scene_props)
 

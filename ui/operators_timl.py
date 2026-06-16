@@ -901,8 +901,6 @@ class MHWANIMTOOLS_OT_open_timl_workspace(bpy.types.Operator):
                 bpy.ops.mhw_anim_tools.analyze_timl_controller()
             except RuntimeError:
                 pass
-        if controller is not None and not _controller_has_timl_bindings(controller):
-            scene_props.timl_editor_tab = "SEMANTIC"
         controller_name = scene_props.timl_controller.name if scene_props.timl_controller is not None else "none"
         scene_props.last_status = f"Opened TIML workspace for controller {controller_name}."
         self.report({"INFO"}, scene_props.last_status)
@@ -1884,7 +1882,7 @@ class MHWANIMTOOLS_OT_select_timl_block_curves(bpy.types.Operator):
 
         block = _selected_timl_block(scene_props)
         if block is None or not str(block.property_names_json or ""):
-            scene_props.last_status = "Choose a semantic TIML block first."
+            scene_props.last_status = "Choose a TIML type first."
             add_diagnostic(scene_props, "ERROR", "timl.block", scene_props.last_status)
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
@@ -2135,7 +2133,6 @@ class MHWANIMTOOLS_OT_create_timl_eventloop(bpy.types.Operator):
             label_hash=template_header.label_hash,
         )
         scene_props.timl_controller = controller
-        scene_props.timl_editor_tab = "SEMANTIC"
         clear_timl_analysis(scene_props)
         try:
             bpy.ops.mhw_anim_tools.analyze_timl_controller()
@@ -2143,7 +2140,7 @@ class MHWANIMTOOLS_OT_create_timl_eventloop(bpy.types.Operator):
             pass
         scene_props.last_status = (
             f"Created an EventLoop TIML block for entry {entry_id:03d}. "
-            "Use the Semantic tab and Graph Editor to adjust the loop fields."
+            "Use TIML Workspace and Graph Editor to adjust the loop fields."
         )
         self.report({"INFO"}, scene_props.last_status)
         return {"FINISHED"}

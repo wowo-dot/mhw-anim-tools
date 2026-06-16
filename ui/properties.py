@@ -531,15 +531,6 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
         type=bpy.types.Object,
         poll=timl_controller_object_poll,
     )
-    timl_editor_tab: bpy.props.EnumProperty(
-        name="TIML Editor Tab",
-        description="Choose the main TIML editor view",
-        items=(
-            ("SEMANTIC", "Semantic", "Known timelines and block meanings"),
-            ("RAW", "Raw", "Full transform-level TIML structure"),
-        ),
-        default="SEMANTIC",
-    )
     export_action: bpy.props.PointerProperty(
         name="Export Action",
         description="Blender Action to analyze for the reverse LMT export path",
