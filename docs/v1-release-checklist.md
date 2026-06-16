@@ -12,15 +12,15 @@ embedded TIML safely and predictably.
 
 What is already true today:
 
-- the new add-on has a working clean-room LMT core reader/decoder
+- the add-on has a working clean-room LMT core reader/decoder
 - supported LMT action import works in Blender 4.5 with MHW-style armatures
-- supported LMT export works through the new source-aware merge path
+- supported LMT export works through the source-aware merge path
 - full-source `.lmt` export is now explicit in the main workflow
 - attached TIML controllers can be imported, analyzed, edited, and written back
   conservatively inside source-backed LMT export
 - import-all-actions and source-container impact analysis already exist
 - unit tests and smoke tools cover the core add-on path far beyond the first
-  grindstone sample
+  baseline live-asset sample
 
 What is not ready to call "release done" yet:
 
@@ -70,7 +70,7 @@ Before public release, the tool should be:
 - [ ] root motion remains correct on supported rigs
 - [ ] quaternion handling is stable and does not introduce preview flips
 - [x] diagnostics clearly report skipped tracks, unsupported buffers, and binding failures
-- [x] real-asset smoke coverage exists beyond grindstone
+- [x] real-asset smoke coverage exists beyond the baseline live-asset sample
 
 Current status note:
 
@@ -95,9 +95,9 @@ Current status note:
 
 - the writer/export-prep chain is now conservative, validated, and source-aware
 - standalone export intentionally blocks unsafe TIML/container cases
-- the `2026-06-15` grindstone real-asset export path passed selected-action
+- the `2026-06-15` baseline live-asset export path passed selected-action
   merge export and writer/read-decode roundtrip smoke checks cleanly
-- the `2026-06-16` whole-suite regression run passed `220/220` tests
+- the `2026-06-17` whole-suite regression run passed `244/244` tests
 - writer/read-decode roundtrip coverage exists, but final v1 confidence still
   depends on a wider real-asset export/reimport matrix and user-facing workflow
   documentation for what is preserved, promoted, or blocked
@@ -177,7 +177,7 @@ Current status note:
 ### 7. Public repository cleanup is complete
 
 - [x] public-facing docs do not market the project as a legacy patch/port
-- [x] code comments avoid unnecessary private legacy naming where not historically required
+- [x] code comments avoid unnecessary legacy naming where not historically required
 - [ ] local-only legacy comparison helpers are removed from the public repo or moved behind clearly internal naming
 - [x] public module names, operator names, and docs reflect `mhw_anim_tools`
 - [x] license/readme text accurately describes the clean-room architecture and current dependencies
@@ -189,7 +189,7 @@ Current known public-cleanup references to revisit before release:
 
 Current status note:
 
-- the repo already reads like a cohesive add-on much more than a patch pile
+- the repo already reads like a cohesive add-on instead of an accumulated patch set
 - comment wording and user-facing naming are much cleaner now
 - before public release we still need one deliberate call on whether the
   local-only legacy comparison helpers stay in-tree as internal utilities
@@ -229,7 +229,7 @@ Do not delay `v1.0.0` for:
 - `EFX`
 - speculative UI redesign
 - broad feature creep unrelated to reliable LMT/TIML workflows
-- perfect coverage of every rare legacy edge case before we have a stable public base
+- perfect coverage of every rare edge case before we have a stable public base
 
 ## Definition of done for v1.0
 
@@ -239,4 +239,4 @@ We can confidently make the repository public and publish a Nexus release when:
 - unsupported workflows fail safely and explain why
 - users can batch-import and manage multi-action source files sanely
 - documentation matches reality
-- the public repo looks like an original maintainable project, not a legacy patch pile
+- the public repo looks like an original maintainable project, not an accumulated legacy patch set

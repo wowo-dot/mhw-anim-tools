@@ -36,7 +36,7 @@ The comparison set reinforced the same themes from different angles:
 
 ## Non-negotiable rules
 
-Before merging a new milestone, check:
+Before merging a large change, check:
 
 ### 1. Core format logic stays Blender-free
 
@@ -324,7 +324,8 @@ Before `v1.0.0`, the UI/architecture direction should look like this:
 ### Must be true
 
 - [ ] sidebar stays compact and workflow-focused
-- [ ] TIML Inspector is the official deep TIML surface
+- [ ] TIML Workspace is the official deep TIML surface, with TIML Inspector as
+      fallback
 - [ ] Graph Editor remains the actual key editor
 - [ ] raw controller custom properties are implementation detail, not the
       intended workflow
@@ -340,9 +341,9 @@ Before `v1.0.0`, the UI/architecture direction should look like this:
 - [ ] letting public UI imply that no-TIML files can author brand new TIML
       safely in v1
 
-## Next-milestone checklist
+## Next-change checklist
 
-Use this before starting the next dense TIML/editor milestone:
+Use this before starting the next dense TIML/editor change:
 
 1. Define the user task in one sentence
    - example: "edit an existing attached EventLoop safely"

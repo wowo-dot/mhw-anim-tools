@@ -1,1 +1,1 @@
-"""Compression helpers will land here in a later milestone."""
+"""Compression-domain helpers."""

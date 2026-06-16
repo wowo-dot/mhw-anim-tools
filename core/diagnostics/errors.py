@@ -1,4 +1,4 @@
-"""Error types shared by the new core."""
+"""Error types shared by core format and Blender adapter layers."""
 
 from __future__ import annotations
 

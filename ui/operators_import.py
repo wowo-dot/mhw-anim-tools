@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Milestone-one import/inspection operators."""
+"""Import and inspection operators."""
 
 import json
 import os
@@ -79,7 +79,7 @@ def _populate_timl_file_session(scene_props, timl, report) -> None:
 class MHWANIMTOOLS_OT_inspect_lmt(bpy.types.Operator, ImportHelper):
     bl_idname = "mhw_anim_tools.inspect_lmt"
     bl_label = "Inspect LMT"
-    bl_description = "Parse an LMT with the new core and report high-level counts"
+    bl_description = "Parse an LMT and report high-level counts"
 
     filename_ext = ".lmt"
     filter_glob: bpy.props.StringProperty(default="*.lmt", options={"HIDDEN"}, maxlen=255)

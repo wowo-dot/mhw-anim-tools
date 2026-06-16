@@ -11,6 +11,8 @@ This is the shortest path to the main v1 workflows.
   is strongly recommended
 
 If you only want to inspect an `.lmt`, no target armature is required.
+If you want to inspect or edit a standalone `.timl`, no target armature is
+required there either.
 
 ## Learn the two main UI surfaces
 

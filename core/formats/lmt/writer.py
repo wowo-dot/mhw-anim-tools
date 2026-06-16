@@ -212,7 +212,7 @@ def _encode_track_buffer(track, planned_track, action_frame_count: int) -> bytes
     if planned_track.buffer_type == 6:
         return _encode_q14_track(track, action_frame_count)
     raise ValidationError(
-        f"Buffer type {planned_track.buffer_type} is not supported by the first writer milestone."
+        f"Buffer type {planned_track.buffer_type} is not supported by the current LMT writer."
     )
 
 

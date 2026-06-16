@@ -1,4 +1,4 @@
-"""Simple structured diagnostics used across milestone one."""
+"""Simple structured diagnostics used across the project."""
 
 from __future__ import annotations
 

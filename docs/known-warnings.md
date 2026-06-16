@@ -1,6 +1,6 @@
 # Known Warnings
 
-Observed on `2026-06-16`.
+Last updated on `2026-06-17`.
 
 This page is the short version of the current "what should I actually worry
 about?" story for `v1`.

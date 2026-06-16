@@ -1,1 +1,1 @@
-"""Animation-domain helpers for later milestones."""
+"""Animation-domain helpers."""

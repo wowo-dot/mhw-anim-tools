@@ -1,1 +1,1 @@
-"""Scene adapter placeholders for future milestones."""
+"""Scene adapter helpers."""

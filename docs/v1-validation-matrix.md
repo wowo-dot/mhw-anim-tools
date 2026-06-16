@@ -18,13 +18,13 @@ Use it to track:
 
 ## Latest observed validation snapshot
 
-Observed on `2026-06-16`:
+Observed on `2026-06-17`:
 
 - `python -m compileall -q .` passed
-- `python -m unittest discover -s tests -v` passed with `241/241` tests green
+- `python -m unittest discover -s tests -v` passed with `244/244` tests green
 - Blender 4.5 register smoke passed
 - full-source export is now explicit in the main export workflow
-- real-asset grindstone smokes passed:
+- baseline live-asset smokes passed:
   - selected LMT action import
   - attached TIML controller import
   - source-backed merge export

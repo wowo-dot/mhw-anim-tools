@@ -1,1 +1,1 @@
-"""Sampling helpers will land here in a later milestone."""
+"""Sampling-domain helpers."""

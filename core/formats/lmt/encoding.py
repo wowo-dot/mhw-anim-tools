@@ -1,4 +1,4 @@
-"""Shared export encoding helpers for LMT writer milestones."""
+"""Shared export encoding helpers for the LMT writer."""
 
 from __future__ import annotations
 

@@ -2,7 +2,7 @@
 
 Quaternion convention:
 - Raw LMT float tuples are interpreted as XYZW when read from file structures.
-- Decoded quaternions exposed by the new core are always WXYZ.
+- Decoded quaternions exposed by `core/` are always WXYZ.
 - Blender-facing code should consume only the decoded WXYZ convention.
 """
 

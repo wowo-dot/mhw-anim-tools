@@ -31,6 +31,6 @@ workflows in Blender.
 - Monster Hunter World and its asset formats belong to Capcom
 - this repository is an independent add-on project and does not redistribute
   game assets
-- local legacy reference copies may still be used during private validation or
-  comparison work, but the code in this repository is maintained as its own
+- local reference copies may still be used during validation or comparison
+  work, but the code in this repository is maintained as its own
   implementation

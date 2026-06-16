@@ -196,7 +196,7 @@ class GitHubAddonUpdater:
             if exc.code == 404:
                 raise RuntimeError(
                     f"GitHub updater metadata was not found for {GITHUB_USER}/{GITHUB_REPO}. "
-                    "The repository may still be private, or no public release/tag metadata is available yet."
+                    "No public release or tag metadata is available yet."
                 ) from exc
             raise RuntimeError(f"GitHub updater request failed with HTTP {exc.code}.") from exc
 

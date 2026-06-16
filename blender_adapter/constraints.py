@@ -1,1 +1,1 @@
-"""Constraint adapter placeholders for future milestones."""
+"""Constraint adapter helpers."""

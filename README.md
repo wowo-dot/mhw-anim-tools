@@ -1,11 +1,12 @@
 # MHW Anim Tools
 
 `mhw_anim_tools` is a Blender add-on for Monster Hunter World animation
-workflows using `.lmt`, `.timl`, `.efx`, and related formats.
+workflows built around `.lmt` and `.timl` data in Blender.
 
-The repository carries its own core format logic and Blender tooling. Optional
-comparison utilities can still be used against separate legacy reference
-copies during validation work.
+The repository carries its own core format logic and Blender tooling. Some
+developer tools can optionally compare results against external reference
+copies during validation work, but the add-on does not depend on those copies
+for normal use.
 
 ## Start Here
 
@@ -50,39 +51,41 @@ Common first tasks:
 - Free Hyperkinetics credits LyraVeil for edge cases and issues from earlier
   import-only tools
 
-## Current Scope
+## Supported Today
 
-Current focus:
+Main supported workflows:
 
-- a clean Blender 4.5 add-on shell
-- an original, Blender-independent read-only LMT parser
-- a decoded-sample core for LMT track buffers
-- a session browser UI that can inspect `.lmt` actions and tracks with readable diagnostics
-- attached TIML parsing for inspected `.lmt` actions, with a first transform/keyframe browser in the LMT session UI
-- unit tests for the new core
-- the first narrow Blender Action importer for a selected LMT entry and selected target armature
-- the first narrow reverse-path sampler from a selected Blender Action back into normalized MHW track space
+- inspect `.lmt` files, browse entries/tracks, and read diagnostics
+- import one action or all actions from a source `.lmt`
+- edit supported LMT motion channels and write the full source `.lmt` back
+- import attached TIML into controller actions, edit it in the TIML Workspace,
+  and write those edits back during source-backed LMT export
+- inspect standalone `.timl` files, import selected entries into the same TIML
+  Workspace model, and export the edited `.timl` file
+- check for add-on updates from Blender preferences
 
-Current importer scope:
+LMT import currently supports:
 
 - supported decoded rotation / translation / scale tracks only
 - MhBone / BoneFunction track binding plus root-track fallback
 - object-level root-motion binding on MHW-style armatures that do not expose an explicit `Root` bone
-- MHW_Model_Editor pose-space adaptation for MOD3-imported `MhBone_*` armatures:
+- `MHW_Model_Editor` pose-space adaptation for MOD3-imported `MhBone_*`
+  armatures:
   local translation samples are converted from game-unit rest positions into
   Blender pose deltas, while root object motion is converted through the MOD3
   import basis
 - Blender Action / FCurve creation with linear keys
 - diagnostics for skipped, unsupported, or unresolved tracks
 - selected-action binding preview against the chosen target armature
-- synthetic and live MOD3 smoke coverage for the first importer path
+- synthetic and live MOD3 smoke coverage for the importer path
 
-Current export-prep scope:
+LMT export currently supports:
 
 - selected Blender Action sampling for rotation / translation / scale tracks only
 - root-track recovery from either an explicit `Root` pose bone or armature-object motion
 - MhBone / BoneFunction local track recovery from supported action paths
-- inverse MHW_Model_Editor space adaptation for MOD3-imported `MhBone_*` armatures
+- inverse `MHW_Model_Editor` space adaptation for MOD3-imported `MhBone_*`
+  armatures
 - sparse reconstruction back into LMT-style basis / key / root-tail semantics
 - conservative export planning that chooses candidate buffer families per track and reports unsupported shapes before binary writing
 - duplicate track-slot/source-index validation plus value-dimension validation
@@ -103,7 +106,8 @@ Current export-prep scope:
 - normalized sampled-track diagnostics before any binary packing/compression work
 - synthetic and live MOD3 symmetry smoke coverage against decoded LMT source samples and reconstructed sparse tracks
 - synthetic and live MOD3 writer roundtrip smoke coverage against decoded LMT source samples
-- the first standalone TIML core reader / validator with typed data-entry, transform, and keyframe models
+- standalone TIML reader / validator with typed data-entry, transform, and
+  keyframe models
 - standalone TIML semantics / summary helpers plus a real-corpus profiler for timeline/datatype usage
 - LMT-side attached TIML subtree parsing and browser summaries for inspected actions
 - imported attached TIML payloads as dedicated Blender controller actions with custom-property fcurves
@@ -117,11 +121,15 @@ Quaternion note:
 - decoded quaternions exposed by `core/` are normalized to `WXYZ`
 - Blender-facing adapters should only consume the decoded `WXYZ` convention
 
-Not implemented yet:
+Current limits:
 
 - helper/tether playback
-- broad TIML structural rebuild coverage beyond the current conservative source-backed path
+- creating brand-new standalone TIML entry payloads from empty source slots
+- broad TIML structural rebuild coverage beyond the current conservative
+  source-backed path
 - EFX support
+- a narrow quaternion edge-case family documented in
+  [Known Warnings](docs/known-warnings.md)
 
 ## Layout
 
@@ -132,7 +140,9 @@ Not implemented yet:
 - `tests/`: core tests and fixtures
 - `tools/`: optional comparison/debug scripts
 
-Useful smoke scripts:
+Developer / validation tools:
+
+Smoke scripts:
 
 - `tools/smoke_import_all_actions.py`
 - `tools/smoke_import_selected_action.py`
@@ -148,7 +158,7 @@ Useful smoke scripts:
 - `tools/smoke_sample_export_action.py`
 - `tools/smoke_write_lmt_roundtrip.py`
 
-Useful corpus scans:
+Corpus scans:
 
 - `tools/scan_lmt_export_safety.py`
 - `tools/scan_lmt_writer_readiness.py`
@@ -177,16 +187,17 @@ Writer-readiness scan notes:
 - use `--max-files-per-run` or `--max-seconds` to chunk a scan across sessions
 - use `--output <path>` to keep a rolling human-readable summary beside the raw state file
 
-## Legacy reference utilities
+## Optional comparison utilities
 
-Use a local legacy reference copy only for:
+Some tools in `tools/` can compare this repository against an external
+reference copy. Use that only for:
 
 - file layout expectations
 - buffer and flag semantics
 - edge-case behavior on known assets
 
 This repository should stay understandable on its own and should not become a
-line-by-line port of a legacy add-on.
+line-by-line port of another add-on.
 
-Optional legacy comparison scripts accept an explicit legacy-root path instead
-of assuming one fixed local workspace layout.
+Those comparison scripts accept an explicit reference-root path instead of
+assuming one fixed local workspace layout.

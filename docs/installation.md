@@ -13,8 +13,8 @@ Recommended for the best armature/binding workflow:
 - `MHW_Model_Editor` enabled in the same Blender install
 
 The add-on can still inspect LMT files without `MHW_Model_Editor`, but the
-main import/edit/export path is most reliable on MHW-style armatures imported
-through that toolchain.
+main LMT import/edit/export path is most reliable on MHW-style armatures
+imported through that toolchain.
 
 ## Install from zip
 
@@ -59,6 +59,8 @@ After install, these are the best next docs:
 - importing actions into Blender requires a target armature
 - exporting edited LMT actions is most trustworthy when the action came from a
   source LMT import and still has source metadata
-- TIML editing currently lives inside source-backed LMT workflows, not as a
-  standalone TIML authoring/export pipeline
+- standalone TIML inspect/import/export is supported for existing source
+  entries
+- creating brand-new standalone TIML entries from empty source slots is not a
+  v1 workflow
 - updater controls live in `Edit > Preferences > Add-ons > MHW Anim Tools`
