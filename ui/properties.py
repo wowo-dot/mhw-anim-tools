@@ -382,7 +382,7 @@ def _populate_timl_controller_transform_items(scene_props, sampled_result=None, 
             )
             item.edit_policy_code = policy_code
             item.edit_policy_label = timl_edit_policy_label(policy_code)
-            item.edit_policy_reason = timl_edit_policy_reason_label(policy_code)
+            item.edit_policy_reason = timl_edit_policy_reason_label(policy_code, reason=reason)
             item.writeback_status_code = status_code
             item.writeback_status_label = timl_writeback_status_label(status_code)
             item.writeback_reason = timl_writeback_reason_label(

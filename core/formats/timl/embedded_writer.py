@@ -342,6 +342,10 @@ def _can_preserve_source_curve_semantics(source_transform, sampled_transform) ->
     return True
 
 
+def can_preserve_source_curve_semantics(source_transform, sampled_transform) -> bool:
+    return _can_preserve_source_curve_semantics(source_transform, sampled_transform)
+
+
 def preserved_source_curve_identities(source_entry, sampled_transforms) -> set[tuple[int, int]]:
     source_map = {
         (int(type_index), int(transform_index)): transform
@@ -503,7 +507,46 @@ def _source_keyframe_bytes(source_transform, *, source_label: str) -> bytes:
     return b"".join(chunks)
 
 
-def build_embedded_timl_data_payload(source_entry, sampled_transforms, *, base_offset: int) -> tuple[bytes, tuple[int, ...]]:
+def _source_identity_map(source_entry) -> dict[tuple[int, int], tuple[object, object]]:
+    return {
+        (int(type_index), int(transform_index)): (type_entry, transform)
+        for type_index, type_entry in enumerate(source_entry.types)
+        for transform_index, transform in enumerate(type_entry.transforms)
+    }
+
+
+def _sampled_source_identity(sampled_transform, source_identities: set[tuple[int, int]]) -> tuple[int, int] | None:
+    source_type_index = getattr(sampled_transform, "source_type_index", None)
+    source_transform_index = getattr(sampled_transform, "source_transform_index", None)
+    if source_type_index is None or source_transform_index is None:
+        return None
+    identity = (int(source_type_index), int(source_transform_index))
+    if identity not in source_identities:
+        return None
+    return identity
+
+
+def _structure_reason_for_identities(identities) -> str:
+    grouped: dict[int, set[int]] = {}
+    for type_index, transform_index in identities:
+        grouped.setdefault(int(type_index), set()).add(int(transform_index))
+    ordered_type_indices = sorted(grouped)
+    if ordered_type_indices != list(range(len(ordered_type_indices))):
+        return "type_index_layout"
+    for type_index in ordered_type_indices:
+        ordered_transform_indices = sorted(grouped[type_index])
+        if ordered_transform_indices != list(range(len(ordered_transform_indices))):
+            return "transform_index_layout"
+    return ""
+
+
+def build_embedded_timl_data_payload(
+    source_entry,
+    sampled_transforms,
+    *,
+    base_offset: int,
+    deleted_identities=(),
+) -> tuple[bytes, tuple[int, ...]]:
     """Return an embedded TIML payload plus pointer fields that need rebasing.
 
     `base_offset` is the source absolute TIML offset. The returned payload uses
@@ -511,81 +554,151 @@ def build_embedded_timl_data_payload(source_entry, sampled_transforms, *, base_o
     rebase it cleanly when the payload moves inside the output container.
     """
 
-    transform_map = {}
-    for transform in sampled_transforms:
-        identity = (int(transform.type_index), int(transform.transform_index))
-        if identity in transform_map:
+    sampled_map = {}
+    for sampled_transform in sampled_transforms:
+        identity = (int(sampled_transform.type_index), int(sampled_transform.transform_index))
+        if identity in sampled_map:
             raise ValidationError(
                 f"Duplicate TIML sampled transform identity type={identity[0]} transform={identity[1]}."
             )
-        transform_map[identity] = transform
+        sampled_map[identity] = sampled_transform
+
+    deleted_identity_set = {
+        (int(type_index), int(transform_index))
+        for type_index, transform_index in deleted_identities
+    }
+    source_map = _source_identity_map(source_entry)
+    source_identities = set(source_map)
+
+    source_identity_by_current: dict[tuple[int, int], tuple[int, int]] = {}
+    claimed_source_identities: set[tuple[int, int]] = set()
+    for current_identity, sampled_transform in sampled_map.items():
+        source_identity = _sampled_source_identity(sampled_transform, source_identities)
+        if source_identity is None:
+            continue
+        if source_identity in claimed_source_identities:
+            raise ValidationError(
+                "Multiple TIML sampled transforms point at the same source identity "
+                f"type={source_identity[0]} transform={source_identity[1]}."
+            )
+        claimed_source_identities.add(source_identity)
+        source_identity_by_current[current_identity] = source_identity
+
+    for current_identity in sorted(sampled_map):
+        if current_identity in source_identity_by_current:
+            continue
+        if current_identity in deleted_identity_set:
+            continue
+        if current_identity not in source_map:
+            continue
+        if current_identity in claimed_source_identities:
+            continue
+        claimed_source_identities.add(current_identity)
+        source_identity_by_current[current_identity] = current_identity
+
+    preserved_source_identities = [
+        identity
+        for identity in sorted(source_map)
+        if identity not in deleted_identity_set and identity not in claimed_source_identities
+    ]
+    final_identities = set(sampled_map) | set(preserved_source_identities)
+    structure_reason = _structure_reason_for_identities(final_identities)
+    if structure_reason == "type_index_layout":
+        raise ValidationError("TIML sampled type indices must be contiguous from 0 when rebuilding the payload.")
+    if structure_reason == "transform_index_layout":
+        raise ValidationError("TIML sampled transform indices must be contiguous within each type when rebuilding the payload.")
+
+    timeline_hash_by_type: dict[int, int] = {}
+    for identity in sorted(final_identities):
+        sampled_transform = sampled_map.get(identity)
+        if sampled_transform is not None:
+            timeline_hash = int(sampled_transform.timeline_parameter_hash)
+        else:
+            source_type, _source_transform = source_map[identity]
+            timeline_hash = int(source_type.timeline_parameter_hash)
+        existing_timeline_hash = timeline_hash_by_type.setdefault(int(identity[0]), timeline_hash)
+        if existing_timeline_hash != timeline_hash:
+            raise ValidationError(
+                f"TIML type {int(identity[0]):02d} mixes multiple timeline hashes and cannot be written safely."
+            )
+
+    grouped_final_identities: dict[int, list[tuple[int, int]]] = {}
+    for identity in sorted(final_identities):
+        grouped_final_identities.setdefault(int(identity[0]), []).append(identity)
 
     type_records = []
     highest_frame = 0.0
-    for type_index, type_entry in enumerate(source_entry.types):
+    for type_index in sorted(grouped_final_identities):
         transform_records = []
-        for transform_index, source_transform in enumerate(type_entry.transforms):
-            identity = (int(type_index), int(transform_index))
-            sampled_transform = transform_map.pop(identity, None)
+        for identity in grouped_final_identities[type_index]:
+            sampled_transform = sampled_map.get(identity)
+            source_identity = source_identity_by_current.get(identity)
+            if sampled_transform is None:
+                source_identity = identity
+            source_pair = source_map.get(source_identity) if source_identity is not None else None
+            source_type = source_pair[0] if source_pair is not None else None
+            source_transform = source_pair[1] if source_pair is not None else None
+
             if sampled_transform is None:
                 keyframe_bytes = _source_keyframe_bytes(
                     source_transform,
-                    source_label=f"TIML {type_index:02d}:{transform_index:02d}",
+                    source_label=f"TIML {int(identity[0]):02d}:{int(identity[1]):02d}",
                 )
                 keyframe_count = len(source_transform.keyframes)
                 if source_transform.keyframes:
                     highest_frame = max(highest_frame, float(source_transform.keyframes[-1].frame_timing))
+                data_type = int(source_transform.data_type)
+                datatype_hash = int(source_transform.datatype_hash)
             else:
-                if int(sampled_transform.timeline_parameter_hash) != int(type_entry.timeline_parameter_hash):
-                    raise ValidationError(
-                        f"TIML transform {type_index}:{transform_index} timeline hash changed from "
-                        f"0x{int(type_entry.timeline_parameter_hash) & 0xFFFFFFFF:08X} to "
-                        f"0x{int(sampled_transform.timeline_parameter_hash) & 0xFFFFFFFF:08X}."
-                    )
-                if int(sampled_transform.data_type) != int(source_transform.data_type):
-                    raise ValidationError(
-                        f"TIML transform {type_index}:{transform_index} data type changed from "
-                        f"{source_transform.data_type} to {sampled_transform.data_type}."
-                    )
-                if int(sampled_transform.datatype_hash) != int(source_transform.datatype_hash):
-                    raise ValidationError(
-                        f"TIML transform {type_index}:{transform_index} datatype hash changed from "
-                        f"0x{int(source_transform.datatype_hash) & 0xFFFFFFFF:08X} to "
-                        f"0x{int(sampled_transform.datatype_hash) & 0xFFFFFFFF:08X}."
-                    )
+                if source_transform is not None:
+                    if int(sampled_transform.timeline_parameter_hash) != int(source_type.timeline_parameter_hash):
+                        raise ValidationError(
+                            f"TIML transform {int(identity[0])}:{int(identity[1])} timeline hash changed from "
+                            f"0x{int(source_type.timeline_parameter_hash) & 0xFFFFFFFF:08X} to "
+                            f"0x{int(sampled_transform.timeline_parameter_hash) & 0xFFFFFFFF:08X}."
+                        )
+                    if int(sampled_transform.data_type) != int(source_transform.data_type):
+                        raise ValidationError(
+                            f"TIML transform {int(identity[0])}:{int(identity[1])} data type changed from "
+                            f"{source_transform.data_type} to {sampled_transform.data_type}."
+                        )
+                    if int(sampled_transform.datatype_hash) != int(source_transform.datatype_hash):
+                        raise ValidationError(
+                            f"TIML transform {int(identity[0])}:{int(identity[1])} datatype hash changed from "
+                            f"0x{int(source_transform.datatype_hash) & 0xFFFFFFFF:08X} to "
+                            f"0x{int(sampled_transform.datatype_hash) & 0xFFFFFFFF:08X}."
+                        )
                 if not sampled_transform.keyframes:
-                    raise ValidationError(f"TIML transform {type_index}:{transform_index} has no writable keyframes.")
+                    raise ValidationError(f"TIML transform {int(identity[0])}:{int(identity[1])} has no writable keyframes.")
                 highest_frame = max(highest_frame, float(sampled_transform.keyframes[-1].frame))
-                if _can_preserve_source_curve_semantics(source_transform, sampled_transform):
+                if source_transform is not None and _can_preserve_source_curve_semantics(source_transform, sampled_transform):
                     keyframe_bytes = _source_value_patched_keyframe_bytes(
                         source_transform,
                         sampled_transform,
-                        source_label=f"TIML {type_index:02d}:{transform_index:02d}",
+                        source_label=f"TIML {int(identity[0]):02d}:{int(identity[1]):02d}",
                     )
                 else:
                     keyframe_bytes = _keyframe_bytes(
                         sampled_transform,
-                        source_label=f"TIML {type_index:02d}:{transform_index:02d}",
+                        source_label=f"TIML {int(identity[0]):02d}:{int(identity[1]):02d}",
                     )
                 keyframe_count = len(sampled_transform.keyframes)
+                data_type = int(sampled_transform.data_type)
+                datatype_hash = int(sampled_transform.datatype_hash)
             transform_records.append(
                 {
-                    "source_transform": source_transform,
-                    "sampled_transform": sampled_transform,
                     "keyframe_bytes": keyframe_bytes,
                     "keyframe_count": keyframe_count,
+                    "data_type": data_type,
+                    "datatype_hash": datatype_hash,
                 }
             )
         type_records.append(
             {
-                "source_type": type_entry,
+                "timeline_hash": int(timeline_hash_by_type[type_index]),
                 "transform_records": transform_records,
             }
         )
-
-    if transform_map:
-        extra = ", ".join(f"{type_index}:{transform_index}" for type_index, transform_index in sorted(transform_map))
-        raise ValidationError(f"Sampled TIML data contains transforms not present in the source entry: {extra}.")
 
     data_size = DATA_STRUCT.size
     type_table_rel = _align(data_size, 16) if type_records else 0
@@ -629,14 +742,13 @@ def build_embedded_timl_data_payload(source_entry, sampled_transforms, *, base_o
         absolute_transform_table_offset = int(base_offset) + transform_table_rel if transform_table_rel else 0
         if absolute_transform_table_offset:
             rebase_offsets.append(type_struct_rel)
-        source_type = type_record["source_type"]
         TYPE_STRUCT.pack_into(
             payload,
             type_struct_rel,
             absolute_transform_table_offset,
             len(type_record["transform_records"]),
-            int(source_type.timeline_parameter_hash),
-            int(source_type.reserved),
+            int(type_record["timeline_hash"]),
+            0,
         )
 
         for transform_index, transform_record in enumerate(type_record["transform_records"]):
@@ -645,14 +757,13 @@ def build_embedded_timl_data_payload(source_entry, sampled_transforms, *, base_o
             absolute_keyframe_offset = int(base_offset) + keyframe_table_rel if keyframe_table_rel else 0
             if absolute_keyframe_offset:
                 rebase_offsets.append(transform_struct_rel)
-            source_transform = transform_record["source_transform"]
             TRANSFORM_STRUCT.pack_into(
                 payload,
                 transform_struct_rel,
                 absolute_keyframe_offset,
                 int(transform_record["keyframe_count"]),
-                int(source_transform.datatype_hash),
-                int(source_transform.data_type),
+                int(transform_record["datatype_hash"]),
+                int(transform_record["data_type"]),
             )
             payload[keyframe_table_rel : keyframe_table_rel + len(transform_record["keyframe_bytes"])] = transform_record[
                 "keyframe_bytes"

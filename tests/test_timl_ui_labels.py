@@ -78,6 +78,18 @@ class TimlUiLabelTests(unittest.TestCase):
         self.assertEqual(timl_edit_policy_label(policy), "Rebuild OK")
         self.assertIn("rebuilt from Blender preview keys", timl_edit_policy_reason_label(policy))
 
+    def test_edit_policy_marks_missing_preview_binding_as_blocked(self):
+        policy = timl_edit_policy_code(
+            source_advanced=False,
+            status="preserve_raw",
+            reason="missing_sampled_transform",
+        )
+        self.assertEqual(policy, "blocked")
+        self.assertIn(
+            "sampled preview binding",
+            timl_edit_policy_reason_label(policy, reason="missing_sampled_transform"),
+        )
+
     def test_edit_policy_marks_binding_mismatch_as_blocked(self):
         policy = timl_edit_policy_code(
             source_advanced=False,
@@ -86,6 +98,40 @@ class TimlUiLabelTests(unittest.TestCase):
         )
         self.assertEqual(policy, "blocked")
         self.assertEqual(timl_edit_policy_label(policy), "Blocked")
+
+    def test_edit_policy_reason_mentions_contiguous_layout_for_extra_transform(self):
+        policy = timl_edit_policy_code(
+            source_advanced=False,
+            status="unsupported_rebuild",
+            reason="extra_sampled_transform",
+        )
+        self.assertEqual(policy, "blocked")
+        self.assertIn(
+            "contiguous",
+            timl_edit_policy_reason_label(policy, reason="extra_sampled_transform"),
+        )
+
+    def test_edit_policy_marks_deleted_source_transform_as_blocked(self):
+        policy = timl_edit_policy_code(
+            source_advanced=False,
+            status="unsupported_rebuild",
+            reason="deleted_source_transform",
+        )
+        self.assertEqual(policy, "blocked")
+        self.assertIn(
+            "marked for deletion",
+            timl_edit_policy_reason_label(policy, reason="deleted_source_transform"),
+        )
+
+    def test_reason_label_mentions_structural_delete_limit(self):
+        message = timl_writeback_reason_label("unsupported_rebuild", reason="deleted_source_transform")
+        self.assertIn("marked for deletion", message)
+        self.assertIn("contiguous", message)
+
+    def test_reason_label_mentions_reindexing_for_layout_gaps(self):
+        message = timl_writeback_reason_label("unsupported_rebuild", reason="transform_index_layout")
+        self.assertIn("not contiguous", message)
+        self.assertIn("reindexed", message)
 
     def test_edit_policy_counter_tracks_each_mode(self):
         counts = count_timl_edit_policies(

@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from blender_adapter.timl_metadata import TIML_ACTION_NAME_KEY
 from blender_adapter.timl_metadata import TIML_BINDINGS_KEY
+from blender_adapter.timl_metadata import TIML_DELETED_BINDINGS_KEY
 from blender_adapter.timl_metadata import TIML_IMPORTED_PREVIEW_SIGNATURE_KEY
 from blender_adapter.timl_preview_state import imported_preview_signature_json
 from blender_adapter.timl_sampling import SampledTimlKeyframe
@@ -584,6 +585,263 @@ class TimlWritebackPlanTests(unittest.TestCase):
         self.assertEqual(plan.transform_plans[0].status, "unsupported_rebuild")
         self.assertEqual(plan.transform_plans[0].reason, "integer_precision_risk")
         self.assertTrue(any("exact Blender float precision" in diagnostic.message for diagnostic in plan.diagnostics))
+
+    def test_missing_preview_binding_is_preserved_with_explicit_reason_and_source_hashes(self):
+        source_bytes, source_offset = _build_simple_embedded_timl_source_bytes()
+        controller_action = _FakeAction("TIML::sample::000", mhw_anim_tools_import_kind="attached_timl")
+        controller = _FakeController(
+            "TIML Controller::sample::000",
+            action=controller_action,
+            **{
+                TIML_ACTION_NAME_KEY: controller_action.name,
+                TIML_BINDINGS_KEY: "[]",
+                TIML_IMPORTED_PREVIEW_SIGNATURE_KEY: imported_preview_signature_json(
+                    [
+                        _ImportedTransform(
+                            type_index=0,
+                            transform_index=0,
+                            data_type=2,
+                            keyframes=(_ImportedKeyframe(frame=12.0, value=(3.5,), interpolation=1),),
+                        )
+                    ]
+                ),
+            },
+        )
+        sampled = TimlSamplingResult(
+            metadata=TimlControllerMetadata(
+                carrier_name=controller.name,
+                action_name=controller_action.name,
+                source_lmt="sample.lmt",
+                entry_id=7,
+                source_offset=source_offset,
+                transform_count=1,
+            ),
+            sampled_transform_count=0,
+            keyframe_count=0,
+            sampled_transforms=(),
+        )
+
+        with patch("blender_adapter.timl_writeback_plan.sample_timl_controller_action", return_value=sampled):
+            plan = plan_timl_controller_writeback(
+                controller,
+                source_bytes=source_bytes,
+                source_name="sample.lmt#timl",
+                entry_id=7,
+                source_offset=source_offset,
+            )
+
+        self.assertEqual(plan.error_count, 0)
+        self.assertEqual(plan.warning_count, 1)
+        self.assertEqual(plan.transform_plans[0].status, "preserve_raw")
+        self.assertEqual(plan.transform_plans[0].reason, "missing_sampled_transform")
+        self.assertEqual(plan.transform_plans[0].timeline_parameter_hash, 0x11223344)
+        self.assertEqual(plan.transform_plans[0].datatype_hash, 0x55667788)
+        self.assertTrue(any("missing preview curves" in diagnostic.message for diagnostic in plan.diagnostics))
+
+    def test_deleted_source_transform_is_planned_as_supported_structural_omit(self):
+        source_bytes, source_offset = _build_simple_embedded_timl_source_bytes()
+        controller_action = _FakeAction("TIML::sample::000", mhw_anim_tools_import_kind="attached_timl")
+        controller = _FakeController(
+            "TIML Controller::sample::000",
+            action=controller_action,
+            **{
+                TIML_ACTION_NAME_KEY: controller_action.name,
+                TIML_BINDINGS_KEY: "[]",
+                TIML_DELETED_BINDINGS_KEY: '[{"type_index":0,"transform_index":0}]',
+                TIML_IMPORTED_PREVIEW_SIGNATURE_KEY: imported_preview_signature_json(
+                    [
+                        _ImportedTransform(
+                            type_index=0,
+                            transform_index=0,
+                            data_type=2,
+                            keyframes=(_ImportedKeyframe(frame=12.0, value=(3.5,), interpolation=1),),
+                        )
+                    ]
+                ),
+            },
+        )
+        sampled = TimlSamplingResult(
+            metadata=TimlControllerMetadata(
+                carrier_name=controller.name,
+                action_name=controller_action.name,
+                source_lmt="sample.lmt",
+                entry_id=7,
+                source_offset=source_offset,
+                transform_count=0,
+            ),
+            sampled_transform_count=0,
+            keyframe_count=0,
+            sampled_transforms=(),
+        )
+
+        with patch("blender_adapter.timl_writeback_plan.sample_timl_controller_action", return_value=sampled):
+            plan = plan_timl_controller_writeback(
+                controller,
+                source_bytes=source_bytes,
+                source_name="sample.lmt#timl",
+                entry_id=7,
+                source_offset=source_offset,
+            )
+
+        self.assertEqual(plan.error_count, 0)
+        self.assertEqual(plan.deleted_identities, ((0, 0),))
+        self.assertEqual(plan.transform_plans, ())
+        self.assertTrue(any("will be omitted" in diagnostic.message for diagnostic in plan.diagnostics))
+
+    def test_extra_sampled_transform_is_planned_as_rebuild_when_layout_is_contiguous(self):
+        source_bytes, source_offset = _build_simple_embedded_timl_source_bytes()
+        controller_action = _FakeAction("TIML::sample::000", mhw_anim_tools_import_kind="attached_timl")
+        controller = _FakeController(
+            "TIML Controller::sample::000",
+            action=controller_action,
+            **{
+                TIML_ACTION_NAME_KEY: controller_action.name,
+                TIML_BINDINGS_KEY: "[]",
+                TIML_IMPORTED_PREVIEW_SIGNATURE_KEY: imported_preview_signature_json(
+                    [
+                        _ImportedTransform(
+                            type_index=0,
+                            transform_index=0,
+                            data_type=2,
+                            keyframes=(_ImportedKeyframe(frame=12.0, value=(3.5,), interpolation=1),),
+                        )
+                    ]
+                ),
+            },
+        )
+        sampled = TimlSamplingResult(
+            metadata=TimlControllerMetadata(
+                carrier_name=controller.name,
+                action_name=controller_action.name,
+                source_lmt="sample.lmt",
+                entry_id=7,
+                source_offset=source_offset,
+                transform_count=2,
+            ),
+            sampled_transform_count=2,
+            keyframe_count=2,
+            sampled_transforms=(
+                SampledTimlTransform(
+                    property_name="timl_float",
+                    type_index=0,
+                    transform_index=0,
+                    timeline_parameter_hash=0x11223344,
+                    datatype_hash=0x55667788,
+                    data_type=2,
+                    data_type_name="float",
+                    value_kind="scalar",
+                    control_kind="float",
+                    component_labels=("value",),
+                    keyframes=(SampledTimlKeyframe(frame=12.0, value=(3.5,), interpolation="LINEAR"),),
+                ),
+                SampledTimlTransform(
+                    property_name="timl_extra",
+                    type_index=1,
+                    transform_index=0,
+                    timeline_parameter_hash=0xAABBCCDD,
+                    datatype_hash=0xEEFF0011,
+                    data_type=2,
+                    data_type_name="float",
+                    value_kind="scalar",
+                    control_kind="float",
+                    component_labels=("value",),
+                    keyframes=(SampledTimlKeyframe(frame=18.0, value=(1.25,), interpolation="LINEAR"),),
+                ),
+            ),
+        )
+
+        with patch("blender_adapter.timl_writeback_plan.sample_timl_controller_action", return_value=sampled):
+            plan = plan_timl_controller_writeback(
+                controller,
+                source_bytes=source_bytes,
+                source_name="sample.lmt#timl",
+                entry_id=7,
+                source_offset=source_offset,
+            )
+
+        extra_plan = next(item for item in plan.transform_plans if item.identity == (1, 0))
+        self.assertEqual(plan.error_count, 0)
+        self.assertEqual(extra_plan.status, "rewrite_preview")
+        self.assertEqual(extra_plan.timeline_parameter_hash, 0xAABBCCDD)
+        self.assertEqual(extra_plan.datatype_hash, 0xEEFF0011)
+        self.assertTrue(any("rebuilt from the current Blender keys" in diagnostic.message for diagnostic in plan.diagnostics))
+
+    def test_non_contiguous_added_transform_is_blocked_by_layout_validation(self):
+        source_bytes, source_offset = _build_simple_embedded_timl_source_bytes()
+        controller_action = _FakeAction("TIML::sample::000", mhw_anim_tools_import_kind="attached_timl")
+        controller = _FakeController(
+            "TIML Controller::sample::000",
+            action=controller_action,
+            **{
+                TIML_ACTION_NAME_KEY: controller_action.name,
+                TIML_BINDINGS_KEY: "[]",
+                TIML_IMPORTED_PREVIEW_SIGNATURE_KEY: imported_preview_signature_json(
+                    [
+                        _ImportedTransform(
+                            type_index=0,
+                            transform_index=0,
+                            data_type=2,
+                            keyframes=(_ImportedKeyframe(frame=12.0, value=(3.5,), interpolation=1),),
+                        )
+                    ]
+                ),
+            },
+        )
+        sampled = TimlSamplingResult(
+            metadata=TimlControllerMetadata(
+                carrier_name=controller.name,
+                action_name=controller_action.name,
+                source_lmt="sample.lmt",
+                entry_id=7,
+                source_offset=source_offset,
+                transform_count=2,
+            ),
+            sampled_transform_count=2,
+            keyframe_count=2,
+            sampled_transforms=(
+                SampledTimlTransform(
+                    property_name="timl_float",
+                    type_index=0,
+                    transform_index=0,
+                    timeline_parameter_hash=0x11223344,
+                    datatype_hash=0x55667788,
+                    data_type=2,
+                    data_type_name="float",
+                    value_kind="scalar",
+                    control_kind="float",
+                    component_labels=("value",),
+                    keyframes=(SampledTimlKeyframe(frame=12.0, value=(3.5,), interpolation="LINEAR"),),
+                ),
+                SampledTimlTransform(
+                    property_name="timl_gap",
+                    type_index=0,
+                    transform_index=2,
+                    timeline_parameter_hash=0x11223344,
+                    datatype_hash=0xAABBCCDD,
+                    data_type=2,
+                    data_type_name="float",
+                    value_kind="scalar",
+                    control_kind="float",
+                    component_labels=("value",),
+                    keyframes=(SampledTimlKeyframe(frame=18.0, value=(1.25,), interpolation="LINEAR"),),
+                ),
+            ),
+        )
+
+        with patch("blender_adapter.timl_writeback_plan.sample_timl_controller_action", return_value=sampled):
+            plan = plan_timl_controller_writeback(
+                controller,
+                source_bytes=source_bytes,
+                source_name="sample.lmt#timl",
+                entry_id=7,
+                source_offset=source_offset,
+            )
+
+        gap_plan = next(item for item in plan.transform_plans if item.identity == (0, 2))
+        self.assertGreater(plan.error_count, 0)
+        self.assertEqual(gap_plan.status, "unsupported_rebuild")
+        self.assertEqual(gap_plan.reason, "transform_index_layout")
+        self.assertTrue(any("contiguous transform indices" in diagnostic.message for diagnostic in plan.diagnostics))
 
     def test_color_out_of_range_is_blocked_before_writer(self):
         source_bytes = _build_color_timl_bytes()

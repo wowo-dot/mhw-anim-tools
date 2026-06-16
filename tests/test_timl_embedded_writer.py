@@ -34,6 +34,8 @@ class _Transform:
         data_type_name: str,
         component_labels,
         keyframes,
+        source_type_index: int | None = None,
+        source_transform_index: int | None = None,
     ):
         self.type_index = int(type_index)
         self.transform_index = int(transform_index)
@@ -43,6 +45,8 @@ class _Transform:
         self.data_type_name = str(data_type_name)
         self.component_labels = tuple(component_labels)
         self.keyframes = tuple(keyframes)
+        self.source_type_index = None if source_type_index is None else int(source_type_index)
+        self.source_transform_index = None if source_transform_index is None else int(source_transform_index)
 
 
 def _build_multi_transform_embedded_source_bytes() -> tuple[bytes, int]:
@@ -281,6 +285,65 @@ class TimlEmbeddedWriterTests(unittest.TestCase):
                 (sampled_transform,),
                 base_offset=source_offset,
             )
+
+    def test_embedded_writer_can_move_source_transforms_by_preserved_origin_identity(self):
+        source_bytes, source_offset = _build_multi_transform_embedded_source_bytes()
+        source_entry = read_timl_data_bytes(
+            source_bytes,
+            data_offset=source_offset,
+            source_name="moved-source#timl",
+            entry_id=0,
+        )
+        moved_uint = _Transform(
+            type_index=0,
+            transform_index=0,
+            source_type_index=0,
+            source_transform_index=1,
+            timeline_parameter_hash=0x11223344,
+            datatype_hash=0xCCCCDDDD,
+            data_type=1,
+            data_type_name="uint32",
+            component_labels=("value",),
+            keyframes=(
+                _Keyframe(frame=10.0, value=(7.0,), interpolation="LINEAR"),
+            ),
+        )
+        moved_float = _Transform(
+            type_index=0,
+            transform_index=1,
+            source_type_index=0,
+            source_transform_index=0,
+            timeline_parameter_hash=0x11223344,
+            datatype_hash=0xAAAABBBB,
+            data_type=2,
+            data_type_name="float",
+            component_labels=("value",),
+            keyframes=(
+                _Keyframe(frame=5.0, value=(1.5,), interpolation="LINEAR"),
+            ),
+        )
+
+        payload, _rebase_offsets = build_embedded_timl_data_payload(
+            source_entry,
+            (moved_uint, moved_float),
+            base_offset=source_offset,
+        )
+
+        rebuilt_source = (b"\x00" * source_offset) + payload
+        rebuilt_entry = read_timl_data_bytes(
+            rebuilt_source,
+            data_offset=source_offset,
+            source_name="moved-rebuilt#timl",
+            entry_id=0,
+        )
+        first_transform = rebuilt_entry.types[0].transforms[0]
+        second_transform = rebuilt_entry.types[0].transforms[1]
+        self.assertEqual(first_transform.data_type, 1)
+        self.assertEqual(first_transform.keyframes[0].value, 7)
+        self.assertEqual(second_transform.data_type, 2)
+        self.assertEqual(second_transform.keyframes[0].value, 1.5)
+        self.assertEqual(second_transform.keyframes[0].control_left, 0.25)
+        self.assertEqual(second_transform.keyframes[0].control_right, 0.75)
 
 
 if __name__ == "__main__":

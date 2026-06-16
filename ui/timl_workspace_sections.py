@@ -193,6 +193,11 @@ def _draw_type_browser(layout, scene_props):
     panel_header.label(text="Types")
     if panel_body is None:
         return
+    if not scene_props.timl_blocks:
+        empty_row = panel_body.row(align=True)
+        empty_row.scale_y = 1.05
+        empty_row.operator("mhw_anim_tools.add_timl_type", text="Add Type", icon="ADD")
+        return
     panel_body.template_list(
         "MHWANIMTOOLS_UL_timl_blocks",
         "",
@@ -215,6 +220,11 @@ def _draw_type_browser(layout, scene_props):
     info = panel_body.box()
     info.label(text=f"T{int(block.type_index):02d} | {block.block_label or block.raw_timeline_label or '?'}")
     info.label(text=f"{int(block.transform_count)}tr | {int(block.keyframe_count)}k")
+    actions = info.row(align=True)
+    actions.operator("mhw_anim_tools.edit_timl_type", text="Edit Raw", icon="GREASEPENCIL")
+    actions.operator("mhw_anim_tools.select_timl_block_curves", text="Curves", icon="FCURVE")
+    if int(block.keyframe_count):
+        actions.operator("mhw_anim_tools.use_timl_block_frame_span", text="Use Span", icon="PREVIEW_RANGE")
     if int(block.keyframe_count):
         info.label(text=f"{float(block.first_frame):.3f} -> {float(block.last_frame):.3f}")
     if block.raw_timeline_label:
@@ -228,6 +238,12 @@ def _draw_transform_browser(layout, scene_props):
     )
     panel_header.label(text="Transforms")
     if panel_body is None:
+        return
+    if not scene_props.timl_controller_transforms:
+        empty_row = panel_body.row(align=True)
+        empty_row.scale_y = 1.05
+        empty_row.operator("mhw_anim_tools.add_timl_transform", text="Add Transform", icon="ADD")
+        empty_row.operator("mhw_anim_tools.clone_timl_transform_from_existing", text="Clone", icon="PASTEDOWN")
         return
     panel_body.template_list(
         "MHWANIMTOOLS_UL_timl_controller_transforms",
@@ -259,6 +275,7 @@ def _draw_transform_detail(layout, scene_props, controller):
     if panel_body is None:
         return
     top = panel_body.row(align=True)
+    top.operator("mhw_anim_tools.edit_timl_transform", text="Edit Raw", icon="GREASEPENCIL")
     top.operator("mhw_anim_tools.select_timl_transform_curves", text="Curves", icon="FCURVE")
     if int(transform.keyframe_count) > 0:
         top.operator("mhw_anim_tools.use_timl_transform_frame_span", text="Use Span", icon="PREVIEW_RANGE")
@@ -278,16 +295,27 @@ def _draw_transform_detail(layout, scene_props, controller):
             text=transform.edit_policy_label,
             icon=timl_edit_policy_icon(transform.edit_policy_code),
         )
+    if transform.edit_policy_reason:
+        panel_body.label(text=transform.edit_policy_reason)
     if transform.writeback_status_label:
         panel_body.label(
             text=transform.writeback_status_label,
             icon=timl_writeback_status_icon(transform.writeback_status_code),
         )
+    if transform.writeback_reason:
+        panel_body.label(text=transform.writeback_reason)
     property_name = str(transform.property_name or "")
     if property_name and property_name in controller.keys():
         panel_body.prop(controller, f'["{property_name}"]', text=property_name)
-    row = panel_body.row(align=True)
-    row.operator("mhw_anim_tools.edit_timl_transform", text="Edit Raw", icon="GREASEPENCIL")
+    elif transform.writeback_status_code == "preserve_raw" and transform.writeback_reason:
+        repair = panel_body.row(align=True)
+        repair.operator("mhw_anim_tools.materialize_timl_transform_preview", text="Create Preview", icon="ADD")
+        repair.operator("mhw_anim_tools.edit_timl_transform", text="Edit Raw", icon="GREASEPENCIL")
+        panel_body.label(text="No editable preview binding yet", icon="LOCKED")
+    elif not property_name:
+        repair = panel_body.row(align=True)
+        repair.operator("mhw_anim_tools.materialize_timl_transform_preview", text="Create Preview", icon="ADD")
+        repair.operator("mhw_anim_tools.edit_timl_transform", text="Edit Raw", icon="GREASEPENCIL")
 
 
 def _draw_workspace_diagnostics(layout, scene_props):

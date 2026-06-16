@@ -28,6 +28,7 @@ from .fcurves import ensure_object_animation_data
 from .timl_metadata import TIML_ACTION_NAME_KEY
 from .timl_metadata import TIML_BINDINGS_KEY
 from .timl_metadata import TIML_BINDING_META_PREFIX
+from .timl_metadata import TIML_DELETED_BINDINGS_KEY
 from .timl_metadata import TIML_ENTRY_ID_KEY
 from .timl_metadata import TIML_HEADER_ANIMATION_LENGTH_KEY
 from .timl_metadata import TIML_HEADER_DATA_INDEX_A_KEY
@@ -106,10 +107,30 @@ def _carrier_name_for_import(source_path: str, action_id: int) -> str:
     return f"TIML Controller::{stem}::{action_id:03d}"
 
 
+def _carrier_parent_name_for_import(source_path: str) -> str:
+    return Path(source_path).stem or "TIML"
+
+
 def _preferred_collection(target_armature):
     if target_armature is not None and target_armature.users_collection:
         return target_armature.users_collection[0]
     return bpy.context.scene.collection
+
+
+def _ensure_timl_source_parent(source_path: str, *, target_armature=None):
+    name = _carrier_parent_name_for_import(source_path)
+    parent = bpy.data.objects.get(name)
+    if parent is not None:
+        if parent.type != "EMPTY":
+            raise TypeError(f"Object '{name}' already exists and is not an Empty TIML parent.")
+    else:
+        parent = bpy.data.objects.new(name, None)
+        parent.empty_display_type = "SINGLE_ARROW"
+        parent.empty_display_size = 0.2
+    collection = _preferred_collection(target_armature)
+    if collection not in parent.users_collection:
+        collection.objects.link(parent)
+    return parent
 
 
 def _ensure_timl_carrier_object(name: str, *, target_armature=None):
@@ -162,6 +183,8 @@ def _clear_timl_carrier_properties(carrier):
         del carrier[TIML_BINDINGS_KEY]
     if TIML_IMPORTED_PREVIEW_SIGNATURE_KEY in carrier:
         del carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY]
+    if TIML_DELETED_BINDINGS_KEY in carrier:
+        del carrier[TIML_DELETED_BINDINGS_KEY]
     clear_timl_template_metadata(carrier)
 
 
@@ -335,6 +358,8 @@ def seed_eventloop_template_on_controller(
                 "property_name": prop_name,
                 "type_index": int(transform.type_index),
                 "transform_index": int(transform.transform_index),
+                "source_type_index": None,
+                "source_transform_index": None,
                 "timeline_parameter_hash": int(transform.timeline_parameter_hash),
                 "datatype_hash": int(transform.datatype_hash),
                 "data_type": int(transform.data_type),
@@ -415,11 +440,13 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
 
     try:
         carrier = _ensure_timl_carrier_object(carrier_name, target_armature=target_armature)
+        parent = _ensure_timl_source_parent(source_path, target_armature=target_armature)
     except Exception as exc:
         result.add("ERROR", "timl", str(exc))
         return result
 
     _clear_timl_carrier_properties(carrier)
+    carrier.parent = parent
     animation_data = ensure_object_animation_data(carrier)
     animation_data.action = blender_action
     result.action_name = blender_action.name
@@ -488,6 +515,8 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
                 "property_name": prop_name,
                 "type_index": int(transform.type_index),
                 "transform_index": int(transform.transform_index),
+                "source_type_index": int(transform.type_index),
+                "source_transform_index": int(transform.transform_index),
                 "timeline_parameter_hash": int(transform.timeline_parameter_hash),
                 "datatype_hash": int(transform.datatype_hash),
                 "data_type": int(transform.data_type),

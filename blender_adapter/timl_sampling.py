@@ -46,6 +46,8 @@ class TimlControllerBinding:
     property_name: str
     type_index: int
     transform_index: int
+    source_type_index: int | None
+    source_transform_index: int | None
     timeline_parameter_hash: int
     datatype_hash: int
     data_type: int
@@ -56,6 +58,12 @@ class TimlControllerBinding:
     @property
     def component_count(self) -> int:
         return len(self.component_labels)
+
+    @property
+    def source_identity(self) -> tuple[int, int] | None:
+        if self.source_type_index is None or self.source_transform_index is None:
+            return None
+        return (int(self.source_type_index), int(self.source_transform_index))
 
     @property
     def label(self) -> str:
@@ -82,10 +90,18 @@ class SampledTimlTransform:
     control_kind: str
     component_labels: tuple[str, ...]
     keyframes: tuple[SampledTimlKeyframe, ...]
+    source_type_index: int | None = None
+    source_transform_index: int | None = None
 
     @property
     def component_count(self) -> int:
         return len(self.component_labels)
+
+    @property
+    def source_identity(self) -> tuple[int, int] | None:
+        if self.source_type_index is None or self.source_transform_index is None:
+            return None
+        return (int(self.source_type_index), int(self.source_transform_index))
 
 
 @dataclass(frozen=True)
@@ -197,6 +213,16 @@ def _parse_timl_bindings(controller_object) -> tuple[TimlControllerBinding, ...]
                 property_name=str(entry.get("property_name", "")),
                 type_index=_safe_int(entry.get("type_index", 0), 0),
                 transform_index=_safe_int(entry.get("transform_index", 0), 0),
+                source_type_index=(
+                    None
+                    if entry.get("source_type_index", None) is None
+                    else _safe_int(entry.get("source_type_index", 0), 0)
+                ),
+                source_transform_index=(
+                    None
+                    if entry.get("source_transform_index", None) is None
+                    else _safe_int(entry.get("source_transform_index", 0), 0)
+                ),
                 timeline_parameter_hash=_safe_int(entry.get("timeline_parameter_hash", 0), 0),
                 datatype_hash=_safe_int(entry.get("datatype_hash", 0), 0),
                 data_type=_safe_int(entry.get("data_type", 0), 0),
@@ -492,6 +518,8 @@ def sample_timl_controller_action(controller_object, action=None) -> TimlSamplin
                 property_name=binding.property_name,
                 type_index=binding.type_index,
                 transform_index=binding.transform_index,
+                source_type_index=binding.source_type_index,
+                source_transform_index=binding.source_transform_index,
                 timeline_parameter_hash=binding.timeline_parameter_hash,
                 datatype_hash=binding.datatype_hash,
                 data_type=binding.data_type,

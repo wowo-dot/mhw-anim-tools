@@ -275,8 +275,7 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
         if plan.error_count:
             invalid_controller_names.append(controller_name)
             continue
-        changed_transforms = tuple(plan.changed_transforms)
-        if not changed_transforms:
+        if not plan.has_writable_changes:
             continue
 
         try:
@@ -287,7 +286,7 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
                     entry_id=int(controller_metadata.entry_id),
                 )
                 payload, rebase_offsets = build_embedded_timl_data_payload_from_sampled(
-                    changed_transforms,
+                    tuple(getattr(plan.sampled_result, "sampled_transforms", ())),
                     base_offset=source_offset,
                     data_index_a=int(header_state["data_index_a"]),
                     data_index_b=int(header_state["data_index_b"]),
@@ -299,8 +298,9 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
             else:
                 payload, rebase_offsets = build_embedded_timl_data_payload(
                     plan.source_entry,
-                    changed_transforms,
+                    tuple(getattr(plan.sampled_result, "sampled_transforms", ())),
                     base_offset=source_offset,
+                    deleted_identities=tuple(getattr(plan, "deleted_identities", ())),
                 )
         except (BinaryFormatError, ValidationError, ValueError) as exc:
             result.add("ERROR", "timl.writeback", str(exc))

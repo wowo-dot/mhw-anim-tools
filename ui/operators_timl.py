@@ -7,17 +7,31 @@ from pathlib import Path
 import bpy
 
 from ..blender_adapter.timl_authoring import append_timl_binding
+from ..blender_adapter.timl_authoring import clear_deleted_timl_identity
 from ..blender_adapter.timl_authoring import clone_binding_preview_fcurves
 from ..blender_adapter.timl_authoring import create_binding_preview_fcurves
+from ..blender_adapter.timl_authoring import delete_timl_transform_binding
+from ..blender_adapter.timl_authoring import delete_timl_type_bindings
 from ..blender_adapter.timl_authoring import default_preview_value_for_data_type
 from ..blender_adapter.timl_authoring import ensure_binding_preview_property
 from ..blender_adapter.timl_authoring import ensure_timl_header_props
+from ..blender_adapter.timl_authoring import insert_timl_transform_slot
+from ..blender_adapter.timl_authoring import insert_timl_type_slot
 from ..blender_adapter.timl_authoring import load_timl_bindings_raw
+from ..blender_adapter.timl_authoring import mark_deleted_timl_identity
+from ..blender_adapter.timl_authoring import move_timl_transform_binding
+from ..blender_adapter.timl_authoring import move_timl_type_bindings
 from ..blender_adapter.timl_authoring import remove_binding_preview_fcurves
 from ..blender_adapter.timl_authoring import remove_timl_binding
+from ..blender_adapter.timl_authoring import retag_binding_preview_fcurve_groups
 from ..blender_adapter.timl_authoring import save_timl_bindings_raw
+from ..blender_adapter.timl_authoring import seed_binding_source_identity
 from ..blender_adapter.timl_authoring import sync_timl_binding_meta_props_from_bindings
+from ..blender_adapter.timl_authoring import timl_binding_identity
+from ..blender_adapter.timl_authoring import timl_binding_source_identity
 from ..blender_adapter.timl_authoring import timl_header_state_from_controller
+from ..blender_adapter.fcurves import create_action_fcurves
+from ..blender_adapter.fcurves import create_scalar_action_fcurve
 from ..blender_adapter.timl_metadata import TIML_BINDINGS_KEY
 from ..blender_adapter.timl_writeback import assess_timl_controller_shared_payload
 from ..blender_adapter.timl_sampling import extract_timl_controller_metadata
@@ -29,6 +43,7 @@ from ..blender_adapter.timl_writeback_plan import plan_timl_controller_writeback
 from ..core.diagnostics.errors import BinaryFormatError
 from ..core.diagnostics.errors import ValidationError
 from ..core.formats.lmt.reader import read_lmt_bytes
+from ..core.formats.timl.channels import build_timl_transform_samples
 from ..core.formats.timl.reader import read_timl_data_bytes
 from .properties import add_diagnostic
 from .properties import clear_diagnostics
@@ -38,6 +53,11 @@ from .properties import set_timl_edit_policy_summary
 from .properties import set_timl_payload_scope_summary
 from .properties import set_timl_shared_controller_summary
 from .properties import set_timl_writeback_summary
+from .timl_defaults import data_type_key_for_name as _data_type_key_for_name
+from .timl_defaults import next_available_transform_index as _next_available_transform_index
+from .timl_defaults import next_available_type_index as _next_available_type_index
+from .timl_defaults import seed_add_timl_transform_defaults
+from .timl_defaults import seed_add_timl_type_defaults
 
 
 TIML_DATA_TYPE_ITEMS = (
@@ -54,13 +74,6 @@ def _data_type_name_for_key(key: str) -> str:
         if str(item_key) == str(key):
             return str(label)
     return str(key)
-
-
-def _data_type_key_for_name(name: str, *, fallback: str = "1") -> str:
-    for item_key, label, _description in TIML_DATA_TYPE_ITEMS:
-        if str(label) == str(name):
-            return str(item_key)
-    return str(fallback)
 
 
 def _resolve_timl_controller(context):
@@ -114,6 +127,62 @@ def _controller_action(controller):
     return getattr(animation_data, "action", None) if animation_data is not None else None
 
 
+def _save_timl_bindings_with_preview_groups(controller, bindings) -> None:
+    save_timl_bindings_raw(controller, bindings)
+    action = _controller_action(controller)
+    if action is not None:
+        retag_binding_preview_fcurve_groups(action, bindings)
+
+
+def _retag_controller_preview_groups(controller) -> None:
+    action = _controller_action(controller)
+    if action is None:
+        return
+    retag_binding_preview_fcurve_groups(action, load_timl_bindings_raw(controller))
+
+
+def _source_identities_from_entry(source_entry) -> set[tuple[int, int]]:
+    if source_entry is None:
+        return set()
+    return {
+        (int(type_index), int(transform_index))
+        for type_index, type_entry in enumerate(getattr(source_entry, "types", ()))
+        for transform_index, _transform in enumerate(getattr(type_entry, "transforms", ()))
+    }
+
+
+def _seed_missing_binding_source_origins(bindings, source_entry) -> list[dict[str, object]]:
+    source_identities = _source_identities_from_entry(source_entry)
+    updated = []
+    for binding in bindings:
+        item = dict(binding)
+        if timl_binding_identity(item) in source_identities:
+            seed_binding_source_identity(item)
+        updated.append(item)
+    return updated
+
+
+def _safe_source_entry_for_controller_object(controller):
+    if controller is None:
+        return None
+    metadata = extract_timl_controller_metadata(controller)
+    try:
+        _source_bytes, source_entry = _source_entry_for_controller(metadata)
+    except (BinaryFormatError, FileNotFoundError, OSError, ValidationError, ValueError):
+        return None
+    return source_entry
+
+
+def _binding_source_identity_for_entry(binding, source_entry):
+    source_identity = timl_binding_source_identity(binding)
+    if source_identity is not None and _source_identity_exists(source_entry, source_identity):
+        return source_identity
+    current_identity = timl_binding_identity(binding)
+    if _source_identity_exists(source_entry, current_identity):
+        return current_identity
+    return None
+
+
 def _set_action_transform_count(controller, count: int):
     action = _controller_action(controller)
     if action is not None:
@@ -143,6 +212,13 @@ def _binding_for_selected_transform(controller, scene_props):
     property_name = str(transform.property_name or "")
     for binding in load_timl_bindings_raw(controller):
         if str(binding["property_name"]) == property_name:
+            return binding
+    return None
+
+
+def _binding_for_identity(controller, *, type_index: int, transform_index: int):
+    for binding in load_timl_bindings_raw(controller):
+        if int(binding["type_index"]) == int(type_index) and int(binding["transform_index"]) == int(transform_index):
             return binding
     return None
 
@@ -373,21 +449,210 @@ def _binding_preview_value(controller, property_name: str, data_type: int) -> tu
     return (float(value),)
 
 
-def _next_available_type_index(bindings: list[dict[str, object]]) -> int:
-    if not bindings:
-        return 0
-    return max(int(binding["type_index"]) for binding in bindings) + 1
+def _selected_transform_identity(scene_props):
+    transform = _selected_controller_transform(scene_props)
+    if transform is None:
+        return None
+    return (int(transform.type_index), int(transform.transform_index))
 
 
-def _next_available_transform_index(bindings: list[dict[str, object]], type_index: int) -> int:
-    matching = [
-        int(binding["transform_index"])
-        for binding in bindings
-        if int(binding["type_index"]) == int(type_index)
-    ]
-    if not matching:
-        return 0
-    return max(matching) + 1
+def _source_entry_for_controller(metadata):
+    source_bytes, _source_lmt_file = _load_source_context(metadata)
+    if source_bytes is None:
+        return None, None
+    source_entry = read_timl_data_bytes(
+        source_bytes,
+        data_offset=int(getattr(metadata, "source_offset", 0)),
+        source_name=f"{str(getattr(metadata, 'source_lmt', '') or '')}#timl",
+        entry_id=int(getattr(metadata, "entry_id", 0)),
+    )
+    return source_bytes, source_entry
+
+
+def _source_identity_exists(source_entry, identity: tuple[int, int]) -> bool:
+    if source_entry is None or identity is None:
+        return False
+    type_index, transform_index = (int(identity[0]), int(identity[1]))
+    if type_index < 0 or type_index >= len(getattr(source_entry, "types", ())):
+        return False
+    type_entry = source_entry.types[type_index]
+    return 0 <= transform_index < len(getattr(type_entry, "transforms", ()))
+
+
+def _preview_value_from_source_transform(transform_samples) -> tuple[float, ...]:
+    if not getattr(transform_samples, "keyframes", ()):
+        return default_preview_value_for_data_type(int(getattr(transform_samples, "data_type", 0)))
+    value = tuple(float(component) for component in transform_samples.keyframes[0].value)
+    return _preview_value_from_source_components(
+        value,
+        data_type=int(getattr(transform_samples, "data_type", 0)),
+        value_kind=str(getattr(transform_samples, "value_kind", "") or ""),
+    )
+
+
+def _preview_value_from_source_components(value, *, data_type: int, value_kind: str) -> tuple[float, ...]:
+    value = tuple(float(component) for component in value)
+    if int(data_type) == 3:
+        return tuple(component / 255.0 for component in value)
+    if str(value_kind or "") == "boolean":
+        return (1.0 if bool(value[0]) else 0.0,)
+    return value
+
+
+def _create_preview_curves_from_source_transform(action, binding: dict[str, object], transform_samples) -> None:
+    property_name = str(binding["property_name"])
+    data_path = f'["{property_name}"]'
+    action_group = f"TIML {int(binding['type_index']):02d}:{int(binding['transform_index']):02d}"
+    channel_count = len(tuple(getattr(transform_samples, "component_labels", ()))) or 1
+    channel_values = [[] for _index in range(channel_count)]
+    channel_interpolations = [[] for _index in range(channel_count)]
+    for keyframe in getattr(transform_samples, "keyframes", ()):
+        preview_value = _preview_value_from_source_components(
+            getattr(keyframe, "value", ()),
+            data_type=int(getattr(transform_samples, "data_type", 0)),
+            value_kind=str(getattr(transform_samples, "value_kind", "") or ""),
+        )
+        interpolation = 0 if int(getattr(keyframe, "interpolation", 0)) == 0 else 1
+        for index, component in enumerate(preview_value):
+            channel_values[index].append((float(keyframe.frame), float(component)))
+            channel_interpolations[index].append(interpolation)
+    if channel_count == 1:
+        create_scalar_action_fcurve(
+            action,
+            data_path=data_path,
+            action_group=action_group,
+            keyframes=channel_values[0],
+            interpolations=channel_interpolations[0],
+        )
+        return
+    create_action_fcurves(
+        action,
+        data_path=data_path,
+        action_group=action_group,
+        channel_values=channel_values,
+        channel_interpolations=channel_interpolations,
+    )
+
+
+def _materialize_binding_from_source_transform(
+    context,
+    controller,
+    scene_props,
+    source_transform,
+    *,
+    refresh: bool = True,
+):
+    existing_binding = _binding_for_identity(
+        controller,
+        type_index=int(source_transform.type_index),
+        transform_index=int(source_transform.transform_index),
+    )
+    if existing_binding is not None:
+        return existing_binding, ""
+    if not getattr(source_transform, "keyframes", ()):
+        return None, "The selected TIML transform has no source keyframes to preview."
+
+    binding = append_timl_binding(
+        controller,
+        type_index=int(source_transform.type_index),
+        transform_index=int(source_transform.transform_index),
+        source_type_index=int(source_transform.type_index),
+        source_transform_index=int(source_transform.transform_index),
+        timeline_parameter_hash=int(source_transform.timeline_parameter_hash),
+        datatype_hash=int(source_transform.datatype_hash),
+        data_type=int(source_transform.data_type),
+    )
+    preview_value = _preview_value_from_source_transform(source_transform)
+    ensure_binding_preview_property(controller, binding, preview_value=preview_value)
+    action = _controller_action(controller)
+    if action is None:
+        remove_timl_binding(controller, str(binding["property_name"]))
+        if str(binding["property_name"]) in controller:
+            del controller[str(binding["property_name"])]
+        return None, "The selected TIML controller has no editable action for preview-curve creation."
+    _create_preview_curves_from_source_transform(action, binding, source_transform)
+    _set_action_transform_count(controller, len(load_timl_bindings_raw(controller)))
+    clear_deleted_timl_identity(
+        controller,
+        type_index=int(source_transform.type_index),
+        transform_index=int(source_transform.transform_index),
+    )
+    if refresh:
+        _refresh_timl_controller_after_edit(context, controller)
+        _select_workspace_identity(
+            scene_props,
+            property_name=str(binding["property_name"]),
+            type_index=int(source_transform.type_index),
+        )
+    return binding, ""
+
+
+def _materialize_preview_binding_from_source(context, controller, scene_props):
+    transform_item = _selected_controller_transform(scene_props)
+    if controller is None or transform_item is None:
+        return None, "Choose a TIML transform first."
+    existing_binding = _binding_for_selected_transform(controller, scene_props)
+    if existing_binding is not None:
+        return existing_binding, ""
+
+    metadata = extract_timl_controller_metadata(controller)
+    try:
+        _source_bytes, source_entry = _source_entry_for_controller(metadata)
+    except (BinaryFormatError, FileNotFoundError, OSError, ValidationError, ValueError) as exc:
+        return None, f"Could not load source TIML data: {exc}"
+    if source_entry is None:
+        return None, "The selected TIML controller is missing readable source TIML data."
+
+    identity = (int(transform_item.type_index), int(transform_item.transform_index))
+    if not _source_identity_exists(source_entry, identity):
+        return None, "The selected TIML transform does not exist in the imported source payload."
+
+    source_transform = next(
+        (
+            transform
+            for transform in build_timl_transform_samples(source_entry)
+            if (int(transform.type_index), int(transform.transform_index)) == identity
+        ),
+        None,
+    )
+    if source_transform is None:
+        return None, "The selected TIML transform could not be reconstructed from the source payload."
+    return _materialize_binding_from_source_transform(context, controller, scene_props, source_transform)
+
+
+def _materialize_type_preview_bindings_from_source(context, controller, scene_props, type_index: int):
+    if controller is None:
+        return [], "Choose a TIML type first."
+    metadata = extract_timl_controller_metadata(controller)
+    try:
+        _source_bytes, source_entry = _source_entry_for_controller(metadata)
+    except (BinaryFormatError, FileNotFoundError, OSError, ValidationError, ValueError) as exc:
+        return [], f"Could not load source TIML data: {exc}"
+    if source_entry is None or int(type_index) < 0 or int(type_index) >= len(getattr(source_entry, "types", ())):
+        return [], "The selected TIML type does not exist in the imported source payload."
+
+    created_bindings = []
+    for source_transform in build_timl_transform_samples(source_entry):
+        if int(source_transform.type_index) != int(type_index):
+            continue
+        binding, error_message = _materialize_binding_from_source_transform(
+            context,
+            controller,
+            scene_props,
+            source_transform,
+            refresh=False,
+        )
+        if binding is None:
+            return [], error_message
+        created_bindings.append(binding)
+    if created_bindings:
+        _refresh_timl_controller_after_edit(context, controller)
+        _select_workspace_identity(
+            scene_props,
+            property_name=str(created_bindings[0]["property_name"]),
+            type_index=int(type_index),
+        )
+    return created_bindings, ""
 
 
 def _select_controller_curves_by_property_names(controller, property_names):
@@ -793,34 +1058,52 @@ class MHWANIMTOOLS_OT_edit_timl_type(bpy.types.Operator):
         source_type_index = int(block.type_index)
         target_type_index = int(self.type_index)
         bindings = load_timl_bindings_raw(controller)
+        source_transform_count = sum(
+            1
+            for item in scene_props.timl_controller_transforms
+            if int(item.type_index) == source_type_index
+        )
         selected_bindings = [binding for binding in bindings if int(binding["type_index"]) == source_type_index]
-        if not selected_bindings:
-            scene_props.last_status = "The selected TIML type has no editable transforms."
-            add_diagnostic(scene_props, "ERROR", "timl.type", scene_props.last_status)
-            self.report({"WARNING"}, scene_props.last_status)
-            return {"CANCELLED"}
-
-        taken_identities = {
-            (int(binding["type_index"]), int(binding["transform_index"]))
-            for binding in bindings
-            if int(binding["type_index"]) != source_type_index
-        }
-        for binding in selected_bindings:
-            candidate = (target_type_index, int(binding["transform_index"]))
-            if candidate in taken_identities:
-                scene_props.last_status = (
-                    f"Type edit would collide with existing transform {target_type_index:02d}:{int(binding['transform_index']):02d}."
-                )
+        if len(selected_bindings) < source_transform_count:
+            created_bindings, error_message = _materialize_type_preview_bindings_from_source(
+                context,
+                controller,
+                scene_props,
+                source_type_index,
+            )
+            if not selected_bindings and not created_bindings:
+                scene_props.last_status = error_message or "The selected TIML type has no editable transforms."
                 add_diagnostic(scene_props, "ERROR", "timl.type", scene_props.last_status)
                 self.report({"WARNING"}, scene_props.last_status)
                 return {"CANCELLED"}
+            bindings = load_timl_bindings_raw(controller)
+            selected_bindings = [binding for binding in bindings if int(binding["type_index"]) == source_type_index]
 
+        bindings = _seed_missing_binding_source_origins(
+            bindings,
+            _safe_source_entry_for_controller_object(controller),
+        )
+        selected_property_names = {
+            str(binding["property_name"])
+            for binding in selected_bindings
+        }
         timeline_hash = _parse_hex_u32(self.timeline_hash_hex)
+        occupied_type_indices = {
+            int(binding["type_index"])
+            for binding in bindings
+            if int(binding["type_index"]) != source_type_index
+        }
+        if target_type_index in occupied_type_indices:
+            bindings = move_timl_type_bindings(
+                bindings,
+                source_type_index=source_type_index,
+                target_type_index=target_type_index,
+            )
         for binding in bindings:
-            if int(binding["type_index"]) == source_type_index:
+            if str(binding["property_name"]) in selected_property_names:
                 binding["type_index"] = target_type_index
                 binding["timeline_parameter_hash"] = timeline_hash
-        save_timl_bindings_raw(controller, bindings)
+        _save_timl_bindings_with_preview_groups(controller, bindings)
         _refresh_timl_controller_after_edit(context, controller)
         _select_workspace_identity(scene_props, type_index=target_type_index)
         scene_props.last_status = f"Updated type {source_type_index:02d}."
@@ -843,13 +1126,21 @@ class MHWANIMTOOLS_OT_edit_timl_transform(bpy.types.Operator):
         scene_props = context.scene.mhw_anim_tools
         controller = _resolve_timl_controller(context)
         binding = _binding_for_selected_transform(controller, scene_props) if controller is not None else None
-        if binding is None:
+        transform = _selected_controller_transform(scene_props)
+        if binding is not None:
+            self.type_index = int(binding["type_index"])
+            self.transform_index = int(binding["transform_index"])
+            self.timeline_hash_hex = _format_hex_u32(int(binding["timeline_parameter_hash"]))
+            self.datatype_hash_hex = _format_hex_u32(int(binding["datatype_hash"]))
+            self.data_type = str(int(binding["data_type"]))
+        elif transform is not None:
+            self.type_index = int(transform.type_index)
+            self.transform_index = int(transform.transform_index)
+            self.timeline_hash_hex = str(transform.raw_timeline_display or "0x00000000")
+            self.datatype_hash_hex = str(transform.raw_datatype_display or "0x00000000")
+            self.data_type = _data_type_key_for_name(str(transform.data_type_name or ""), fallback="1")
+        else:
             return self.execute(context)
-        self.type_index = int(binding["type_index"])
-        self.transform_index = int(binding["transform_index"])
-        self.timeline_hash_hex = _format_hex_u32(int(binding["timeline_parameter_hash"]))
-        self.datatype_hash_hex = _format_hex_u32(int(binding["datatype_hash"]))
-        self.data_type = str(int(binding["data_type"]))
         return context.window_manager.invoke_props_dialog(self, width=340)
 
     def draw(self, _context):
@@ -864,44 +1155,84 @@ class MHWANIMTOOLS_OT_edit_timl_transform(bpy.types.Operator):
         scene_props = context.scene.mhw_anim_tools
         controller = _resolve_timl_controller(context)
         binding = _binding_for_selected_transform(controller, scene_props) if controller is not None else None
-        if controller is None or binding is None:
+        if controller is None:
             scene_props.last_status = "Choose a TIML transform first."
             add_diagnostic(scene_props, "ERROR", "timl.transform", scene_props.last_status)
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
-
-        property_name = str(binding["property_name"])
-        target_identity = (int(self.type_index), int(self.transform_index))
-        bindings = load_timl_bindings_raw(controller)
-        for other in bindings:
-            if str(other["property_name"]) == property_name:
-                continue
-            if (int(other["type_index"]), int(other["transform_index"])) == target_identity:
-                scene_props.last_status = (
-                    f"Transform edit would collide with existing transform {target_identity[0]:02d}:{target_identity[1]:02d}."
-                )
+        if binding is None:
+            binding, error_message = _materialize_preview_binding_from_source(context, controller, scene_props)
+            if binding is None:
+                scene_props.last_status = error_message or "Choose a TIML transform first."
                 add_diagnostic(scene_props, "ERROR", "timl.transform", scene_props.last_status)
                 self.report({"WARNING"}, scene_props.last_status)
                 return {"CANCELLED"}
 
+        property_name = str(binding["property_name"])
+        target_identity = (int(self.type_index), int(self.transform_index))
+        bindings = load_timl_bindings_raw(controller)
+        bindings = _seed_missing_binding_source_origins(
+            bindings,
+            _safe_source_entry_for_controller_object(controller),
+        )
+        source_identity = None
+        for item in bindings:
+            if str(item["property_name"]) == property_name:
+                source_identity = timl_binding_identity(item)
+                break
+        if source_identity is None:
+            scene_props.last_status = "Could not find the selected TIML transform binding."
+            add_diagnostic(scene_props, "ERROR", "timl.transform", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        occupied_by_other = any(
+            str(other["property_name"]) != property_name
+            and timl_binding_identity(other) == target_identity
+            for other in bindings
+        )
+        if occupied_by_other:
+            bindings = move_timl_transform_binding(
+                bindings,
+                source_type_index=int(source_identity[0]),
+                source_transform_index=int(source_identity[1]),
+                target_type_index=int(target_identity[0]),
+                target_transform_index=int(target_identity[1]),
+            )
+
         old_data_type = int(binding["data_type"])
         new_data_type = int(self.data_type)
-        binding["type_index"] = int(self.type_index)
-        binding["transform_index"] = int(self.transform_index)
-        binding["timeline_parameter_hash"] = _parse_hex_u32(self.timeline_hash_hex)
-        binding["datatype_hash"] = _parse_hex_u32(self.datatype_hash_hex)
-        binding["data_type"] = new_data_type
-        binding["data_type_name"] = _data_type_name_for_key(str(new_data_type))
-        save_timl_bindings_raw(controller, bindings)
+        updated_binding = None
+        for item in bindings:
+            if str(item["property_name"]) != property_name:
+                continue
+            item["type_index"] = int(self.type_index)
+            item["transform_index"] = int(self.transform_index)
+            item["timeline_parameter_hash"] = _parse_hex_u32(self.timeline_hash_hex)
+            item["datatype_hash"] = _parse_hex_u32(self.datatype_hash_hex)
+            item["data_type"] = new_data_type
+            item["data_type_name"] = _data_type_name_for_key(str(new_data_type))
+            updated_binding = item
+            break
+        _save_timl_bindings_with_preview_groups(controller, bindings)
 
         action = _controller_action(controller)
         if old_data_type != new_data_type and action is not None:
             preview_value = default_preview_value_for_data_type(new_data_type)
             if property_name in controller:
                 del controller[property_name]
-            ensure_binding_preview_property(controller, binding, preview_value=preview_value)
+            ensure_binding_preview_property(
+                controller,
+                updated_binding or binding,
+                preview_value=preview_value,
+            )
             remove_binding_preview_fcurves(action, property_name)
-            create_binding_preview_fcurves(action, binding, frame=0.0, preview_value=preview_value)
+            create_binding_preview_fcurves(
+                action,
+                updated_binding or binding,
+                frame=0.0,
+                preview_value=preview_value,
+            )
+            _retag_controller_preview_groups(controller)
 
         _refresh_timl_controller_after_edit(context, controller)
         _select_workspace_identity(scene_props, property_name=property_name, type_index=int(self.type_index))
@@ -925,11 +1256,17 @@ class MHWANIMTOOLS_OT_add_timl_type(bpy.types.Operator):
         controller = _resolve_timl_controller(context)
         bindings = load_timl_bindings_raw(controller) if controller is not None else []
         block = _selected_timl_block(scene_props)
-        self.type_index = _next_available_type_index(bindings)
-        self.timeline_hash_hex = str(block.raw_timeline_label or "0x00000000") if block is not None else "0x00000000"
         transform = _selected_controller_transform(scene_props)
-        self.datatype_hash_hex = str(transform.raw_datatype_display or "0x00000000") if transform is not None else "0x00000000"
-        self.data_type = _data_type_key_for_name(str(transform.data_type_name or ""), fallback="1")
+        defaults = seed_add_timl_type_defaults(
+            bindings,
+            selected_block=block,
+            selected_transform=transform,
+            data_type_items=TIML_DATA_TYPE_ITEMS,
+        )
+        self.type_index = int(defaults.type_index)
+        self.timeline_hash_hex = str(defaults.timeline_hash_hex)
+        self.datatype_hash_hex = str(defaults.datatype_hash_hex)
+        self.data_type = str(defaults.data_type_key)
         return context.window_manager.invoke_props_dialog(self, width=340)
 
     def draw(self, _context):
@@ -949,10 +1286,12 @@ class MHWANIMTOOLS_OT_add_timl_type(bpy.types.Operator):
             return {"CANCELLED"}
         bindings = load_timl_bindings_raw(controller)
         if any(int(binding["type_index"]) == int(self.type_index) for binding in bindings):
-            scene_props.last_status = f"Type {int(self.type_index):02d} already exists."
-            add_diagnostic(scene_props, "ERROR", "timl.type", scene_props.last_status)
-            self.report({"WARNING"}, scene_props.last_status)
-            return {"CANCELLED"}
+            bindings = _seed_missing_binding_source_origins(
+                bindings,
+                _safe_source_entry_for_controller_object(controller),
+            )
+            bindings = insert_timl_type_slot(bindings, type_index=int(self.type_index))
+            _save_timl_bindings_with_preview_groups(controller, bindings)
         binding = append_timl_binding(
             controller,
             type_index=int(self.type_index),
@@ -970,6 +1309,32 @@ class MHWANIMTOOLS_OT_add_timl_type(bpy.types.Operator):
         _refresh_timl_controller_after_edit(context, controller)
         _select_workspace_identity(scene_props, property_name=str(binding["property_name"]), type_index=int(self.type_index))
         scene_props.last_status = f"Added type {int(self.type_index):02d}."
+        self.report({"INFO"}, scene_props.last_status)
+        return {"FINISHED"}
+
+
+class MHWANIMTOOLS_OT_materialize_timl_transform_preview(bpy.types.Operator):
+    bl_idname = "mhw_anim_tools.materialize_timl_transform_preview"
+    bl_label = "Create Preview Binding"
+    bl_description = "Recreate editable Blender preview curves for the selected source TIML transform"
+
+    def execute(self, context):
+        scene_props = context.scene.mhw_anim_tools
+        controller = _resolve_timl_controller(context)
+        if controller is None:
+            scene_props.last_status = "Choose an imported TIML controller first."
+            add_diagnostic(scene_props, "ERROR", "timl.transform", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        binding, error_message = _materialize_preview_binding_from_source(context, controller, scene_props)
+        if binding is None:
+            scene_props.last_status = error_message or "Could not create a preview binding for the selected TIML transform."
+            add_diagnostic(scene_props, "ERROR", "timl.transform", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        scene_props.last_status = (
+            f"Created editable preview curves for T{int(binding['type_index']):02d}:X{int(binding['transform_index']):02d}."
+        )
         self.report({"INFO"}, scene_props.last_status)
         return {"FINISHED"}
 
@@ -1002,24 +1367,45 @@ class MHWANIMTOOLS_OT_duplicate_timl_type(bpy.types.Operator):
         source_type_index = int(block.type_index)
         target_type_index = int(self.target_type_index)
         bindings = load_timl_bindings_raw(controller)
+        source_transform_count = sum(
+            1
+            for item in scene_props.timl_controller_transforms
+            if int(item.type_index) == source_type_index
+        )
         source_bindings = [
             binding
             for binding in bindings
             if int(binding["type_index"]) == source_type_index
         ]
-        if not source_bindings:
-            scene_props.last_status = "The selected TIML type has no transforms to duplicate."
-            add_diagnostic(scene_props, "ERROR", "timl.type", scene_props.last_status)
-            self.report({"WARNING"}, scene_props.last_status)
-            return {"CANCELLED"}
+        if len(source_bindings) < source_transform_count:
+            created_bindings, error_message = _materialize_type_preview_bindings_from_source(
+                context,
+                controller,
+                scene_props,
+                source_type_index,
+            )
+            if not source_bindings and not created_bindings:
+                scene_props.last_status = error_message or "The selected TIML type has no transforms to duplicate."
+                add_diagnostic(scene_props, "ERROR", "timl.type", scene_props.last_status)
+                self.report({"WARNING"}, scene_props.last_status)
+                return {"CANCELLED"}
+            bindings = load_timl_bindings_raw(controller)
+            source_bindings = [
+                binding
+                for binding in bindings
+                if int(binding["type_index"]) == source_type_index
+            ]
+        source_bindings_snapshot = [dict(binding) for binding in source_bindings]
         if any(int(binding["type_index"]) == target_type_index for binding in bindings):
-            scene_props.last_status = f"Type {target_type_index:02d} already exists."
-            add_diagnostic(scene_props, "ERROR", "timl.type", scene_props.last_status)
-            self.report({"WARNING"}, scene_props.last_status)
-            return {"CANCELLED"}
+            bindings = _seed_missing_binding_source_origins(
+                bindings,
+                _safe_source_entry_for_controller_object(controller),
+            )
+            bindings = insert_timl_type_slot(bindings, type_index=target_type_index)
+            _save_timl_bindings_with_preview_groups(controller, bindings)
         action = _controller_action(controller)
         first_property_name = ""
-        for source_binding in sorted(source_bindings, key=lambda item: int(item["transform_index"])):
+        for source_binding in sorted(source_bindings_snapshot, key=lambda item: int(item["transform_index"])):
             new_binding = append_timl_binding(
                 controller,
                 type_index=target_type_index,
@@ -1040,6 +1426,7 @@ class MHWANIMTOOLS_OT_duplicate_timl_type(bpy.types.Operator):
                 )
         if action is not None:
             _set_action_transform_count(controller, len(load_timl_bindings_raw(controller)))
+            _retag_controller_preview_groups(controller)
         _refresh_timl_controller_after_edit(context, controller)
         _select_workspace_identity(scene_props, property_name=first_property_name, type_index=target_type_index)
         scene_props.last_status = f"Duplicated type {source_type_index:02d} to {target_type_index:02d}."
@@ -1063,27 +1450,53 @@ class MHWANIMTOOLS_OT_delete_timl_type(bpy.types.Operator):
             return {"CANCELLED"}
         type_index = int(block.type_index)
         bindings = load_timl_bindings_raw(controller)
-        property_names = [
-            str(binding["property_name"])
+        type_identities = {
+            (int(item.type_index), int(item.transform_index))
+            for item in scene_props.timl_controller_transforms
+            if int(item.type_index) == type_index
+        }
+        source_entry = _safe_source_entry_for_controller_object(controller)
+        bindings = _seed_missing_binding_source_origins(bindings, source_entry)
+        source_backed_identities = {
+            _binding_source_identity_for_entry(binding, source_entry)
             for binding in bindings
             if int(binding["type_index"]) == type_index
-        ]
-        if not property_names:
+        }
+        source_backed_identities.update(
+            identity
+            for identity in type_identities
+            if _source_identity_exists(source_entry, identity)
+        )
+        source_backed_identities.discard(None)
+        if not any(int(binding["type_index"]) == type_index for binding in bindings) and not source_backed_identities:
             scene_props.last_status = "The selected TIML type has no editable transforms."
             add_diagnostic(scene_props, "ERROR", "timl.type", scene_props.last_status)
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
         action = _controller_action(controller)
-        for property_name in property_names:
+        updated_bindings, removed_property_names = delete_timl_type_bindings(bindings, type_index=type_index)
+        _save_timl_bindings_with_preview_groups(controller, updated_bindings)
+        for property_name in removed_property_names:
             if action is not None:
                 remove_binding_preview_fcurves(action, property_name)
-            remove_timl_binding(controller, property_name)
             if property_name in controller:
                 del controller[property_name]
+            remove_timl_binding(controller, property_name)
+        for source_type_index, source_transform_index in source_backed_identities:
+            mark_deleted_timl_identity(
+                controller,
+                type_index=int(source_type_index),
+                transform_index=int(source_transform_index),
+            )
         if action is not None:
             _set_action_transform_count(controller, len(load_timl_bindings_raw(controller)))
         _refresh_timl_controller_after_edit(context, controller)
-        scene_props.last_status = f"Deleted type {type_index:02d}."
+        if source_backed_identities:
+            scene_props.last_status = (
+                f"Marked type {type_index:02d} for deletion from the source TIML payload."
+            )
+        else:
+            scene_props.last_status = f"Deleted local type {type_index:02d}."
         self.report({"INFO"}, scene_props.last_status)
         return {"FINISHED"}
 
@@ -1105,24 +1518,17 @@ class MHWANIMTOOLS_OT_add_timl_transform(bpy.types.Operator):
         bindings = load_timl_bindings_raw(controller) if controller is not None else []
         transform = _selected_controller_transform(scene_props)
         block = _selected_timl_block(scene_props)
-        if transform is not None:
-            self.type_index = int(transform.type_index)
-            self.transform_index = _next_available_transform_index(bindings, int(transform.type_index))
-            self.timeline_hash_hex = str(transform.raw_timeline_display or "0x00000000")
-            self.datatype_hash_hex = str(transform.raw_datatype_display or "0x00000000")
-            self.data_type = _data_type_key_for_name(str(transform.data_type_name or ""), fallback="1")
-        elif block is not None:
-            self.type_index = int(block.type_index)
-            self.transform_index = _next_available_transform_index(bindings, int(block.type_index))
-            self.timeline_hash_hex = str(block.raw_timeline_label or "0x00000000")
-            self.datatype_hash_hex = "0x00000000"
-            self.data_type = "1"
-        else:
-            self.type_index = _next_available_type_index(bindings)
-            self.transform_index = 0
-            self.timeline_hash_hex = "0x00000000"
-            self.datatype_hash_hex = "0x00000000"
-            self.data_type = "1"
+        defaults = seed_add_timl_transform_defaults(
+            bindings,
+            selected_block=block,
+            selected_transform=transform,
+            data_type_items=TIML_DATA_TYPE_ITEMS,
+        )
+        self.type_index = int(defaults.type_index)
+        self.transform_index = int(defaults.transform_index)
+        self.timeline_hash_hex = str(defaults.timeline_hash_hex)
+        self.datatype_hash_hex = str(defaults.datatype_hash_hex)
+        self.data_type = str(defaults.data_type_key)
         return context.window_manager.invoke_props_dialog(self, width=340)
 
     def draw(self, _context):
@@ -1144,10 +1550,16 @@ class MHWANIMTOOLS_OT_add_timl_transform(bpy.types.Operator):
         bindings = load_timl_bindings_raw(controller)
         identity = (int(self.type_index), int(self.transform_index))
         if any((int(binding["type_index"]), int(binding["transform_index"])) == identity for binding in bindings):
-            scene_props.last_status = f"Transform {identity[0]:02d}:{identity[1]:02d} already exists."
-            add_diagnostic(scene_props, "ERROR", "timl.transform", scene_props.last_status)
-            self.report({"WARNING"}, scene_props.last_status)
-            return {"CANCELLED"}
+            bindings = _seed_missing_binding_source_origins(
+                bindings,
+                _safe_source_entry_for_controller_object(controller),
+            )
+            bindings = insert_timl_transform_slot(
+                bindings,
+                type_index=int(self.type_index),
+                transform_index=int(self.transform_index),
+            )
+            _save_timl_bindings_with_preview_groups(controller, bindings)
         binding = append_timl_binding(
             controller,
             type_index=int(self.type_index),
@@ -1196,18 +1608,31 @@ class MHWANIMTOOLS_OT_duplicate_timl_transform(bpy.types.Operator):
         scene_props = context.scene.mhw_anim_tools
         controller = _resolve_timl_controller(context)
         binding = _binding_for_selected_transform(controller, scene_props) if controller is not None else None
-        if controller is None or binding is None:
+        if controller is None:
             scene_props.last_status = "Choose a TIML transform first."
             add_diagnostic(scene_props, "ERROR", "timl.transform", scene_props.last_status)
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
+        if binding is None:
+            binding, error_message = _materialize_preview_binding_from_source(context, controller, scene_props)
+            if binding is None:
+                scene_props.last_status = error_message or "Choose a TIML transform first."
+                add_diagnostic(scene_props, "ERROR", "timl.transform", scene_props.last_status)
+                self.report({"WARNING"}, scene_props.last_status)
+                return {"CANCELLED"}
         bindings = load_timl_bindings_raw(controller)
         target_identity = (int(self.target_type_index), int(self.target_transform_index))
         if any((int(item["type_index"]), int(item["transform_index"])) == target_identity for item in bindings):
-            scene_props.last_status = f"Transform {target_identity[0]:02d}:{target_identity[1]:02d} already exists."
-            add_diagnostic(scene_props, "ERROR", "timl.transform", scene_props.last_status)
-            self.report({"WARNING"}, scene_props.last_status)
-            return {"CANCELLED"}
+            bindings = _seed_missing_binding_source_origins(
+                bindings,
+                _safe_source_entry_for_controller_object(controller),
+            )
+            bindings = insert_timl_transform_slot(
+                bindings,
+                type_index=int(self.target_type_index),
+                transform_index=int(self.target_transform_index),
+            )
+            _save_timl_bindings_with_preview_groups(controller, bindings)
         new_binding = append_timl_binding(
             controller,
             type_index=int(self.target_type_index),
@@ -1226,6 +1651,7 @@ class MHWANIMTOOLS_OT_duplicate_timl_transform(bpy.types.Operator):
                 target_property_name=str(new_binding["property_name"]),
             )
             _set_action_transform_count(controller, len(load_timl_bindings_raw(controller)))
+            _retag_controller_preview_groups(controller)
         _refresh_timl_controller_after_edit(context, controller)
         _select_workspace_identity(scene_props, property_name=str(new_binding["property_name"]), type_index=int(self.target_type_index))
         scene_props.last_status = f"Duplicated transform to {target_identity[0]:02d}:{target_identity[1]:02d}."
@@ -1299,10 +1725,16 @@ class MHWANIMTOOLS_OT_clone_timl_transform_from_existing(bpy.types.Operator):
         bindings = load_timl_bindings_raw(target_controller)
         target_identity = (int(self.target_type_index), int(self.target_transform_index))
         if any((int(item["type_index"]), int(item["transform_index"])) == target_identity for item in bindings):
-            scene_props.last_status = f"Transform {target_identity[0]:02d}:{target_identity[1]:02d} already exists."
-            add_diagnostic(scene_props, "ERROR", "timl.transform", scene_props.last_status)
-            self.report({"WARNING"}, scene_props.last_status)
-            return {"CANCELLED"}
+            bindings = _seed_missing_binding_source_origins(
+                bindings,
+                _safe_source_entry_for_controller_object(target_controller),
+            )
+            bindings = insert_timl_transform_slot(
+                bindings,
+                type_index=int(self.target_type_index),
+                transform_index=int(self.target_transform_index),
+            )
+            _save_timl_bindings_with_preview_groups(target_controller, bindings)
         new_binding = append_timl_binding(
             target_controller,
             type_index=int(self.target_type_index),
@@ -1344,6 +1776,7 @@ class MHWANIMTOOLS_OT_clone_timl_transform_from_existing(bpy.types.Operator):
                 if not copied_curve:
                     create_binding_preview_fcurves(target_action, new_binding, frame=0.0, preview_value=preview_value)
             _set_action_transform_count(target_controller, len(load_timl_bindings_raw(target_controller)))
+            _retag_controller_preview_groups(target_controller)
         _refresh_timl_controller_after_edit(context, target_controller)
         _select_workspace_identity(scene_props, property_name=str(new_binding["property_name"]), type_index=int(self.target_type_index))
         scene_props.last_status = (
@@ -1361,23 +1794,76 @@ class MHWANIMTOOLS_OT_delete_timl_transform(bpy.types.Operator):
     def execute(self, context):
         scene_props = context.scene.mhw_anim_tools
         controller = _resolve_timl_controller(context)
+        transform = _selected_controller_transform(scene_props)
         binding = _binding_for_selected_transform(controller, scene_props) if controller is not None else None
-        if controller is None or binding is None:
+        if controller is None:
             scene_props.last_status = "Choose a TIML transform first."
             add_diagnostic(scene_props, "ERROR", "timl.transform", scene_props.last_status)
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
-        property_name = str(binding["property_name"])
+        identity = None
+        if transform is not None:
+            identity = (int(transform.type_index), int(transform.transform_index))
+        elif binding is not None:
+            identity = (int(binding["type_index"]), int(binding["transform_index"]))
+        if identity is None:
+            scene_props.last_status = "Choose a TIML transform first."
+            add_diagnostic(scene_props, "ERROR", "timl.transform", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        source_entry = _safe_source_entry_for_controller_object(controller)
+        source_backed_identity = None
+        bindings = load_timl_bindings_raw(controller)
+        bindings = _seed_missing_binding_source_origins(bindings, source_entry)
+        if binding is not None:
+            selected_binding = next(
+                (
+                    item
+                    for item in bindings
+                    if str(item["property_name"]) == str(binding["property_name"])
+                ),
+                None,
+            )
+            if selected_binding is not None:
+                source_backed_identity = _binding_source_identity_for_entry(selected_binding, source_entry)
+        if source_backed_identity is None and _source_identity_exists(source_entry, identity):
+            source_backed_identity = identity
         action = _controller_action(controller)
-        if action is not None:
-            remove_binding_preview_fcurves(action, property_name)
-        remove_timl_binding(controller, property_name)
-        if property_name in controller:
-            del controller[property_name]
+        if binding is not None:
+            updated_bindings, removed_binding = delete_timl_transform_binding(
+                bindings,
+                type_index=int(identity[0]),
+                transform_index=int(identity[1]),
+            )
+            property_name = str((removed_binding or {}).get("property_name", binding["property_name"]))
+            _save_timl_bindings_with_preview_groups(controller, updated_bindings)
+            if action is not None:
+                remove_binding_preview_fcurves(action, property_name)
+            if property_name in controller:
+                del controller[property_name]
+            remove_timl_binding(controller, property_name)
+        if source_backed_identity is not None:
+            mark_deleted_timl_identity(
+                controller,
+                type_index=int(source_backed_identity[0]),
+                transform_index=int(source_backed_identity[1]),
+            )
+        else:
+            clear_deleted_timl_identity(
+                controller,
+                type_index=int(identity[0]),
+                transform_index=int(identity[1]),
+            )
         if action is not None:
             _set_action_transform_count(controller, len(load_timl_bindings_raw(controller)))
         _refresh_timl_controller_after_edit(context, controller)
-        scene_props.last_status = f"Deleted transform {property_name}."
+        if source_backed_identity is not None:
+            scene_props.last_status = (
+                f"Marked transform {int(source_backed_identity[0]):02d}:{int(source_backed_identity[1]):02d} "
+                "for deletion from the source TIML payload."
+            )
+        else:
+            scene_props.last_status = f"Deleted local transform {identity[0]:02d}:{identity[1]:02d}."
         self.report({"INFO"}, scene_props.last_status)
         return {"FINISHED"}
 
@@ -1672,6 +2158,7 @@ classes = (
     MHWANIMTOOLS_OT_edit_timl_type,
     MHWANIMTOOLS_OT_edit_timl_transform,
     MHWANIMTOOLS_OT_add_timl_type,
+    MHWANIMTOOLS_OT_materialize_timl_transform_preview,
     MHWANIMTOOLS_OT_duplicate_timl_type,
     MHWANIMTOOLS_OT_delete_timl_type,
     MHWANIMTOOLS_OT_add_timl_transform,

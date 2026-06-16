@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import json
 import re
+from hashlib import sha1
 
 try:
     from ..core.formats.timl.model import timl_data_type_name
     from ..core.formats.timl.semantics import get_data_type_semantics
     from .timl_metadata import TIML_BINDING_META_PREFIX
     from .timl_metadata import TIML_BINDINGS_KEY
+    from .timl_metadata import TIML_DELETED_BINDINGS_KEY
     from .timl_metadata import TIML_HEADER_ANIMATION_LENGTH_KEY
     from .timl_metadata import TIML_HEADER_DATA_INDEX_A_KEY
     from .timl_metadata import TIML_HEADER_DATA_INDEX_B_KEY
@@ -23,6 +25,7 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.timl.semantics import get_data_type_semantics
     from blender_adapter.timl_metadata import TIML_BINDING_META_PREFIX
     from blender_adapter.timl_metadata import TIML_BINDINGS_KEY
+    from blender_adapter.timl_metadata import TIML_DELETED_BINDINGS_KEY
     from blender_adapter.timl_metadata import TIML_HEADER_ANIMATION_LENGTH_KEY
     from blender_adapter.timl_metadata import TIML_HEADER_DATA_INDEX_A_KEY
     from blender_adapter.timl_metadata import TIML_HEADER_DATA_INDEX_B_KEY
@@ -59,7 +62,27 @@ def _binding_prop_name_from_identity(type_index: int, transform_index: int, time
 
 
 def _binding_meta_key(property_name: str, field_name: str) -> str:
+    digest = sha1(str(property_name or "").encode("utf-8")).hexdigest()[:12]
+    return f"{TIML_BINDING_META_PREFIX}{digest}_{field_name}"
+
+
+def _legacy_binding_meta_key(property_name: str, field_name: str) -> str:
     return f"{TIML_BINDING_META_PREFIX}{_slugify(property_name)}_{field_name}"
+
+
+def _get_binding_meta_value(controller_object, property_name: str, field_name: str, fallback):
+    prop_key = _binding_meta_key(property_name, field_name)
+    if prop_key in controller_object:
+        return controller_object.get(prop_key, fallback)
+    legacy_key = _legacy_binding_meta_key(property_name, field_name)
+    return controller_object.get(legacy_key, fallback)
+
+
+def _u32_to_blender_int(value: int) -> int:
+    value = int(value) & 0xFFFFFFFF
+    if value >= 0x80000000:
+        return value - 0x100000000
+    return value
 
 
 def _default_component_labels_for_data_type(data_type: int) -> tuple[str, ...]:
@@ -123,6 +146,16 @@ def load_timl_bindings_raw(controller_object) -> list[dict[str, object]]:
                 "property_name": property_name,
                 "type_index": int(entry.get("type_index", 0) or 0),
                 "transform_index": int(entry.get("transform_index", 0) or 0),
+                "source_type_index": (
+                    int(entry.get("source_type_index", 0))
+                    if entry.get("source_type_index", None) is not None
+                    else None
+                ),
+                "source_transform_index": (
+                    int(entry.get("source_transform_index", 0))
+                    if entry.get("source_transform_index", None) is not None
+                    else None
+                ),
                 "timeline_parameter_hash": int(entry.get("timeline_parameter_hash", 0) or 0),
                 "datatype_hash": int(entry.get("datatype_hash", 0) or 0),
                 "data_type": data_type,
@@ -134,6 +167,83 @@ def load_timl_bindings_raw(controller_object) -> list[dict[str, object]]:
     return bindings
 
 
+def load_deleted_timl_identities(controller_object) -> tuple[tuple[int, int], ...]:
+    raw_value = controller_object.get(TIML_DELETED_BINDINGS_KEY, "") if controller_object is not None else ""
+    if not isinstance(raw_value, str) or not raw_value:
+        return ()
+    try:
+        decoded = json.loads(raw_value)
+    except json.JSONDecodeError:
+        return ()
+    if not isinstance(decoded, list):
+        return ()
+    identities: set[tuple[int, int]] = set()
+    for entry in decoded:
+        if isinstance(entry, dict):
+            type_index = int(entry.get("type_index", 0) or 0)
+            transform_index = int(entry.get("transform_index", 0) or 0)
+        elif isinstance(entry, (list, tuple)) and len(entry) >= 2:
+            type_index = int(entry[0] or 0)
+            transform_index = int(entry[1] or 0)
+        else:
+            continue
+        identities.add((type_index, transform_index))
+    return tuple(sorted(identities))
+
+
+def timl_binding_identity(binding: dict[str, object]) -> tuple[int, int]:
+    return (
+        int(binding.get("type_index", 0) or 0),
+        int(binding.get("transform_index", 0) or 0),
+    )
+
+
+def timl_binding_source_identity(binding: dict[str, object]) -> tuple[int, int] | None:
+    source_type_index = binding.get("source_type_index", None)
+    source_transform_index = binding.get("source_transform_index", None)
+    if source_type_index is None or source_transform_index is None:
+        return None
+    return (int(source_type_index), int(source_transform_index))
+
+
+def seed_binding_source_identity(binding: dict[str, object]) -> None:
+    if timl_binding_source_identity(binding) is not None:
+        return
+    binding["source_type_index"] = int(binding.get("type_index", 0) or 0)
+    binding["source_transform_index"] = int(binding.get("transform_index", 0) or 0)
+
+
+def save_deleted_timl_identities(controller_object, identities) -> None:
+    encoded = [
+        {
+            "type_index": int(type_index),
+            "transform_index": int(transform_index),
+        }
+        for type_index, transform_index in sorted(
+            {
+                (int(type_index), int(transform_index))
+                for type_index, transform_index in identities
+            }
+        )
+    ]
+    controller_object[TIML_DELETED_BINDINGS_KEY] = json.dumps(encoded, separators=(",", ":"))
+
+
+def mark_deleted_timl_identity(controller_object, *, type_index: int, transform_index: int) -> None:
+    identities = set(load_deleted_timl_identities(controller_object))
+    identities.add((int(type_index), int(transform_index)))
+    save_deleted_timl_identities(controller_object, identities)
+
+
+def clear_deleted_timl_identity(controller_object, *, type_index: int, transform_index: int) -> None:
+    identities = {
+        identity
+        for identity in load_deleted_timl_identities(controller_object)
+        if identity != (int(type_index), int(transform_index))
+    }
+    save_deleted_timl_identities(controller_object, identities)
+
+
 def save_timl_bindings_raw(controller_object, bindings: list[dict[str, object]]) -> None:
     encoded = []
     for binding in bindings:
@@ -143,6 +253,16 @@ def save_timl_bindings_raw(controller_object, bindings: list[dict[str, object]])
                 "property_name": str(binding.get("property_name", "") or ""),
                 "type_index": int(binding.get("type_index", 0) or 0),
                 "transform_index": int(binding.get("transform_index", 0) or 0),
+                "source_type_index": (
+                    None
+                    if binding.get("source_type_index", None) is None
+                    else int(binding.get("source_type_index", 0) or 0)
+                ),
+                "source_transform_index": (
+                    None
+                    if binding.get("source_transform_index", None) is None
+                    else int(binding.get("source_transform_index", 0) or 0)
+                ),
                 "timeline_parameter_hash": int(binding.get("timeline_parameter_hash", 0) or 0),
                 "datatype_hash": int(binding.get("datatype_hash", 0) or 0),
                 "data_type": data_type,
@@ -163,8 +283,8 @@ def sync_timl_binding_meta_props_from_bindings(controller_object) -> None:
         values = {
             "type_index": int(binding["type_index"]),
             "transform_index": int(binding["transform_index"]),
-            "timeline_hash": int(binding["timeline_parameter_hash"]) & 0xFFFFFFFF,
-            "datatype_hash": int(binding["datatype_hash"]) & 0xFFFFFFFF,
+            "timeline_hash": _u32_to_blender_int(int(binding["timeline_parameter_hash"])),
+            "datatype_hash": _u32_to_blender_int(int(binding["datatype_hash"])),
             "data_type": int(binding["data_type"]),
         }
         for field_name, value in values.items():
@@ -184,15 +304,17 @@ def sync_timl_bindings_from_meta_props(controller_object) -> list[dict[str, obje
     bindings = load_timl_bindings_raw(controller_object)
     for binding in bindings:
         property_name = str(binding["property_name"])
-        binding["type_index"] = int(controller_object.get(_binding_meta_key(property_name, "type_index"), binding["type_index"]))
-        binding["transform_index"] = int(controller_object.get(_binding_meta_key(property_name, "transform_index"), binding["transform_index"]))
+        binding["type_index"] = int(_get_binding_meta_value(controller_object, property_name, "type_index", binding["type_index"]))
+        binding["transform_index"] = int(
+            _get_binding_meta_value(controller_object, property_name, "transform_index", binding["transform_index"])
+        )
         binding["timeline_parameter_hash"] = int(
-            controller_object.get(_binding_meta_key(property_name, "timeline_hash"), binding["timeline_parameter_hash"])
+            _get_binding_meta_value(controller_object, property_name, "timeline_hash", binding["timeline_parameter_hash"])
         ) & 0xFFFFFFFF
         binding["datatype_hash"] = int(
-            controller_object.get(_binding_meta_key(property_name, "datatype_hash"), binding["datatype_hash"])
+            _get_binding_meta_value(controller_object, property_name, "datatype_hash", binding["datatype_hash"])
         ) & 0xFFFFFFFF
-        binding["data_type"] = int(controller_object.get(_binding_meta_key(property_name, "data_type"), binding["data_type"]))
+        binding["data_type"] = int(_get_binding_meta_value(controller_object, property_name, "data_type", binding["data_type"]))
         binding["data_type_name"] = timl_data_type_name(int(binding["data_type"]))
         binding["component_labels"] = list(_default_component_labels_for_data_type(int(binding["data_type"])))
         binding["normalized_color"] = int(binding["data_type"]) == 3
@@ -220,7 +342,7 @@ def ensure_timl_header_props(
     controller_object[TIML_HEADER_ANIMATION_LENGTH_KEY] = float(animation_length)
     controller_object[TIML_HEADER_LOOP_START_POINT_KEY] = float(loop_start_point)
     controller_object[TIML_HEADER_LOOP_CONTROL_KEY] = int(loop_control)
-    controller_object[TIML_HEADER_LABEL_HASH_KEY] = int(resolved_label_hash)
+    controller_object[TIML_HEADER_LABEL_HASH_KEY] = _u32_to_blender_int(resolved_label_hash)
 
 
 def timl_header_state_from_controller(controller_object, *, source_lmt: str = "", entry_id: int = 0) -> dict[str, object]:
@@ -251,6 +373,8 @@ def append_timl_binding(
     property_name: str | None = None,
     type_index: int,
     transform_index: int,
+    source_type_index: int | None = None,
+    source_transform_index: int | None = None,
     timeline_parameter_hash: int,
     datatype_hash: int,
     data_type: int,
@@ -260,6 +384,8 @@ def append_timl_binding(
         "property_name": str(property_name or _binding_prop_name_from_identity(type_index, transform_index, timeline_parameter_hash, datatype_hash)),
         "type_index": int(type_index),
         "transform_index": int(transform_index),
+        "source_type_index": None if source_type_index is None else int(source_type_index),
+        "source_transform_index": None if source_transform_index is None else int(source_transform_index),
         "timeline_parameter_hash": int(timeline_parameter_hash) & 0xFFFFFFFF,
         "datatype_hash": int(datatype_hash) & 0xFFFFFFFF,
         "data_type": int(data_type),
@@ -269,11 +395,181 @@ def append_timl_binding(
     }
     bindings.append(binding)
     save_timl_bindings_raw(controller_object, bindings)
+    clear_deleted_timl_identity(
+        controller_object,
+        type_index=int(type_index),
+        transform_index=int(transform_index),
+    )
     property_names = load_timl_property_names(controller_object)
     if binding["property_name"] not in property_names:
         property_names.append(binding["property_name"])
         save_timl_property_names(controller_object, property_names)
     return binding
+
+
+def insert_timl_type_slot(bindings: list[dict[str, object]], *, type_index: int) -> list[dict[str, object]]:
+    target_type_index = int(type_index)
+    updated = []
+    for binding in bindings:
+        item = dict(binding)
+        if int(item.get("type_index", 0) or 0) >= target_type_index:
+            item["type_index"] = int(item.get("type_index", 0) or 0) + 1
+        updated.append(item)
+    return updated
+
+
+def insert_timl_transform_slot(
+    bindings: list[dict[str, object]],
+    *,
+    type_index: int,
+    transform_index: int,
+) -> list[dict[str, object]]:
+    target_type_index = int(type_index)
+    target_transform_index = int(transform_index)
+    updated = []
+    for binding in bindings:
+        item = dict(binding)
+        if int(item.get("type_index", 0) or 0) == target_type_index and int(item.get("transform_index", 0) or 0) >= target_transform_index:
+            item["transform_index"] = int(item.get("transform_index", 0) or 0) + 1
+        updated.append(item)
+    return updated
+
+
+def move_timl_type_bindings(
+    bindings: list[dict[str, object]],
+    *,
+    source_type_index: int,
+    target_type_index: int,
+) -> list[dict[str, object]]:
+    source_type_index = int(source_type_index)
+    target_type_index = int(target_type_index)
+    updated = [dict(binding) for binding in bindings]
+    if source_type_index == target_type_index:
+        return updated
+
+    existing_type_indices = {int(binding.get("type_index", 0) or 0) for binding in bindings}
+    reorder_within_existing = target_type_index in existing_type_indices
+    for item in updated:
+        current_type_index = int(item.get("type_index", 0) or 0)
+        if current_type_index == source_type_index:
+            item["type_index"] = target_type_index
+            continue
+        if not reorder_within_existing:
+            continue
+        if target_type_index > source_type_index and source_type_index < current_type_index <= target_type_index:
+            item["type_index"] = current_type_index - 1
+        elif target_type_index < source_type_index and target_type_index <= current_type_index < source_type_index:
+            item["type_index"] = current_type_index + 1
+    return updated
+
+
+def move_timl_transform_binding(
+    bindings: list[dict[str, object]],
+    *,
+    source_type_index: int,
+    source_transform_index: int,
+    target_type_index: int,
+    target_transform_index: int,
+) -> list[dict[str, object]]:
+    source_type_index = int(source_type_index)
+    source_transform_index = int(source_transform_index)
+    target_type_index = int(target_type_index)
+    target_transform_index = int(target_transform_index)
+
+    moved = None
+    remaining = []
+    for binding in bindings:
+        item = dict(binding)
+        if (
+            int(item.get("type_index", 0) or 0) == source_type_index
+            and int(item.get("transform_index", 0) or 0) == source_transform_index
+            and moved is None
+        ):
+            moved = item
+            continue
+        remaining.append(item)
+    if moved is None:
+        return [dict(binding) for binding in bindings]
+
+    if source_type_index == target_type_index:
+        if source_transform_index == target_transform_index:
+            remaining.append(moved)
+            return remaining
+        for item in remaining:
+            if int(item.get("type_index", 0) or 0) != source_type_index:
+                continue
+            current_transform_index = int(item.get("transform_index", 0) or 0)
+            if target_transform_index > source_transform_index and source_transform_index < current_transform_index <= target_transform_index:
+                item["transform_index"] = current_transform_index - 1
+            elif target_transform_index < source_transform_index and target_transform_index <= current_transform_index < source_transform_index:
+                item["transform_index"] = current_transform_index + 1
+        moved["transform_index"] = target_transform_index
+        remaining.append(moved)
+        return remaining
+
+    for item in remaining:
+        if (
+            int(item.get("type_index", 0) or 0) == source_type_index
+            and int(item.get("transform_index", 0) or 0) > source_transform_index
+        ):
+            item["transform_index"] = int(item.get("transform_index", 0) or 0) - 1
+
+    target_has_existing = any(int(item.get("type_index", 0) or 0) == target_type_index for item in remaining)
+    if target_has_existing:
+        for item in remaining:
+            if (
+                int(item.get("type_index", 0) or 0) == target_type_index
+                and int(item.get("transform_index", 0) or 0) >= target_transform_index
+            ):
+                item["transform_index"] = int(item.get("transform_index", 0) or 0) + 1
+
+    moved["type_index"] = target_type_index
+    moved["transform_index"] = target_transform_index
+    remaining.append(moved)
+    return remaining
+
+
+def delete_timl_type_bindings(
+    bindings: list[dict[str, object]],
+    *,
+    type_index: int,
+) -> tuple[list[dict[str, object]], tuple[str, ...]]:
+    target_type_index = int(type_index)
+    removed_property_names: list[str] = []
+    updated = []
+    for binding in bindings:
+        item = dict(binding)
+        current_type_index = int(item.get("type_index", 0) or 0)
+        if current_type_index == target_type_index:
+            removed_property_names.append(str(item.get("property_name", "") or ""))
+            continue
+        if current_type_index > target_type_index:
+            item["type_index"] = current_type_index - 1
+        updated.append(item)
+    return updated, tuple(name for name in removed_property_names if name)
+
+
+def delete_timl_transform_binding(
+    bindings: list[dict[str, object]],
+    *,
+    type_index: int,
+    transform_index: int,
+) -> tuple[list[dict[str, object]], dict[str, object] | None]:
+    target_type_index = int(type_index)
+    target_transform_index = int(transform_index)
+    removed = None
+    updated = []
+    for binding in bindings:
+        item = dict(binding)
+        current_type_index = int(item.get("type_index", 0) or 0)
+        current_transform_index = int(item.get("transform_index", 0) or 0)
+        if current_type_index == target_type_index and current_transform_index == target_transform_index and removed is None:
+            removed = item
+            continue
+        if current_type_index == target_type_index and current_transform_index > target_transform_index:
+            item["transform_index"] = current_transform_index - 1
+        updated.append(item)
+    return updated, removed
 
 
 def remove_timl_binding(controller_object, property_name: str) -> None:
@@ -349,6 +645,23 @@ def clone_binding_preview_fcurves(action, *, source_property_name: str, target_p
             target_point.co = tuple(point.co)
             target_point.interpolation = str(getattr(point, "interpolation", "LINEAR") or "LINEAR")
         target_fcurve.update()
+
+
+def retag_binding_preview_fcurve_groups(action, bindings) -> None:
+    expected_groups = {
+        f'["{str(binding.get("property_name", "") or "")}"]': (
+            f"TIML {int(binding.get('type_index', 0) or 0):02d}:{int(binding.get('transform_index', 0) or 0):02d}"
+        )
+        for binding in bindings
+        if str(binding.get("property_name", "") or "")
+    }
+    for fcurve in getattr(action, "fcurves", ()):
+        group_name = expected_groups.get(str(getattr(fcurve, "data_path", "") or ""))
+        if not group_name:
+            continue
+        group = getattr(fcurve, "group", None)
+        if group is not None:
+            group.name = group_name
 
 
 def remove_binding_preview_fcurves(action, property_name: str) -> None:

@@ -7,15 +7,17 @@ from dataclasses import field
 import math
 
 try:
-    from ..core.formats.timl.embedded_writer import preserved_source_curve_identities
+    from ..core.formats.timl.embedded_writer import can_preserve_source_curve_semantics
     from ..core.formats.timl.reader import read_timl_data_bytes
+    from .timl_authoring import load_deleted_timl_identities
     from .timl_authoring import timl_header_state_from_controller
     from .timl_metadata import TIML_IMPORTED_PREVIEW_SIGNATURE_KEY
     from .timl_preview_state import diff_sampled_transforms_from_imported_signature
     from .timl_sampling import sample_timl_controller_action
 except ImportError:  # pragma: no cover - test runner imports from addon root
-    from core.formats.timl.embedded_writer import preserved_source_curve_identities
+    from core.formats.timl.embedded_writer import can_preserve_source_curve_semantics
     from core.formats.timl.reader import read_timl_data_bytes
+    from blender_adapter.timl_authoring import load_deleted_timl_identities
     from blender_adapter.timl_authoring import timl_header_state_from_controller
     from blender_adapter.timl_metadata import TIML_IMPORTED_PREVIEW_SIGNATURE_KEY
     from blender_adapter.timl_preview_state import diff_sampled_transforms_from_imported_signature
@@ -43,6 +45,8 @@ class TimlTransformWritebackPlan:
     status: str
     data_type: int
     source_advanced: bool
+    timeline_parameter_hash: int = 0
+    datatype_hash: int = 0
     reason: str = ""
 
     @property
@@ -55,6 +59,7 @@ class TimlControllerWritebackPlan:
     source_entry: object | None = None
     sampled_result: object | None = None
     transform_plans: tuple[TimlTransformWritebackPlan, ...] = ()
+    deleted_identities: tuple[tuple[int, int], ...] = ()
     diagnostics: list[TimlWritebackPlanDiagnostic] = field(default_factory=list)
 
     def add(self, level: str, source: str, message: str):
@@ -81,6 +86,15 @@ class TimlControllerWritebackPlan:
             transform
             for transform in getattr(self.sampled_result, "sampled_transforms", ())
             if (int(transform.type_index), int(transform.transform_index)) in planned_identities
+        )
+
+    @property
+    def has_writable_changes(self) -> bool:
+        if self.deleted_identities:
+            return True
+        return any(
+            item.status in {"patch_source_values", "rewrite_preview"}
+            for item in self.transform_plans
         )
 
 
@@ -222,12 +236,12 @@ def _source_entry_has_no_transforms(source_entry) -> bool:
     return not any(getattr(type_entry, "transforms", ()) for type_entry in getattr(source_entry, "types", ()))
 
 
-def _validate_new_payload_structure(sampled_transforms) -> str:
-    if not sampled_transforms:
+def _validate_identity_structure(identities) -> str:
+    if not identities:
         return ""
     grouped: dict[int, set[int]] = {}
-    for sampled_transform in sampled_transforms:
-        grouped.setdefault(int(sampled_transform.type_index), set()).add(int(sampled_transform.transform_index))
+    for type_index, transform_index in identities:
+        grouped.setdefault(int(type_index), set()).add(int(transform_index))
     ordered_type_indices = sorted(grouped)
     if ordered_type_indices != list(range(len(ordered_type_indices))):
         return "type_index_layout"
@@ -238,12 +252,40 @@ def _validate_new_payload_structure(sampled_transforms) -> str:
     return ""
 
 
+def _validate_new_payload_structure(sampled_transforms) -> str:
+    return _validate_identity_structure(
+        (
+            (int(sampled_transform.type_index), int(sampled_transform.transform_index))
+            for sampled_transform in sampled_transforms
+        )
+    )
+
+
 def _validate_new_payload_structure_message(reason: str) -> str:
     if reason == "type_index_layout":
         return "new TIML payloads currently require contiguous type indices starting at 00"
     if reason == "transform_index_layout":
         return "new TIML payloads currently require contiguous transform indices within each type"
     return "new TIML payload structure is not writable"
+
+
+def _source_identity_map(source_entry) -> dict[tuple[int, int], tuple[object, object]]:
+    return {
+        (int(type_index), int(transform_index)): (type_entry, transform)
+        for type_index, type_entry in enumerate(source_entry.types)
+        for transform_index, transform in enumerate(type_entry.transforms)
+    }
+
+
+def _sampled_transform_source_identity(sampled_transform, source_map) -> tuple[int, int] | None:
+    source_type_index = getattr(sampled_transform, "source_type_index", None)
+    source_transform_index = getattr(sampled_transform, "source_transform_index", None)
+    if source_type_index is None or source_transform_index is None:
+        return None
+    identity = (int(source_type_index), int(source_transform_index))
+    if identity not in source_map:
+        return None
+    return identity
 
 
 def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, source_name: str, entry_id: int, source_offset: int):
@@ -274,11 +316,55 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
         entry_id=int(entry_id),
     )
     plan.source_entry = source_entry
+    deleted_identities = set(load_deleted_timl_identities(controller_object))
     sampled_map = {
         (int(transform.type_index), int(transform.transform_index)): transform
         for transform in sampled.sampled_transforms
     }
+    source_map = _source_identity_map(source_entry)
+    deleted_identities = {
+        identity
+        for identity in deleted_identities
+        if identity in source_map
+    }
+    plan.deleted_identities = tuple(sorted(deleted_identities))
     advanced_identities = _advanced_source_transform_identities(source_entry)
+
+    source_identity_by_current: dict[tuple[int, int], tuple[int, int]] = {}
+    claimed_source_identities: set[tuple[int, int]] = set()
+    duplicate_source_identities: set[tuple[int, int]] = set()
+    for current_identity, sampled_transform in sampled_map.items():
+        source_identity = _sampled_transform_source_identity(sampled_transform, source_map)
+        if source_identity is None:
+            continue
+        if source_identity in claimed_source_identities:
+            duplicate_source_identities.add(source_identity)
+            continue
+        claimed_source_identities.add(source_identity)
+        source_identity_by_current[current_identity] = source_identity
+    if duplicate_source_identities:
+        duplicate_labels = ", ".join(
+            f"{type_index:02d}:{transform_index:02d}"
+            for type_index, transform_index in sorted(duplicate_source_identities)
+        )
+        plan.add(
+            "ERROR",
+            "timl.writeback",
+            f"TIML controller contains multiple preview bindings for the same source transform identity: {duplicate_labels}.",
+        )
+        return plan
+    for current_identity in sorted(sampled_map):
+        if current_identity in source_identity_by_current:
+            continue
+        if current_identity in deleted_identities:
+            continue
+        if current_identity not in source_map:
+            continue
+        if current_identity in claimed_source_identities:
+            continue
+        claimed_source_identities.add(current_identity)
+        source_identity_by_current[current_identity] = current_identity
+
     diff = diff_sampled_transforms_from_imported_signature(
         _safe_get(controller_object, TIML_IMPORTED_PREVIEW_SIGNATURE_KEY, ""),
         sampled.sampled_transforms,
@@ -290,16 +376,25 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
             "TIML controller is missing imported preview signature metadata; merge export will treat all analyzable transforms as edited.",
         )
         changed_identities = set(sampled_map)
+        unresolved_missing_identities: tuple[tuple[int, int], ...] = ()
     else:
         changed_identities = set(diff.edited_identities)
-        if diff.missing_identities:
-            missing_labels = ", ".join(f"{type_index:02d}:{transform_index:02d}" for type_index, transform_index in diff.missing_identities)
+        unresolved_missing_identities = tuple(
+            identity
+            for identity in diff.missing_identities
+            if identity not in claimed_source_identities and identity not in deleted_identities
+        )
+        if unresolved_missing_identities:
+            missing_labels = ", ".join(
+                f"{type_index:02d}:{transform_index:02d}"
+                for type_index, transform_index in unresolved_missing_identities
+            )
             plan.add(
                 "WARNING",
                 "timl.writeback",
                 f"TIML controller is missing preview curves for source transform(s) {missing_labels}; merge export will preserve their original source data.",
             )
-        if not changed_identities:
+        if not changed_identities and not deleted_identities:
             action_name = ""
             if getattr(sampled, "metadata", None) is not None:
                 action_name = str(getattr(sampled.metadata, "action_name", "") or "")
@@ -308,11 +403,6 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
                 "timl.writeback",
                 f"TIML controller '{action_name}' is unchanged; merge export will preserve the original embedded TIML payload.",
             )
-
-    preserved_patch_identities = preserved_source_curve_identities(
-        source_entry,
-        tuple(sampled_map[identity] for identity in changed_identities if identity in sampled_map),
-    )
 
     if _source_entry_has_no_transforms(source_entry):
         if not sampled_map:
@@ -329,6 +419,8 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
                         status="unsupported_rebuild",
                         data_type=int(sampled_transform.data_type),
                         source_advanced=False,
+                        timeline_parameter_hash=int(sampled_transform.timeline_parameter_hash),
+                        datatype_hash=int(sampled_transform.datatype_hash),
                         reason=structure_reason,
                     )
                 )
@@ -342,6 +434,8 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
                         status="unsupported_rebuild",
                         data_type=int(sampled_transform.data_type),
                         source_advanced=False,
+                        timeline_parameter_hash=int(sampled_transform.timeline_parameter_hash),
+                        datatype_hash=int(sampled_transform.datatype_hash),
                         reason=value_block_reason,
                     )
                 )
@@ -364,6 +458,8 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
                         status="unsupported_rebuild",
                         data_type=int(sampled_transform.data_type),
                         source_advanced=False,
+                        timeline_parameter_hash=int(sampled_transform.timeline_parameter_hash),
+                        datatype_hash=int(sampled_transform.datatype_hash),
                         reason="unsupported_interpolation",
                     )
                 )
@@ -381,6 +477,8 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
                     status="rewrite_preview",
                     data_type=int(sampled_transform.data_type),
                     source_advanced=False,
+                    timeline_parameter_hash=int(sampled_transform.timeline_parameter_hash),
+                    datatype_hash=int(sampled_transform.datatype_hash),
                 )
             )
         plan.transform_plans = tuple(transform_plans)
@@ -398,44 +496,118 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
             )
         return plan
 
+    preserved_source_identities = tuple(
+        identity
+        for identity in sorted(source_map)
+        if identity not in deleted_identities and identity not in claimed_source_identities
+    )
+    final_identities = set(sampled_map) | set(preserved_source_identities)
+    structure_reason = _validate_identity_structure(final_identities)
+
     transform_plans: list[TimlTransformWritebackPlan] = []
-    for type_index, type_entry in enumerate(source_entry.types):
-        for transform_index, source_transform in enumerate(type_entry.transforms):
-            identity = (int(type_index), int(transform_index))
-            sampled_transform = sampled_map.get(identity)
-            source_advanced = identity in advanced_identities
-            if identity not in changed_identities:
-                transform_plans.append(
-                    TimlTransformWritebackPlan(
-                        type_index=type_index,
-                        transform_index=transform_index,
-                        status="preserve_raw",
-                        data_type=int(source_transform.data_type),
-                        source_advanced=source_advanced,
-                    )
+    if structure_reason:
+        for identity in preserved_source_identities:
+            source_type, source_transform = source_map[identity]
+            transform_plans.append(
+                TimlTransformWritebackPlan(
+                    type_index=int(identity[0]),
+                    transform_index=int(identity[1]),
+                    status="preserve_raw",
+                    data_type=int(source_transform.data_type),
+                    source_advanced=identity in advanced_identities,
+                    timeline_parameter_hash=int(source_type.timeline_parameter_hash),
+                    datatype_hash=int(source_transform.datatype_hash),
+                    reason="missing_sampled_transform" if identity in unresolved_missing_identities else "",
                 )
-                continue
-            if sampled_transform is None:
-                transform_plans.append(
-                    TimlTransformWritebackPlan(
-                        type_index=type_index,
-                        transform_index=transform_index,
-                        status="preserve_raw",
-                        data_type=int(source_transform.data_type),
-                        source_advanced=source_advanced,
-                        reason="missing_sampled_transform",
-                    )
+            )
+        for identity in sorted(sampled_map):
+            sampled_transform = sampled_map[identity]
+            transform_plans.append(
+                TimlTransformWritebackPlan(
+                    type_index=int(sampled_transform.type_index),
+                    transform_index=int(sampled_transform.transform_index),
+                    status="unsupported_rebuild",
+                    data_type=int(sampled_transform.data_type),
+                    source_advanced=bool(
+                        source_identity_by_current.get(identity) in advanced_identities
+                    ),
+                    timeline_parameter_hash=int(sampled_transform.timeline_parameter_hash),
+                    datatype_hash=int(sampled_transform.datatype_hash),
+                    reason=structure_reason,
                 )
-                continue
-            mismatch_reason = _sampled_source_mismatch_reason(type_entry, source_transform, sampled_transform)
+            )
+        for identity in sorted(deleted_identities):
+            source_type, source_transform = source_map[identity]
+            transform_plans.append(
+                TimlTransformWritebackPlan(
+                    type_index=int(identity[0]),
+                    transform_index=int(identity[1]),
+                    status="unsupported_rebuild",
+                    data_type=int(source_transform.data_type),
+                    source_advanced=identity in advanced_identities,
+                    timeline_parameter_hash=int(source_type.timeline_parameter_hash),
+                    datatype_hash=int(source_transform.datatype_hash),
+                    reason=structure_reason,
+                )
+            )
+        plan.transform_plans = tuple(transform_plans)
+        plan.add(
+            "ERROR",
+            "timl.writeback",
+            _validate_new_payload_structure_message(structure_reason),
+        )
+        return plan
+
+    for identity in preserved_source_identities:
+        source_type, source_transform = source_map[identity]
+        transform_plans.append(
+            TimlTransformWritebackPlan(
+                type_index=int(identity[0]),
+                transform_index=int(identity[1]),
+                status="preserve_raw",
+                data_type=int(source_transform.data_type),
+                source_advanced=identity in advanced_identities,
+                timeline_parameter_hash=int(source_type.timeline_parameter_hash),
+                datatype_hash=int(source_transform.datatype_hash),
+                reason="missing_sampled_transform" if identity in unresolved_missing_identities else "",
+            )
+        )
+
+    for identity in sorted(sampled_map):
+        sampled_transform = sampled_map[identity]
+        source_identity = source_identity_by_current.get(identity)
+        source_pair = source_map.get(source_identity) if source_identity is not None else None
+        source_type = source_pair[0] if source_pair is not None else None
+        source_transform = source_pair[1] if source_pair is not None else None
+        source_advanced = source_identity in advanced_identities if source_identity is not None else False
+
+        if source_identity is not None and identity == source_identity and identity not in changed_identities:
+            transform_plans.append(
+                TimlTransformWritebackPlan(
+                    type_index=int(identity[0]),
+                    transform_index=int(identity[1]),
+                    status="preserve_raw",
+                    data_type=int(source_transform.data_type),
+                    source_advanced=source_advanced,
+                    timeline_parameter_hash=int(source_type.timeline_parameter_hash),
+                    datatype_hash=int(source_transform.datatype_hash),
+                )
+            )
+            continue
+
+        mismatch_reason = ""
+        if source_transform is not None:
+            mismatch_reason = _sampled_source_mismatch_reason(source_type, source_transform, sampled_transform)
             if mismatch_reason:
                 transform_plans.append(
                     TimlTransformWritebackPlan(
-                        type_index=type_index,
-                        transform_index=transform_index,
+                        type_index=int(identity[0]),
+                        transform_index=int(identity[1]),
                         status="unsupported_rebuild",
                         data_type=int(source_transform.data_type),
                         source_advanced=source_advanced,
+                        timeline_parameter_hash=int(source_type.timeline_parameter_hash),
+                        datatype_hash=int(source_transform.datatype_hash),
                         reason=mismatch_reason,
                     )
                 )
@@ -444,96 +616,110 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
                     "timl.writeback",
                     "TIML transform %02d:%02d binding metadata no longer matches the imported source payload: %s."
                     % (
-                        int(type_index),
-                        int(transform_index),
+                        int(identity[0]),
+                        int(identity[1]),
                         _sampled_source_mismatch_message(
                             mismatch_reason,
-                            source_type=type_entry,
+                            source_type=source_type,
                             source_transform=source_transform,
                             sampled_transform=sampled_transform,
                         ),
                     ),
                 )
                 continue
-            value_block_reason = _sampled_transform_writeback_block_reason(sampled_transform)
-            if value_block_reason:
-                transform_plans.append(
-                    TimlTransformWritebackPlan(
-                        type_index=type_index,
-                        transform_index=transform_index,
-                        status="unsupported_rebuild",
-                        data_type=int(source_transform.data_type),
-                        source_advanced=source_advanced,
-                        reason=value_block_reason,
-                    )
-                )
-                plan.add(
-                    "ERROR",
-                    "timl.writeback",
-                    "TIML transform %02d:%02d cannot be written safely because %s."
-                    % (
-                        int(type_index),
-                        int(transform_index),
-                        _sampled_transform_writeback_block_message(value_block_reason),
-                    ),
-                )
-                continue
-            if identity in preserved_patch_identities:
-                transform_plans.append(
-                    TimlTransformWritebackPlan(
-                        type_index=type_index,
-                        transform_index=transform_index,
-                        status="patch_source_values",
-                        data_type=int(source_transform.data_type),
-                        source_advanced=source_advanced,
-                    )
-                )
-                continue
-            # Most real embedded TIML transforms use source-only easing/interpolation
-            # semantics Blender preview curves cannot reconstruct faithfully. Once the
-            # keyed structure changes, a rebuild would silently flatten or alter those
-            # source semantics, so keep advanced-source transforms value-patch only.
-            if source_advanced:
-                transform_plans.append(
-                    TimlTransformWritebackPlan(
-                        type_index=type_index,
-                        transform_index=transform_index,
-                        status="unsupported_rebuild",
-                        data_type=int(source_transform.data_type),
-                        source_advanced=source_advanced,
-                        reason="advanced_source_rebuild",
-                    )
-                )
-                continue
-            if _has_unsupported_rebuild_interpolation(sampled_transform):
-                transform_plans.append(
-                    TimlTransformWritebackPlan(
-                        type_index=type_index,
-                        transform_index=transform_index,
-                        status="unsupported_rebuild",
-                        data_type=int(source_transform.data_type),
-                        source_advanced=source_advanced,
-                        reason="unsupported_interpolation",
-                    )
-                )
-                continue
+
+        value_block_reason = _sampled_transform_writeback_block_reason(sampled_transform)
+        if value_block_reason:
             transform_plans.append(
                 TimlTransformWritebackPlan(
-                    type_index=type_index,
-                    transform_index=transform_index,
-                    status="rewrite_preview",
-                    data_type=int(source_transform.data_type),
+                    type_index=int(identity[0]),
+                    transform_index=int(identity[1]),
+                    status="unsupported_rebuild",
+                    data_type=int(source_transform.data_type) if source_transform is not None else int(sampled_transform.data_type),
                     source_advanced=source_advanced,
+                    timeline_parameter_hash=int(source_type.timeline_parameter_hash)
+                    if source_type is not None
+                    else int(sampled_transform.timeline_parameter_hash),
+                    datatype_hash=int(source_transform.datatype_hash)
+                    if source_transform is not None
+                    else int(sampled_transform.datatype_hash),
+                    reason=value_block_reason,
                 )
             )
+            plan.add(
+                "ERROR",
+                "timl.writeback",
+                "TIML transform %02d:%02d cannot be written safely because %s."
+                % (
+                    int(identity[0]),
+                    int(identity[1]),
+                    _sampled_transform_writeback_block_message(value_block_reason),
+                ),
+            )
+            continue
 
-    extra_identities = sorted(set(sampled_map) - {plan_item.identity for plan_item in transform_plans})
-    if extra_identities:
-        extra_labels = ", ".join(f"{type_index:02d}:{transform_index:02d}" for type_index, transform_index in extra_identities)
-        plan.add(
-            "ERROR",
-            "timl.writeback",
-            f"TIML controller contains sampled transforms not present in the source payload: {extra_labels}.",
+        if source_transform is not None and can_preserve_source_curve_semantics(source_transform, sampled_transform):
+            transform_plans.append(
+                TimlTransformWritebackPlan(
+                    type_index=int(identity[0]),
+                    transform_index=int(identity[1]),
+                    status="patch_source_values",
+                    data_type=int(source_transform.data_type),
+                    source_advanced=source_advanced,
+                    timeline_parameter_hash=int(source_type.timeline_parameter_hash),
+                    datatype_hash=int(source_transform.datatype_hash),
+                )
+            )
+            continue
+
+        if source_advanced:
+            transform_plans.append(
+                TimlTransformWritebackPlan(
+                    type_index=int(identity[0]),
+                    transform_index=int(identity[1]),
+                    status="unsupported_rebuild",
+                    data_type=int(source_transform.data_type),
+                    source_advanced=source_advanced,
+                    timeline_parameter_hash=int(source_type.timeline_parameter_hash),
+                    datatype_hash=int(source_transform.datatype_hash),
+                    reason="advanced_source_rebuild",
+                )
+            )
+            continue
+
+        if _has_unsupported_rebuild_interpolation(sampled_transform):
+            transform_plans.append(
+                TimlTransformWritebackPlan(
+                    type_index=int(identity[0]),
+                    transform_index=int(identity[1]),
+                    status="unsupported_rebuild",
+                    data_type=int(source_transform.data_type) if source_transform is not None else int(sampled_transform.data_type),
+                    source_advanced=source_advanced,
+                    timeline_parameter_hash=int(source_type.timeline_parameter_hash)
+                    if source_type is not None
+                    else int(sampled_transform.timeline_parameter_hash),
+                    datatype_hash=int(source_transform.datatype_hash)
+                    if source_transform is not None
+                    else int(sampled_transform.datatype_hash),
+                    reason="unsupported_interpolation",
+                )
+            )
+            continue
+
+        transform_plans.append(
+            TimlTransformWritebackPlan(
+                type_index=int(identity[0]),
+                transform_index=int(identity[1]),
+                status="rewrite_preview",
+                data_type=int(source_transform.data_type) if source_transform is not None else int(sampled_transform.data_type),
+                source_advanced=source_advanced,
+                timeline_parameter_hash=int(source_type.timeline_parameter_hash)
+                if source_type is not None
+                else int(sampled_transform.timeline_parameter_hash),
+                datatype_hash=int(source_transform.datatype_hash)
+                if source_transform is not None
+                else int(sampled_transform.datatype_hash),
+            )
         )
 
     plan.transform_plans = tuple(transform_plans)
@@ -571,6 +757,13 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
             "Edited TIML transform(s) %s changed keyframe structure, but their source payload uses advanced interpolation/easing semantics. "
             "Structural rebuild is blocked for now; keep advanced-source edits value-only."
             % _unsupported_labels(blocked_advanced_rebuild, status="unsupported_rebuild"),
+        )
+    if deleted_identities:
+        deleted_labels = ", ".join(f"{type_index:02d}:{transform_index:02d}" for type_index, transform_index in sorted(deleted_identities))
+        plan.add(
+            "INFO",
+            "timl.writeback",
+            f"TIML source transform(s) {deleted_labels} will be omitted from the rebuilt payload.",
         )
     unsupported_interpolation = tuple(item for item in unsupported if item.reason == "unsupported_interpolation")
     if unsupported_interpolation:

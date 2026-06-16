@@ -44,7 +44,17 @@ def timl_writeback_status_icon(status: str) -> str:
 def timl_edit_policy_code(*, source_advanced: bool = False, status: str = "", reason: str = "") -> str:
     status = str(status or "")
     reason = str(reason or "")
-    if status == "unsupported_rebuild" and reason.endswith("_mismatch"):
+    if status == "preserve_raw" and reason == "missing_sampled_transform":
+        return "blocked"
+    if status == "unsupported_rebuild" and (
+        reason.endswith("_mismatch")
+        or reason in {
+            "extra_sampled_transform",
+            "deleted_source_transform",
+            "type_index_layout",
+            "transform_index_layout",
+        }
+    ):
         return "blocked"
     return "value_only" if source_advanced else "rebuild_capable"
 
@@ -57,8 +67,9 @@ def timl_edit_policy_icon(policy: str) -> str:
     return TIML_EDIT_POLICY_ICONS.get(str(policy or ""), "INFO")
 
 
-def timl_edit_policy_reason_label(policy: str) -> str:
+def timl_edit_policy_reason_label(policy: str, *, reason: str = "") -> str:
     policy = str(policy or "")
+    reason = str(reason or "")
     if policy == "value_only":
         return (
             "This transform comes from source-only easing/interpolation semantics, "
@@ -70,6 +81,26 @@ def timl_edit_policy_reason_label(policy: str) -> str:
             "be rebuilt from Blender preview keys when needed."
         )
     if policy == "blocked":
+        if reason == "missing_sampled_transform":
+            return (
+                "This source transform no longer has a sampled preview binding, "
+                "so raw source data will be preserved until the preview binding is recreated."
+            )
+        if reason == "extra_sampled_transform":
+            return (
+                "This transform was added in Blender, but the surrounding raw TIML "
+                "layout still needs to be made contiguous before export can rebuild it safely."
+            )
+        if reason == "deleted_source_transform":
+            return (
+                "This source transform is explicitly marked for deletion, but the "
+                "remaining raw TIML layout is still not contiguous enough to rebuild safely."
+            )
+        if reason in {"type_index_layout", "transform_index_layout"}:
+            return (
+                "The current raw TIML layout has index gaps or collisions. Reindex the "
+                "remaining types/transforms into one contiguous layout before exporting."
+            )
         return (
             "This controller no longer matches the imported source transform "
             "metadata, so writeback is blocked until it is reimported."
@@ -97,6 +128,14 @@ def timl_writeback_reason_label(status: str, *, reason: str = "", source_advance
     if status == "unsupported_rebuild":
         if reason.endswith("_mismatch"):
             return "Controller binding metadata no longer matches the imported TIML source transform, so export is blocked."
+        if reason == "extra_sampled_transform":
+            return "This added transform is fine in principle, but export is blocked until the final raw TIML indices are contiguous."
+        if reason == "deleted_source_transform":
+            return "This source transform is marked for deletion, but export is blocked until the final raw TIML indices are contiguous."
+        if reason == "type_index_layout":
+            return "Type indices are not contiguous from 00 in the final raw TIML layout, so export is blocked until they are reindexed."
+        if reason == "transform_index_layout":
+            return "Transform indices are not contiguous inside one or more TIML types, so export is blocked until they are reindexed."
         if reason == "advanced_source_rebuild":
             return "This transform uses source-only easing/interpolation semantics, so structural edits are blocked for now. Value-only edits remain safe."
         if reason == "integer_off_grid":
