@@ -12,6 +12,10 @@ from types import SimpleNamespace
 
 import bpy
 
+from .timl_authoring import ensure_timl_header_props
+from .timl_authoring import load_timl_property_names
+from .timl_authoring import save_timl_bindings_raw
+from .timl_authoring import save_timl_property_names
 from ..core.formats.timl.channels import build_timl_transform_samples
 from ..core.formats.timl.reader import read_timl_data_bytes
 from ..core.formats.timl.semantics import format_datatype_hash_label
@@ -23,7 +27,14 @@ from .fcurves import ensure_action
 from .fcurves import ensure_object_animation_data
 from .timl_metadata import TIML_ACTION_NAME_KEY
 from .timl_metadata import TIML_BINDINGS_KEY
+from .timl_metadata import TIML_BINDING_META_PREFIX
 from .timl_metadata import TIML_ENTRY_ID_KEY
+from .timl_metadata import TIML_HEADER_ANIMATION_LENGTH_KEY
+from .timl_metadata import TIML_HEADER_DATA_INDEX_A_KEY
+from .timl_metadata import TIML_HEADER_DATA_INDEX_B_KEY
+from .timl_metadata import TIML_HEADER_LABEL_HASH_KEY
+from .timl_metadata import TIML_HEADER_LOOP_CONTROL_KEY
+from .timl_metadata import TIML_HEADER_LOOP_START_POINT_KEY
 from .timl_metadata import TIML_IMPORTED_PREVIEW_SIGNATURE_KEY
 from .timl_metadata import TIML_PROPERTY_LIST_KEY
 from .timl_preview_state import imported_preview_signature_json
@@ -129,9 +140,22 @@ def _load_json_list(raw_value) -> list[str]:
 
 
 def _clear_timl_carrier_properties(carrier):
-    for prop_name in _load_json_list(carrier.get(TIML_PROPERTY_LIST_KEY, "")):
+    for prop_name in load_timl_property_names(carrier):
         if prop_name in carrier:
             del carrier[prop_name]
+    for meta_key in list(carrier.keys()):
+        if str(meta_key).startswith(TIML_BINDING_META_PREFIX):
+            del carrier[meta_key]
+    for header_key in (
+        TIML_HEADER_DATA_INDEX_A_KEY,
+        TIML_HEADER_DATA_INDEX_B_KEY,
+        TIML_HEADER_ANIMATION_LENGTH_KEY,
+        TIML_HEADER_LOOP_START_POINT_KEY,
+        TIML_HEADER_LOOP_CONTROL_KEY,
+        TIML_HEADER_LABEL_HASH_KEY,
+    ):
+        if header_key in carrier:
+            del carrier[header_key]
     if TIML_PROPERTY_LIST_KEY in carrier:
         del carrier[TIML_PROPERTY_LIST_KEY]
     if TIML_BINDINGS_KEY in carrier:
@@ -329,13 +353,24 @@ def seed_eventloop_template_on_controller(
             interpolations=channel_interpolations[0],
         )
 
-    controller[TIML_PROPERTY_LIST_KEY] = json.dumps(property_names)
-    controller[TIML_BINDINGS_KEY] = json.dumps(bindings, separators=(",", ":"))
+    save_timl_property_names(controller, property_names)
+    save_timl_bindings_raw(controller, bindings)
     controller[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY] = imported_preview_signature_json(())
     controller[TIML_SOURCE_LMT_KEY] = source_path
     controller[TIML_ENTRY_ID_KEY] = int(entry_id)
     controller[TIML_SOURCE_OFFSET_KEY] = int(source_offset)
     controller[TIML_ACTION_NAME_KEY] = blender_action.name
+    ensure_timl_header_props(
+        controller,
+        source_lmt=source_path,
+        entry_id=int(entry_id),
+        data_index_a=int(template_header.data_index_a),
+        data_index_b=int(template_header.data_index_b),
+        animation_length=float(template_header.animation_length),
+        loop_start_point=float(template_header.loop_start_point),
+        loop_control=int(template_header.loop_control),
+        label_hash=int(template_header.label_hash),
+    )
     set_timl_template_metadata(
         controller,
         kind=EVENT_LOOP_TEMPLATE_KIND,
@@ -391,17 +426,28 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
     result.carrier_name = carrier.name
 
     if not transform_samples:
-        carrier[TIML_PROPERTY_LIST_KEY] = json.dumps([])
-        carrier[TIML_BINDINGS_KEY] = json.dumps([], separators=(",", ":"))
+        save_timl_property_names(carrier, [])
+        save_timl_bindings_raw(carrier, [])
         carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY] = imported_preview_signature_json(())
         carrier[TIML_SOURCE_LMT_KEY] = source_path
         carrier[TIML_ENTRY_ID_KEY] = int(source_action.id)
         carrier[TIML_SOURCE_OFFSET_KEY] = int(source_action.header.timl_offset)
         carrier[TIML_ACTION_NAME_KEY] = blender_action.name
+        ensure_timl_header_props(
+            carrier,
+            source_lmt=source_path,
+            entry_id=int(source_action.id),
+            data_index_a=int(data_entry.data_index_a),
+            data_index_b=int(data_entry.data_index_b),
+            animation_length=float(data_entry.animation_length),
+            loop_start_point=float(data_entry.loop_start_point),
+            loop_control=int(data_entry.loop_control),
+            label_hash=int(data_entry.label_hash),
+        )
         result.add(
             "WARNING",
             "timl",
-            "Attached TIML container has no transforms yet. Use the TIML workspace to create an EventLoop block.",
+            "Attached TIML container has no transforms yet.",
         )
         return result
 
@@ -501,11 +547,22 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
         result.add("ERROR", "timl", "No supported TIML transforms were imported.")
         return result
 
-    carrier[TIML_PROPERTY_LIST_KEY] = json.dumps(property_names)
-    carrier[TIML_BINDINGS_KEY] = json.dumps(bindings, separators=(",", ":"))
+    save_timl_property_names(carrier, property_names)
+    save_timl_bindings_raw(carrier, bindings)
     carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY] = imported_preview_signature_json(imported_preview_transforms)
     carrier[TIML_SOURCE_LMT_KEY] = source_path
     carrier[TIML_ENTRY_ID_KEY] = int(source_action.id)
     carrier[TIML_SOURCE_OFFSET_KEY] = int(source_action.header.timl_offset)
     carrier[TIML_ACTION_NAME_KEY] = blender_action.name
+    ensure_timl_header_props(
+        carrier,
+        source_lmt=source_path,
+        entry_id=int(source_action.id),
+        data_index_a=int(data_entry.data_index_a),
+        data_index_b=int(data_entry.data_index_b),
+        animation_length=float(data_entry.animation_length),
+        loop_start_point=float(data_entry.loop_start_point),
+        loop_control=int(data_entry.loop_control),
+        label_hash=int(data_entry.label_hash),
+    )
     return result

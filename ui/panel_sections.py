@@ -161,7 +161,6 @@ def _draw_entry_timl_summary(panel_body, scene_props, entry, details):
                 f"on {scene_props.last_imported_timl_object_name}"
             )
         )
-    timl_box.label(text="Deep TIML browsing moves to Properties > TIML Inspector after import.", icon="PROPERTIES")
 
 
 def _draw_entry_binding_summary(details, scene_props, entry):
@@ -313,12 +312,7 @@ def _draw_timl_workflow_section(layout, scene_props):
     analyze_row.operator("mhw_anim_tools.select_timl_controller", icon="RESTRICT_SELECT_OFF", text="Select")
     analyze_row.operator("mhw_anim_tools.analyze_timl_controller", icon="FCURVE", text="Analyze")
     if scene_props.last_imported_timl_action_name and scene_props.last_imported_timl_object_name:
-        panel_body.label(
-            text=(
-                f"Imported: {scene_props.last_imported_timl_action_name} "
-                f"on {scene_props.last_imported_timl_object_name}"
-            )
-        )
+        panel_body.label(text=f"{scene_props.last_imported_timl_action_name} | {scene_props.last_imported_timl_object_name}")
     controller = scene_props.timl_controller
     if controller is None:
         panel_body.label(text="No TIML controller selected yet.", icon="INFO")
@@ -380,7 +374,7 @@ def _draw_timl_workflow_section(layout, scene_props):
                         text=f"{status_label} ({scene_props.last_timl_matching_controller_count})",
                         icon="OUTLINER_OB_EMPTY",
                     )
-    panel_body.label(text="Deep TIML editing now lives in the TIML Workspace panel inside Graph Editor.", icon="GRAPH")
+    panel_body.label(text="Graph Editor workspace")
 
 
 def _draw_diagnostics_section(layout, scene_props):
@@ -486,8 +480,6 @@ def draw_timl_inspector_panel(layout, context):
         return
 
     info_box = layout.box()
-    info_box.label(text="Fallback technical view", icon="INFO")
-    info_box.label(text="Use the TIML Workspace panel in Graph Editor for primary TIML editing.")
     action_row = info_box.row(align=True)
     action_row.scale_y = 1.1
     action_row.operator("mhw_anim_tools.open_timl_workspace", icon="WORKSPACE")

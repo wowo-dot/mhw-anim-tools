@@ -10,6 +10,7 @@ import re
 
 try:
     from ..core.formats.timl.semantics import get_data_type_semantics
+    from .timl_authoring import sync_timl_bindings_from_meta_props
     from .timl_metadata import TIML_ACTION_NAME_KEY
     from .timl_metadata import TIML_BINDINGS_KEY
     from .timl_metadata import TIML_ENTRY_ID_KEY
@@ -17,6 +18,7 @@ try:
     from .timl_metadata import TIML_SOURCE_OFFSET_KEY
 except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.timl.semantics import get_data_type_semantics
+    from blender_adapter.timl_authoring import sync_timl_bindings_from_meta_props
     from blender_adapter.timl_metadata import TIML_ACTION_NAME_KEY
     from blender_adapter.timl_metadata import TIML_BINDINGS_KEY
     from blender_adapter.timl_metadata import TIML_ENTRY_ID_KEY
@@ -368,6 +370,7 @@ def sample_timl_controller_action(controller_object, action=None) -> TimlSamplin
             f"Action '{metadata.action_name}' is not marked as an imported TIML controller action; analysis may be incomplete.",
         )
 
+    sync_timl_bindings_from_meta_props(controller_object)
     bindings = _parse_timl_bindings(controller_object)
     if not bindings:
         if metadata.transform_count == 0:

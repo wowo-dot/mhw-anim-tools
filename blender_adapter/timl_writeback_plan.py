@@ -9,27 +9,17 @@ import math
 try:
     from ..core.formats.timl.embedded_writer import preserved_source_curve_identities
     from ..core.formats.timl.reader import read_timl_data_bytes
+    from .timl_authoring import timl_header_state_from_controller
     from .timl_metadata import TIML_IMPORTED_PREVIEW_SIGNATURE_KEY
     from .timl_preview_state import diff_sampled_transforms_from_imported_signature
     from .timl_sampling import sample_timl_controller_action
-    from .timl_templates import EVENT_LOOP_MFLAG_HASH
-    from .timl_templates import EVENT_LOOP_RELEASE_TIME_A_HASH
-    from .timl_templates import EVENT_LOOP_REQNO_A_HASH
-    from .timl_templates import EVENT_LOOP_TEMPLATE_KIND
-    from .timl_templates import EVENT_LOOP_TIMELINE_HASH
-    from .timl_templates import get_timl_template_kind
 except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.timl.embedded_writer import preserved_source_curve_identities
     from core.formats.timl.reader import read_timl_data_bytes
+    from blender_adapter.timl_authoring import timl_header_state_from_controller
     from blender_adapter.timl_metadata import TIML_IMPORTED_PREVIEW_SIGNATURE_KEY
     from blender_adapter.timl_preview_state import diff_sampled_transforms_from_imported_signature
     from blender_adapter.timl_sampling import sample_timl_controller_action
-    from blender_adapter.timl_templates import EVENT_LOOP_MFLAG_HASH
-    from blender_adapter.timl_templates import EVENT_LOOP_RELEASE_TIME_A_HASH
-    from blender_adapter.timl_templates import EVENT_LOOP_REQNO_A_HASH
-    from blender_adapter.timl_templates import EVENT_LOOP_TEMPLATE_KIND
-    from blender_adapter.timl_templates import EVENT_LOOP_TIMELINE_HASH
-    from blender_adapter.timl_templates import get_timl_template_kind
 
 
 WRITABLE_BLENDER_INTERPOLATIONS = {"CONSTANT", "LINEAR"}
@@ -232,41 +222,28 @@ def _source_entry_has_no_transforms(source_entry) -> bool:
     return not any(getattr(type_entry, "transforms", ()) for type_entry in getattr(source_entry, "types", ()))
 
 
-def _validate_empty_eventloop_template(sampled_transform) -> str:
-    if int(sampled_transform.type_index) != 0:
-        return "type_index"
-    if int(sampled_transform.timeline_parameter_hash) != EVENT_LOOP_TIMELINE_HASH:
-        return "timeline_hash"
-    expected = {
-        0: EVENT_LOOP_REQNO_A_HASH,
-        1: EVENT_LOOP_RELEASE_TIME_A_HASH,
-        2: EVENT_LOOP_MFLAG_HASH,
-    }.get(int(sampled_transform.transform_index))
-    if expected is None:
-        return "transform_index"
-    if int(sampled_transform.datatype_hash) != expected:
-        return "datatype_hash"
-    if int(sampled_transform.data_type) != 1:
-        return "data_type"
-    if int(sampled_transform.component_count) != 1:
-        return "component_count"
+def _validate_new_payload_structure(sampled_transforms) -> str:
+    if not sampled_transforms:
+        return ""
+    grouped: dict[int, set[int]] = {}
+    for sampled_transform in sampled_transforms:
+        grouped.setdefault(int(sampled_transform.type_index), set()).add(int(sampled_transform.transform_index))
+    ordered_type_indices = sorted(grouped)
+    if ordered_type_indices != list(range(len(ordered_type_indices))):
+        return "type_index_layout"
+    for type_index in ordered_type_indices:
+        ordered_transform_indices = sorted(grouped[type_index])
+        if ordered_transform_indices != list(range(len(ordered_transform_indices))):
+            return "transform_index_layout"
     return ""
 
 
-def _validate_empty_eventloop_template_message(reason: str) -> str:
-    if reason == "type_index":
-        return "new EventLoop authoring currently requires type index 00"
-    if reason == "timeline_hash":
-        return "new EventLoop authoring currently requires the EventLoop timeline hash"
-    if reason == "transform_index":
-        return "new EventLoop authoring currently supports only transforms 00..02"
-    if reason == "datatype_hash":
-        return "new EventLoop authoring requires the known ReqNo A / ReleaseTime A / mFlag datatype hashes"
-    if reason == "data_type":
-        return "new EventLoop authoring currently requires uint32 storage for all template fields"
-    if reason == "component_count":
-        return "new EventLoop authoring currently requires scalar fields"
-    return "template metadata mismatch"
+def _validate_new_payload_structure_message(reason: str) -> str:
+    if reason == "type_index_layout":
+        return "new TIML payloads currently require contiguous type indices starting at 00"
+    if reason == "transform_index_layout":
+        return "new TIML payloads currently require contiguous transform indices within each type"
+    return "new TIML payload structure is not writable"
 
 
 def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, source_name: str, entry_id: int, source_offset: int):
@@ -338,42 +315,13 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
     )
 
     if _source_entry_has_no_transforms(source_entry):
-        template_kind = get_timl_template_kind(controller_object)
-        if template_kind != EVENT_LOOP_TEMPLATE_KIND:
-            if sampled_map:
-                plan.add(
-                    "ERROR",
-                    "timl.writeback",
-                    "This attached TIML container is empty. Create a supported TIML template before trying to write new TIML data.",
-                )
+        if not sampled_map:
             return plan
-        expected_eventloop_identities = {(0, 0), (0, 1), (0, 2)}
-        if set(sampled_map) != expected_eventloop_identities:
-            missing = sorted(expected_eventloop_identities - set(sampled_map))
-            extra = sorted(set(sampled_map) - expected_eventloop_identities)
-            details = []
-            if missing:
-                details.append(
-                    "missing "
-                    + ", ".join(f"{type_index:02d}:{transform_index:02d}" for type_index, transform_index in missing)
-                )
-            if extra:
-                details.append(
-                    "extra "
-                    + ", ".join(f"{type_index:02d}:{transform_index:02d}" for type_index, transform_index in extra)
-                )
-            plan.add(
-                "ERROR",
-                "timl.writeback",
-                "Empty EventLoop template currently requires exactly transforms 00:00, 00:01, and 00:02; "
-                + "; ".join(details),
-            )
-            return plan
+        structure_reason = _validate_new_payload_structure(tuple(sampled_map.values()))
         transform_plans: list[TimlTransformWritebackPlan] = []
         for identity in sorted(sampled_map):
             sampled_transform = sampled_map[identity]
-            template_reason = _validate_empty_eventloop_template(sampled_transform)
-            if template_reason:
+            if structure_reason:
                 transform_plans.append(
                     TimlTransformWritebackPlan(
                         type_index=int(sampled_transform.type_index),
@@ -381,18 +329,8 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
                         status="unsupported_rebuild",
                         data_type=int(sampled_transform.data_type),
                         source_advanced=False,
-                        reason=template_reason,
+                        reason=structure_reason,
                     )
-                )
-                plan.add(
-                    "ERROR",
-                    "timl.writeback",
-                    "TIML transform %02d:%02d cannot be written into an empty EventLoop template because %s."
-                    % (
-                        int(sampled_transform.type_index),
-                        int(sampled_transform.transform_index),
-                        _validate_empty_eventloop_template_message(template_reason),
-                    ),
                 )
                 continue
             value_block_reason = _sampled_transform_writeback_block_reason(sampled_transform)
@@ -432,7 +370,7 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
                 plan.add(
                     "ERROR",
                     "timl.writeback",
-                    "TIML transform %02d:%02d uses unsupported preview interpolation for empty-template writeback."
+                    "TIML transform %02d:%02d uses unsupported preview interpolation for empty-container writeback."
                     % (int(sampled_transform.type_index), int(sampled_transform.transform_index)),
                 )
                 continue
@@ -446,11 +384,17 @@ def plan_timl_controller_writeback(controller_object, *, source_bytes: bytes, so
                 )
             )
         plan.transform_plans = tuple(transform_plans)
+        if structure_reason:
+            plan.add(
+                "ERROR",
+                "timl.writeback",
+                _validate_new_payload_structure_message(structure_reason),
+            )
         if sampled_map and not plan.error_count:
             plan.add(
                 "INFO",
                 "timl.writeback",
-                "Empty attached TIML container will be rebuilt as a new EventLoop payload from the current Blender preview curves.",
+                "Empty attached TIML container will be rebuilt from the current controller curves.",
             )
         return plan
 

@@ -280,6 +280,87 @@ class MHWANIMTOOLS_OT_import_selected_attached_timl(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class MHWANIMTOOLS_OT_import_all_attached_timl(bpy.types.Operator):
+    bl_idname = "mhw_anim_tools.import_all_attached_timl"
+    bl_label = "Import All TIML"
+    bl_description = "Import every attached TIML payload from the current LMT session"
+
+    def execute(self, context):
+        scene_props = context.scene.mhw_anim_tools
+        clear_diagnostics(scene_props)
+        scene_props.last_imported_timl_action_name = ""
+        scene_props.last_imported_timl_object_name = ""
+        if not scene_props.last_lmt_path:
+            scene_props.last_status = "Inspect an LMT file before importing attached TIML."
+            add_diagnostic(scene_props, "ERROR", "session", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        if not scene_props.lmt_entries:
+            scene_props.last_status = "No LMT entries are loaded in the current session."
+            add_diagnostic(scene_props, "ERROR", "session", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        source_bytes = Path(scene_props.last_lmt_path).read_bytes()
+        lmt = read_lmt_bytes(source_bytes, source_name=scene_props.last_lmt_path)
+        imported_count = 0
+        skipped_count = 0
+        warning_count = 0
+        frame_end = 0
+        last_result = None
+
+        for entry_index, entry in enumerate(scene_props.lmt_entries):
+            if not entry.has_timl:
+                continue
+            if entry.timl_parse_error:
+                skipped_count += 1
+                add_diagnostic(
+                    scene_props,
+                    "WARNING",
+                    "timl",
+                    f"Entry {entry.entry_id:03d} attached TIML could not be parsed: {entry.timl_parse_error}",
+                )
+                continue
+            result = import_attached_timl_to_action(
+                lmt,
+                entry_index,
+                source_path=scene_props.last_lmt_path,
+                source_bytes=source_bytes,
+                target_armature=scene_props.target_armature,
+            )
+            for diagnostic in result.diagnostics:
+                add_diagnostic(scene_props, diagnostic.level, diagnostic.source, diagnostic.message)
+            warning_count += result.warning_count
+            if result.error_count:
+                skipped_count += 1
+                continue
+            imported_count += 1
+            frame_end = max(frame_end, int(result.frame_end))
+            last_result = result
+
+        if frame_end:
+            context.scene.frame_start = min(int(context.scene.frame_start), 0)
+            context.scene.frame_end = max(int(context.scene.frame_end), frame_end)
+
+        if last_result is not None:
+            scene_props.last_imported_timl_action_name = last_result.action_name
+            scene_props.last_imported_timl_object_name = last_result.carrier_name
+            scene_props.timl_controller = bpy.data.objects.get(last_result.carrier_name)
+            clear_timl_analysis(scene_props)
+
+        if imported_count <= 0:
+            scene_props.last_status = "No attached TIML payloads were imported."
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        scene_props.last_status = (
+            f"Imported {imported_count} attached TIML payload(s); "
+            f"skipped={skipped_count}, warnings={warning_count}"
+        )
+        self.report({"INFO"}, scene_props.last_status)
+        return {"FINISHED"}
+
+
 class MHWANIMTOOLS_OT_clear_lmt_session(bpy.types.Operator):
     bl_idname = "mhw_anim_tools.clear_lmt_session"
     bl_label = "Clear Session"
@@ -316,6 +397,7 @@ classes = (
     MHWANIMTOOLS_OT_import_selected_lmt_action,
     MHWANIMTOOLS_OT_import_all_lmt_actions,
     MHWANIMTOOLS_OT_import_selected_attached_timl,
+    MHWANIMTOOLS_OT_import_all_attached_timl,
     MHWANIMTOOLS_OT_clear_lmt_session,
 )
 

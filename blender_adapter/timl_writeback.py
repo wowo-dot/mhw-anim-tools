@@ -11,11 +11,10 @@ try:
     from ..core.formats.lmt.export_context import RawTimlPayload
     from ..core.formats.timl.embedded_writer import build_embedded_timl_data_payload
     from ..core.formats.timl.embedded_writer import build_embedded_timl_data_payload_from_sampled
+    from .timl_authoring import timl_header_state_from_controller
     from .timl_export import extract_action_timl_metadata
     from .timl_sampling import extract_timl_controller_metadata
     from .timl_sampling import is_imported_timl_controller
-    from .timl_templates import get_timl_template_header
-    from .timl_templates import get_timl_template_kind
     from .timl_writeback_plan import plan_timl_controller_writeback
 except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.diagnostics.errors import BinaryFormatError
@@ -23,11 +22,10 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.lmt.export_context import RawTimlPayload
     from core.formats.timl.embedded_writer import build_embedded_timl_data_payload
     from core.formats.timl.embedded_writer import build_embedded_timl_data_payload_from_sampled
+    from blender_adapter.timl_authoring import timl_header_state_from_controller
     from blender_adapter.timl_export import extract_action_timl_metadata
     from blender_adapter.timl_sampling import extract_timl_controller_metadata
     from blender_adapter.timl_sampling import is_imported_timl_controller
-    from blender_adapter.timl_templates import get_timl_template_header
-    from blender_adapter.timl_templates import get_timl_template_kind
     from blender_adapter.timl_writeback_plan import plan_timl_controller_writeback
 
 
@@ -283,28 +281,20 @@ def build_matching_timl_writeback(export_action, controller_objects, *, source_l
 
         try:
             if _source_entry_has_no_transforms(plan.source_entry):
-                template_header = get_timl_template_header(controller)
-                template_kind = get_timl_template_kind(controller)
-                if template_header is None or not template_kind:
-                    result.add(
-                        "ERROR",
-                        "timl.writeback",
-                        (
-                            f"TIML controller '{controller_name}' edits an empty attached TIML container, "
-                            "but no template metadata was found to build a new payload safely."
-                        ),
-                    )
-                    invalid_controller_names.append(controller_name)
-                    continue
+                header_state = timl_header_state_from_controller(
+                    controller,
+                    source_lmt=controller_metadata.source_lmt,
+                    entry_id=int(controller_metadata.entry_id),
+                )
                 payload, rebase_offsets = build_embedded_timl_data_payload_from_sampled(
                     changed_transforms,
                     base_offset=source_offset,
-                    data_index_a=int(template_header.data_index_a),
-                    data_index_b=int(template_header.data_index_b),
-                    animation_length=float(template_header.animation_length),
-                    loop_start_point=float(template_header.loop_start_point),
-                    loop_control=int(template_header.loop_control),
-                    label_hash=int(template_header.label_hash),
+                    data_index_a=int(header_state["data_index_a"]),
+                    data_index_b=int(header_state["data_index_b"]),
+                    animation_length=float(header_state["animation_length"]),
+                    loop_start_point=float(header_state["loop_start_point"]),
+                    loop_control=int(header_state["loop_control"]),
+                    label_hash=int(header_state["label_hash"]),
                 )
             else:
                 payload, rebase_offsets = build_embedded_timl_data_payload(

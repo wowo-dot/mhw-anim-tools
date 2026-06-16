@@ -26,10 +26,16 @@ class MHWANIMTOOLS_UL_lmt_entries(bpy.types.UIList):
             row = layout.row(align=True)
             row.label(text=f"{item.entry_id:03d}")
             row.label(text=f"{item.frame_count}f")
-            row.label(text=f"{item.track_count} tracks")
-            if item.track_breakdown:
-                row.label(text=item.track_breakdown)
-            row.label(text="TIML" if item.has_timl else "-", icon="CHECKMARK" if item.has_timl else "REMOVE")
+            offset_text = item.timl_source_offset_display or ("empty" if item.has_timl else "-")
+            row.label(text=offset_text)
+            if item.has_timl:
+                row.label(text=f"{item.timl_type_count}t/{item.timl_transform_count}tr/{item.timl_keyframe_count}k")
+            else:
+                row.label(text="-")
+            icon_name = "CHECKMARK" if item.has_timl else "REMOVE"
+            if item.timl_parse_error:
+                icon_name = "ERROR"
+            row.label(text="", icon=icon_name)
         elif self.layout_type == "GRID":
             layout.alignment = "CENTER"
             layout.label(text=str(item.entry_id))
@@ -135,8 +141,8 @@ class MHWANIMTOOLS_UL_timl_blocks(bpy.types.UIList):
         del context, data, icon, active_data, active_propname, index
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row(align=True)
-            row.label(text=item.block_label or item.timeline_label or item.raw_timeline_label or "TIML Block")
-            row.label(text=f"Type {item.type_index:02d}")
+            row.label(text=f"T{item.type_index:02d}")
+            row.label(text=item.block_label or item.timeline_label or item.raw_timeline_label or "?")
             row.label(text=f"{item.transform_count} tr")
             row.label(text=f"{item.keyframe_count} keys")
         elif self.layout_type == "GRID":
@@ -161,8 +167,9 @@ class MHWANIMTOOLS_UL_timl_controller_transforms(bpy.types.UIList):
         del context, data, icon, active_data, active_propname, index
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row(align=True)
-            row.label(text=item.identity_label or f"Type {item.type_index:02d} / Transform {item.transform_index:02d}")
-            row.label(text=item.semantic_label or item.data_type_name or "?")
+            row.label(text=item.identity_label or f"T{item.type_index:02d}:X{item.transform_index:02d}")
+            row.label(text=item.semantic_label or item.timeline_display or item.raw_timeline_display or "?")
+            row.label(text=item.data_type_name or "?")
             row.label(text=f"{item.keyframe_count} keys")
             if item.edit_policy_label:
                 row.label(text=item.edit_policy_label, icon=timl_edit_policy_icon(item.edit_policy_code))
