@@ -22,7 +22,7 @@ if str(PACKAGE_ROOT) not in sys.path:
 from core.formats.lmt.reader import read_lmt_file
 
 
-def load_legacy_package(legacy_root: Path, alias: str = "legacy_freehk"):
+def load_legacy_package(legacy_root: Path, alias: str = "legacy_reference"):
     init_path = legacy_root / "__init__.py"
     spec = importlib.util.spec_from_file_location(
         alias,

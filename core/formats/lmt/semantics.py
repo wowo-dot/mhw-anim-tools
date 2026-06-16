@@ -1,8 +1,8 @@
 """Friendly LMT semantics for diagnostics and Blender-facing summaries.
 
 This module intentionally stays small and data-oriented. It provides readable
-labels for track usage and buffer encodings without inheriting the legacy
-FreeHK architecture.
+labels for track usage and buffer encodings without inheriting a larger legacy
+addon architecture.
 """
 
 from __future__ import annotations

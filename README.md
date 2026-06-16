@@ -111,6 +111,11 @@ Release planning:
 
 - `docs/v1-release-checklist.md`
 - `docs/v1-validation-matrix.md`
+- `docs/installation.md`
+- `docs/workflow-lmt.md`
+- `docs/workflow-timl-in-lmt.md`
+- `docs/credits-and-acknowledgements.md`
+- `docs/v1-release-notes-draft.md`
 
 Writer-readiness scan notes:
 

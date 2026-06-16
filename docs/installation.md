@@ -1,0 +1,54 @@
+# Installation
+
+This add-on targets Blender 4.5+.
+
+## What you need
+
+- Blender 4.5 or newer
+- this repository as a zip package or local add-on folder
+- Monster Hunter World assets outside the repository
+
+Recommended for the best armature/binding workflow:
+
+- `MHW_Model_Editor` enabled in the same Blender install
+
+The add-on can still inspect LMT files without `MHW_Model_Editor`, but the
+main import/edit/export path is most reliable on MHW-style armatures imported
+through that toolchain.
+
+## Install from zip
+
+1. In Blender, open `Edit > Preferences > Add-ons`
+2. Click `Install from Disk...`
+3. Choose the `mhw_anim_tools` zip
+4. Enable the `MHW Anim Tools` add-on
+5. Open the 3D View sidebar and confirm the `MHW Anim Tools` panel appears
+
+## Install from a local folder
+
+1. Copy the `mhw_anim_tools` folder into Blender's add-ons directory
+2. Start Blender
+3. Open `Edit > Preferences > Add-ons`
+4. Enable `MHW Anim Tools`
+
+Typical Windows add-on location:
+
+- `%APPDATA%\\Blender Foundation\\Blender\\4.5\\scripts\\addons`
+
+## First-run check
+
+After enabling the add-on:
+
+1. Open the `MHW Anim Tools` sidebar panel
+2. Confirm `Inspect LMT` is visible
+3. If you also use `MHW_Model_Editor`, import a known `.mod3` target and make
+   sure the target armature picker sees it
+
+## Known setup expectations
+
+- `Inspect LMT` works without a target armature
+- importing actions into Blender requires a target armature
+- exporting edited LMT actions is most trustworthy when the action came from a
+  source LMT import and still has source metadata
+- TIML editing currently lives inside source-backed LMT workflows, not as a
+  standalone TIML authoring/export pipeline

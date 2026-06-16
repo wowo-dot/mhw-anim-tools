@@ -15,6 +15,7 @@ What is already true today:
 - the new add-on has a working clean-room LMT core reader/decoder
 - supported LMT action import works in Blender 4.5 with MHW-style armatures
 - supported LMT export works through the new source-aware merge path
+- full-source `.lmt` export is now explicit in the main workflow
 - attached TIML controllers can be imported, analyzed, edited, and written back
   conservatively inside source-backed LMT export
 - import-all-actions and source-container impact analysis already exist
@@ -25,7 +26,7 @@ What is not ready to call "release done" yet:
 
 - broader real-asset validation and manual Blender validation across a
   representative spread
-- workflow docs and fresh-install docs
+- fresh-install validation and final release notes
 - final public-repo cleanup and release packaging
 
 See also:
@@ -96,6 +97,7 @@ Current status note:
 - standalone export intentionally blocks unsafe TIML/container cases
 - the `2026-06-15` grindstone real-asset export path passed selected-action
   merge export and writer/read-decode roundtrip smoke checks cleanly
+- the `2026-06-16` whole-suite regression run passed `220/220` tests
 - writer/read-decode roundtrip coverage exists, but final v1 confidence still
   depends on a wider real-asset export/reimport matrix and user-facing workflow
   documentation for what is preserved, promoted, or blocked
@@ -120,8 +122,8 @@ Current status note:
 - this is the strongest part of the current v1 path after core LMT import/export
 - value-only, shared-payload, and simple-source structural workflows all have
   targeted tests and live smoke tools
-- the `2026-06-15` real-asset suites passed `3/3` shared-payload cases and
-  `3/3` simple-structural cases across multiple source files
+- the latest real-asset suites passed `4/4` shared-payload cases and `5/5`
+  simple-structural cases across multiple source files
 - the remaining gap is not basic capability; it is corpus breadth and release
   confidence across more real assets and edit shapes
 
@@ -160,36 +162,37 @@ Current status note:
 ### 6. Documentation is minimally complete
 
 - [x] README describes the tool's actual supported scope, not aspirational scope
-- [ ] installation instructions are correct
-- [ ] one basic LMT workflow is documented
-- [ ] one TIML-in-LMT workflow is documented
+- [x] installation instructions are correct
+- [x] one basic LMT workflow is documented
+- [x] one TIML-in-LMT workflow is documented
 - [x] known limitations are listed honestly
 - [ ] release notes explain what is safe, what is blocked, and why
 
 Current status note:
 
 - README scope honesty is in a decent place now
-- release docs are still thin, and v1 needs one clean user workflow for basic
-  LMT editing plus one for TIML-in-LMT editing before we call it public-ready
+- install and workflow docs now exist for the supported v1 paths
+- the remaining docs gap is mostly release-note quality and final public polish
 
 ### 7. Public repository cleanup is complete
 
-- [x] public-facing docs do not market the project as a FreeHK patch/port
-- [ ] code comments avoid unnecessary `FreeHK` / `freehk` naming where not historically required
+- [x] public-facing docs do not market the project as a legacy patch/port
+- [x] code comments avoid unnecessary private legacy naming where not historically required
 - [ ] local-only legacy comparison helpers are removed from the public repo or moved behind clearly internal naming
 - [x] public module names, operator names, and docs reflect `mhw_anim_tools`
 - [x] license/readme text accurately describes the clean-room architecture and current dependencies
 
 Current known public-cleanup references to revisit before release:
 
-- `core/formats/lmt/semantics.py`
 - `tools/compare_legacy_lmt.py`
+- `tools/scan_lmt_parity.py`
 
 Current status note:
 
 - the repo already reads like a rewrite much more than a patch pile
-- before public release we still need one deliberate cleanup pass for legacy
-  comparison helpers, comment wording, and anything that feels private/internal
+- comment wording and user-facing naming are much cleaner now
+- before public release we still need one deliberate call on whether the
+  local-only legacy comparison helpers stay in-tree as internal utilities
 
 ### 8. Release engineering is ready
 
@@ -212,11 +215,12 @@ Current status note:
 
 1. Fill the validation matrix with current automated results from the real-asset
    TIML suites and selected LMT smoke runs
-2. Run a representative manual Blender pass across the release-candidate asset
+2. Continue the long-running whole-corpus writer-readiness scan and archive the
+   final summary
+3. Run a representative manual Blender pass across the release-candidate asset
    set
-3. Document one basic LMT edit/export workflow and one TIML-in-LMT workflow
 4. Do a clean-profile install test from a zip package
-5. Perform the public repo cleanup pass before switching visibility
+5. Perform the final public repo cleanup pass before switching visibility
 
 ## Explicit non-goals before v1.0
 
