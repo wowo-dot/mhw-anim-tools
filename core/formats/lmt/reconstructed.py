@@ -30,6 +30,8 @@ class LmtReconstructedTrack:
     keyframes: tuple[LmtReconstructedKeyframe, ...] = field(default_factory=tuple)
     tail_frame: int | None = None
     tail_value: tuple[float, ...] | None = None
+    source_track_index: int | None = None
+    preserve_raw_quaternion_values: bool = False
 
     @property
     def sparse_key_count(self) -> int:

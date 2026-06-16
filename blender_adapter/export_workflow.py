@@ -32,6 +32,8 @@ try:
     from .export_sampling import sample_action_for_lmt_export
     from .export_impact import ExportImpactSummary
     from .export_impact import build_export_impact_summary
+    from .lmt_track_metadata import bindings_cover_duplicate_identities
+    from .lmt_track_metadata import load_lmt_import_track_bindings
     from .timl_export import assess_timl_export_readiness
     from .timl_writeback import build_matching_timl_writeback
     from .timl_writeback import matching_timl_controllers_for_export_action
@@ -54,6 +56,8 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.lmt.writer import write_lmt_file
     from blender_adapter.export_impact import ExportImpactSummary
     from blender_adapter.export_impact import build_export_impact_summary
+    from blender_adapter.lmt_track_metadata import bindings_cover_duplicate_identities
+    from blender_adapter.lmt_track_metadata import load_lmt_import_track_bindings
     from blender_adapter.export_sampling import sample_action_for_lmt_export
     from blender_adapter.timl_export import assess_timl_export_readiness
     from blender_adapter.timl_writeback import build_matching_timl_writeback
@@ -76,6 +80,7 @@ class ExportSourceMetadata:
     flags: int = 0
     flags2: int = 0
     track_metadata_by_identity: dict[tuple[int, int], dict[str, object]] | None = None
+    track_metadata_by_index: dict[int, dict[str, object]] | None = None
     source_context: LmtSourceActionExportContext | None = None
     source_lmt: object | None = None
     source_bytes: bytes | None = None
@@ -157,6 +162,14 @@ def _report_diagnostics(report: Report) -> list[ExportWorkflowDiagnostic]:
     ]
 
 
+def _has_report_error(report: Report, code: str) -> bool:
+    return any(
+        str(getattr(diagnostic, "code", "") or "") == str(code)
+        and str(getattr(diagnostic, "level", "") or "").lower() == "error"
+        for diagnostic in report.diagnostics
+    )
+
+
 def _fallback_source_context_from_action(action) -> LmtSourceActionExportContext | None:
     if action is None:
         return None
@@ -189,6 +202,7 @@ def _fallback_source_context_from_action(action) -> LmtSourceActionExportContext
         has_timl=has_timl,
         timl_offset=timl_offset,
         track_metadata_by_identity={},
+        track_metadata_by_index={},
     )
 
 
@@ -204,6 +218,8 @@ def _standalone_metadata_from_context(
     return ExportSourceMetadata(
         version=fallback_context.version,
         action_id=fallback_context.action_id,
+        track_metadata_by_identity=fallback_context.track_metadata_by_identity,
+        track_metadata_by_index=fallback_context.track_metadata_by_index,
         source_context=fallback_context,
         export_mode="standalone",
     )
@@ -276,11 +292,27 @@ def resolve_source_action_export_metadata(
         flags=source_context.flags,
         flags2=source_context.flags2,
         track_metadata_by_identity=source_context.track_metadata_by_identity,
+        track_metadata_by_index=source_context.track_metadata_by_index,
         source_context=source_context,
         source_lmt=lmt,
         source_bytes=source_bytes,
         export_mode="merge",
     )
+    if source_context.duplicate_track_identities:
+        import_track_bindings = load_lmt_import_track_bindings(action)
+        if not bindings_cover_duplicate_identities(import_track_bindings, source_context.duplicate_track_identities):
+            duplicate_labels = ", ".join(
+                f"bone_id={bone_id}, usage={usage}, count={count}"
+                for bone_id, usage, count in source_context.duplicate_track_identities
+            )
+            report.add_error(
+                "lmt.export.track_identity",
+                (
+                    "Source action contains duplicate raw track identities, but this imported Blender action does not "
+                    f"carry the required per-track raw-slot bindings yet: {duplicate_labels}. Re-import it with a "
+                    "build that supports raw duplicate-track slots."
+                ),
+            )
     return metadata, report
 
 
@@ -388,10 +420,13 @@ def _augment_source_metadata_with_action(
     replacement_timl_payloads = dict(metadata.replacement_timl_payloads)
     if source_action is not None:
         decoded_source_action = decode_action_tracks(source_action, strict=False)
-        preserve_source_track_identities = identify_preservable_decoded_track_identities(
-            decoded_source_action,
-            sampling_result.sampled_tracks,
-        )
+        if metadata.source_context is not None and metadata.source_context.duplicate_track_identities:
+            preserve_source_track_identities = frozenset()
+        else:
+            preserve_source_track_identities = identify_preservable_decoded_track_identities(
+                decoded_source_action,
+                sampling_result.sampled_tracks,
+            )
         raw_quaternion_source_identities = identify_raw_sensitive_quaternion_identities(decoded_source_action)
         if raw_quaternion_source_identities:
             preserved_raw_sensitive = raw_quaternion_source_identities & set(preserve_source_track_identities)
@@ -432,6 +467,7 @@ def _augment_source_metadata_with_action(
         flags=metadata.flags,
         flags2=metadata.flags2,
         track_metadata_by_identity=metadata.track_metadata_by_identity,
+        track_metadata_by_index=metadata.track_metadata_by_index,
         source_context=metadata.source_context,
         source_lmt=metadata.source_lmt,
         source_bytes=metadata.source_bytes,
@@ -491,6 +527,27 @@ def analyze_action_for_export(
         action,
         source_cache=source_cache,
     )
+    if metadata_report.error_count:
+        workflow_diagnostics.extend(_report_diagnostics(metadata_report))
+        warning_count = sampling_result.warning_count + metadata_report.warning_count
+        error_count = sampling_result.error_count + metadata_report.error_count
+        impact_summary = build_export_impact_summary(action, metadata, objects)
+        if _has_report_error(metadata_report, "lmt.export.track_identity"):
+            status_message = (
+                "Selected action is missing the raw duplicate-track slot bindings required for source-backed export."
+            )
+        else:
+            status_message = metadata_report.diagnostics[0].message if metadata_report.diagnostics else ""
+        return ExportAnalysis(
+            action=action,
+            sampling_result=sampling_result,
+            metadata=metadata,
+            impact_summary=impact_summary,
+            diagnostics=tuple(workflow_diagnostics),
+            warning_count=warning_count,
+            error_count=error_count,
+            status_message=status_message,
+        )
     metadata = _augment_source_metadata_with_action(
         metadata,
         action,
@@ -510,6 +567,7 @@ def analyze_action_for_export(
     plan = plan_reconstructed_action_export(
         reconstructed,
         track_metadata_by_identity=metadata.track_metadata_by_identity,
+        track_metadata_by_index=metadata.track_metadata_by_index,
         preserve_source_identities=metadata.preserve_source_track_identities,
         raw_quaternion_source_identities=metadata.raw_quaternion_source_identities,
     )
@@ -589,6 +647,7 @@ def write_export_file(filepath: str, analysis: ExportAnalysis):
             version=metadata.version,
             header_unknown=metadata.header_unknown,
             track_metadata_by_identity=metadata.track_metadata_by_identity,
+            track_metadata_by_index=metadata.track_metadata_by_index,
             preserve_source_identities=metadata.preserve_source_track_identities,
             raw_quaternion_source_identities=metadata.raw_quaternion_source_identities,
             replacement_timl_payloads=metadata.replacement_timl_payloads,
@@ -603,6 +662,7 @@ def write_export_file(filepath: str, analysis: ExportAnalysis):
         flags=metadata.flags,
         flags2=metadata.flags2,
         track_metadata_by_identity=metadata.track_metadata_by_identity,
+        track_metadata_by_index=metadata.track_metadata_by_index,
         raw_quaternion_source_identities=metadata.raw_quaternion_source_identities,
     )
 
@@ -627,6 +687,7 @@ def write_source_export_file(filepath: str, analyses: tuple[ExportAnalysis, ...]
 
     reconstructed_actions_by_id: dict[int, object] = {}
     track_metadata_by_action_id: dict[int, dict[tuple[int, int], dict[str, object]] | None] = {}
+    track_metadata_by_index_by_action_id: dict[int, dict[int, dict[str, object]] | None] = {}
     preserve_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]]] = {}
     raw_quaternion_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]]] = {}
     replacement_timl_payloads: dict[int, object] = {}
@@ -662,6 +723,7 @@ def write_source_export_file(filepath: str, analyses: tuple[ExportAnalysis, ...]
 
         reconstructed_actions_by_id[action_id] = analysis.reconstructed
         track_metadata_by_action_id[action_id] = metadata.track_metadata_by_identity
+        track_metadata_by_index_by_action_id[action_id] = metadata.track_metadata_by_index
         preserve_source_identities_by_action_id[action_id] = metadata.preserve_source_track_identities
         raw_quaternion_source_identities_by_action_id[action_id] = metadata.raw_quaternion_source_identities
 
@@ -687,6 +749,7 @@ def write_source_export_file(filepath: str, analyses: tuple[ExportAnalysis, ...]
         version=anchor_metadata.version,
         header_unknown=anchor_metadata.header_unknown,
         track_metadata_by_action_id=track_metadata_by_action_id,
+        track_metadata_by_index_by_action_id=track_metadata_by_index_by_action_id,
         preserve_source_identities_by_action_id=preserve_source_identities_by_action_id,
         raw_quaternion_source_identities_by_action_id=raw_quaternion_source_identities_by_action_id,
         replacement_timl_payloads=replacement_timl_payloads,

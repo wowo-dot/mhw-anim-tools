@@ -2,6 +2,11 @@
 
 This is the supported v1 path for editing embedded TIML data.
 
+Main UI locations:
+
+- `3D View > Sidebar > MHW Anim`
+- `Graph Editor > Sidebar > MHW Anim`
+
 ## 1. Inspect an LMT that has attached TIML
 
 1. In the sidebar, click `Inspect LMT`
@@ -21,7 +26,17 @@ raw-first:
 - semantic labels are helpers
 - Graph Editor curves are still the actual value-edit surface
 
+The TIML Workspace lives in `Graph Editor > Sidebar > MHW Anim`.
+
 ## 3. Make edits
+
+The workspace is split into a few practical sections:
+
+- `Header`: edit TIML header values such as animation length and loop fields
+- `Types`: add, duplicate, edit, or delete raw TIML types
+- `Transforms`: add, duplicate, clone, edit, or delete raw transforms
+- selected transform detail: inspect one transform, select its curves, use its
+  frame span, or create an editable preview binding
 
 Supported v1 edit shapes:
 
@@ -35,6 +50,15 @@ The workspace and diagnostics distinguish between:
 - value-only edits
 - rebuild-capable edits
 - blocked edits
+
+Useful TIML Workspace buttons:
+
+- `Analyze`: refresh controller analysis and writeback classification
+- `Select Controller`: jump back to the controller object
+- `Curves`: select the relevant Graph Editor curves
+- `Use Span`: set preview range from the selected type/transform
+- `Create Preview`: create an editable custom-property preview when one does
+  not exist yet
 
 ## 4. Export through the source LMT
 
@@ -67,6 +91,16 @@ This is expected behavior, not accidental spillover.
 
 ## What is not the v1 path
 
-- exporting a TIML controller action as a standalone TIML file
-- broad standalone TIML authoring/export outside a source-backed LMT
 - unsafe structural rebuilds on advanced-source payloads
+
+## Standalone TIML note
+
+Standalone `.timl` files now have their own direct path:
+
+1. `3D View > Sidebar > MHW Anim > TIML Inspector > Inspect TIML`
+2. in the TIML Workspace `Entries` section, use `Import Selected` or `Import All`
+3. edit in the TIML Workspace
+4. `Export > Write TIML`
+
+That path saves the whole standalone TIML file. This page is still specifically
+about embedded TIML that lives inside an `.lmt`.

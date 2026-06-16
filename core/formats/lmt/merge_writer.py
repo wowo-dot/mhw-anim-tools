@@ -91,6 +91,22 @@ def _source_track_metadata_map(action) -> dict[tuple[int, int], dict[str, object
     }
 
 
+def _source_track_metadata_map_by_index(action) -> dict[int, dict[str, object]]:
+    return {
+        int(track_index): {
+            "buffer_type": int(track.header.buffer_type),
+            "joint_type": int(track.header.joint_type),
+            "unknown_tag": int(track.header.unknown_tag),
+            "weight": float(track.header.weight),
+            "lerp_mult": track.lerp_basis.mult if track.lerp_basis is not None else None,
+            "lerp_add": track.lerp_basis.add if track.lerp_basis is not None else None,
+            "bone_id": int(track.header.bone_id),
+            "usage": int(track.header.usage),
+        }
+        for track_index, track in enumerate(action.tracks)
+    }
+
+
 def _serialize_source_track(track) -> _SerializedTrack:
     lerp_bytes = b""
     if track.lerp_basis is not None:
@@ -162,14 +178,17 @@ def _serialize_reconstructed_action(
     source_action,
     *,
     track_metadata_by_identity: dict[tuple[int, int], dict[str, object]] | None = None,
+    track_metadata_by_index: dict[int, dict[str, object]] | None = None,
     preserve_source_identities: frozenset[tuple[int, int]] | set[tuple[int, int]] | None = None,
     raw_quaternion_source_identities: frozenset[tuple[int, int]] | set[tuple[int, int]] | None = None,
 ) -> _SerializedAction:
     metadata_map = track_metadata_by_identity or _source_track_metadata_map(source_action)
+    metadata_map_by_index = track_metadata_by_index or _source_track_metadata_map_by_index(source_action)
     preserve_source_identities = frozenset(preserve_source_identities or ())
     plan = plan_reconstructed_action_export(
         reconstructed_action,
         track_metadata_by_identity=metadata_map,
+        track_metadata_by_index=metadata_map_by_index,
         preserve_source_identities=preserve_source_identities,
         raw_quaternion_source_identities=raw_quaternion_source_identities,
     )
@@ -187,19 +206,28 @@ def _serialize_reconstructed_action(
         (int(track.header.bone_id), int(track.header.usage)): track
         for track in source_action.tracks
     }
+    source_tracks_by_index = {
+        int(track_index): track
+        for track_index, track in enumerate(source_action.tracks)
+    }
 
     serialized_tracks: list[_SerializedTrack] = []
     for reconstructed_track, planned_track in zip(reconstructed_action.tracks, plan.tracks):
         identity = (int(reconstructed_track.bone_id), int(reconstructed_track.usage))
+        source_track_index = getattr(reconstructed_track, "source_track_index", None)
         if planned_track.preserve_source_raw:
-            source_track = source_tracks_by_identity.get(identity)
+            source_track = (
+                source_tracks_by_index.get(int(source_track_index))
+                if source_track_index is not None
+                else source_tracks_by_identity.get(identity)
+            )
             if source_track is None:
                 raise ValidationError(
                     f"Could not preserve raw source track for bone_id={reconstructed_track.bone_id}, usage={reconstructed_track.usage} because the source track was missing."
                 )
             serialized_tracks.append(_serialize_source_track(source_track))
             continue
-        metadata = _track_write_metadata(metadata_map, reconstructed_track.bone_id, reconstructed_track.usage)
+        metadata = _track_write_metadata(reconstructed_track, metadata_map, metadata_map_by_index)
         usage_info = get_usage_semantics(reconstructed_track.usage)
         raw_buffer = _encode_track_buffer(reconstructed_track, planned_track, action_frame_count)
         lerp_bytes = b""
@@ -345,6 +373,7 @@ def write_merged_lmt_bytes(
     version: int | None = None,
     header_unknown: bytes | None = None,
     track_metadata_by_identity: dict[tuple[int, int], dict[str, object]] | None = None,
+    track_metadata_by_index: dict[int, dict[str, object]] | None = None,
     preserve_source_identities: frozenset[tuple[int, int]] | set[tuple[int, int]] | None = None,
     raw_quaternion_source_identities: frozenset[tuple[int, int]] | set[tuple[int, int]] | None = None,
     replacement_timl_payloads: dict[int, object] | None = None,
@@ -356,6 +385,7 @@ def write_merged_lmt_bytes(
         version=version,
         header_unknown=header_unknown,
         track_metadata_by_action_id={int(action_id): track_metadata_by_identity} if track_metadata_by_identity is not None else None,
+        track_metadata_by_index_by_action_id={int(action_id): track_metadata_by_index} if track_metadata_by_index is not None else None,
         preserve_source_identities_by_action_id={int(action_id): preserve_source_identities} if preserve_source_identities is not None else None,
         raw_quaternion_source_identities_by_action_id={int(action_id): raw_quaternion_source_identities} if raw_quaternion_source_identities is not None else None,
         replacement_timl_payloads=replacement_timl_payloads,
@@ -370,6 +400,7 @@ def write_multi_merged_lmt_bytes(
     version: int | None = None,
     header_unknown: bytes | None = None,
     track_metadata_by_action_id: dict[int, dict[tuple[int, int], dict[str, object]] | None] | None = None,
+    track_metadata_by_index_by_action_id: dict[int, dict[int, dict[str, object]] | None] | None = None,
     preserve_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]] | set[tuple[int, int]] | None] | None = None,
     raw_quaternion_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]] | set[tuple[int, int]] | None] | None = None,
     replacement_timl_payloads: dict[int, object] | None = None,
@@ -384,6 +415,10 @@ def write_multi_merged_lmt_bytes(
     track_metadata_by_action_id = {
         int(action_id): metadata
         for action_id, metadata in dict(track_metadata_by_action_id or {}).items()
+    }
+    track_metadata_by_index_by_action_id = {
+        int(action_id): metadata
+        for action_id, metadata in dict(track_metadata_by_index_by_action_id or {}).items()
     }
     preserve_source_identities_by_action_id = {
         int(action_id): identities
@@ -424,6 +459,7 @@ def write_multi_merged_lmt_bytes(
                 normalized_reconstructed_actions_by_id[entry_id],
                 source_entry_action,
                 track_metadata_by_identity=track_metadata_by_action_id.get(entry_id),
+                track_metadata_by_index=track_metadata_by_index_by_action_id.get(entry_id),
                 preserve_source_identities=preserve_source_identities_by_action_id.get(entry_id),
                 raw_quaternion_source_identities=raw_quaternion_source_identities_by_action_id.get(entry_id),
             )

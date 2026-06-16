@@ -137,6 +137,38 @@ class LmtExportPlanTests(unittest.TestCase):
         self.assertFalse(plan.tracks[0].supported)
         self.assertFalse(plan.tracks[1].supported)
 
+    def test_duplicate_track_identity_is_supported_with_source_track_slots(self):
+        action = LmtReconstructedAction(
+            action_name="DuplicateIdentitySlots",
+            frame_start=0,
+            frame_end=1,
+            tracks=(
+                LmtReconstructedTrack(
+                    bone_id=0,
+                    usage=1,
+                    basis_value=(0.0, 0.0, 0.0),
+                    source_track_index=0,
+                ),
+                LmtReconstructedTrack(
+                    bone_id=0,
+                    usage=1,
+                    basis_value=(1.0, 0.0, 0.0),
+                    source_track_index=1,
+                ),
+            ),
+        )
+
+        plan = plan_reconstructed_action_export(
+            action,
+            track_metadata_by_index={
+                0: {"buffer_type": 1},
+                1: {"buffer_type": 1},
+            },
+        )
+
+        self.assertEqual(plan.error_count, 0)
+        self.assertTrue(all(track.supported for track in plan.tracks))
+
     def test_invalid_translation_dimension_is_rejected(self):
         action = LmtReconstructedAction(
             action_name="BadTranslation",

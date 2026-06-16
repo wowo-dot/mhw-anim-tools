@@ -3,6 +3,7 @@
 
 import bpy
 
+from .ui import addon_preferences
 from .ui import operators_export
 from .ui import operators_import
 from .ui import operators_timl
@@ -16,16 +17,17 @@ bl_info = {
     "name": "MHW Anim Tools",
     "description": "Modern Monster Hunter World animation tools for Blender 4.5+",
     "category": "Import-Export",
-    "author": "Akif + Codex rewrite scaffold",
+    "author": "Akif",
     "version": (0, 1, 0),
     "blender": (4, 5, 0),
     "location": "View3D > Sidebar > MHW Anim",
-    "doc_url": "",
-    "tracker_url": "",
+    "doc_url": "https://github.com/wowo-dot/mhw-anim-tools",
+    "tracker_url": "https://github.com/wowo-dot/mhw-anim-tools/issues",
 }
 
 
 MODULES = (
+    addon_preferences,
     properties,
     lists,
     operators_tools,
@@ -37,6 +39,7 @@ MODULES = (
 
 
 def register():
+    addon_preferences.configure(bl_info)
     for module in MODULES:
         module.register()
 

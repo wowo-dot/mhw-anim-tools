@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import json
+
 import bpy
 
 from ..blender_adapter.timl_metadata import TIML_HEADER_ANIMATION_LENGTH_KEY
@@ -11,6 +13,7 @@ from ..blender_adapter.timl_metadata import TIML_HEADER_DATA_INDEX_B_KEY
 from ..blender_adapter.timl_metadata import TIML_HEADER_LABEL_HASH_KEY
 from ..blender_adapter.timl_metadata import TIML_HEADER_LOOP_CONTROL_KEY
 from ..blender_adapter.timl_metadata import TIML_HEADER_LOOP_START_POINT_KEY
+from ..blender_adapter.timl_metadata import TIML_SOURCE_KIND_STANDALONE_FILE
 from ..blender_adapter.timl_sampling import extract_timl_controller_metadata
 from ..blender_adapter.timl_sampling import is_imported_timl_controller
 from .timl_labels import timl_edit_policy_icon
@@ -43,6 +46,14 @@ def _selected_entry(scene_props):
     return None
 
 
+def _selected_timl_file_entry(scene_props):
+    items = scene_props.timl_file_entries
+    index = int(scene_props.selected_timl_file_entry_index)
+    if 0 <= index < len(items):
+        return items[index]
+    return None
+
+
 def _controller_for_entry(scene_props, entry):
     if entry is None:
         return None
@@ -53,6 +64,25 @@ def _controller_for_entry(scene_props, entry):
             continue
         metadata = extract_timl_controller_metadata(candidate)
         if str(metadata.source_lmt or "") != source_path:
+            continue
+        if int(metadata.entry_id) == entry_id:
+            return candidate
+    return None
+
+
+def _controller_for_timl_file_entry(scene_props, entry):
+    if entry is None:
+        return None
+    source_path = str(scene_props.last_timl_path or "")
+    session_id = str(scene_props.last_timl_session_id or "")
+    entry_id = int(entry.entry_id)
+    for candidate in bpy.data.objects:
+        if not is_imported_timl_controller(candidate):
+            continue
+        metadata = extract_timl_controller_metadata(candidate)
+        if str(metadata.source_lmt or "") != source_path:
+            continue
+        if session_id and str(metadata.session_id or "") != session_id:
             continue
         if int(metadata.entry_id) == entry_id:
             return candidate
@@ -75,6 +105,19 @@ def _selected_transform(scene_props):
     return None
 
 
+def _block_property_names(block) -> tuple[str, ...]:
+    raw_value = str(getattr(block, "property_names_json", "") or "")
+    if not raw_value:
+        return ()
+    try:
+        decoded = json.loads(raw_value)
+    except json.JSONDecodeError:
+        return ()
+    if not isinstance(decoded, list):
+        return ()
+    return tuple(str(item) for item in decoded if str(item))
+
+
 def _header_prop(layout, controller, key: str, label: str):
     if key in controller:
         layout.prop(controller, f'["{key}"]', text=label)
@@ -83,7 +126,20 @@ def _header_prop(layout, controller, key: str, label: str):
 def _draw_workspace_header(layout, scene_props, controller):
     box = layout.box()
     if controller is None:
-        box.label(text="No imported TIML controller")
+        if scene_props.last_timl_path:
+            source_name = str(scene_props.last_timl_path).replace("/", "\\").split("\\")[-1]
+            box.label(text=source_name, icon="CURRENT_FILE")
+            box.label(
+                text=(
+                    f"Entries {int(scene_props.last_timl_entry_count)} | "
+                    f"Types {int(scene_props.last_timl_type_count)} | "
+                    f"Transforms {int(scene_props.last_timl_transform_count)} | "
+                    f"Keys {int(scene_props.last_timl_keyframe_count)}"
+                )
+            )
+            box.label(text="No imported TIML controller focused", icon="INFO")
+        else:
+            box.label(text="No imported TIML controller")
         return
     metadata = extract_timl_controller_metadata(controller)
     box.label(text=controller.name, icon="EMPTY_DATA")
@@ -108,7 +164,7 @@ def _draw_workspace_header(layout, scene_props, controller):
         box.label(text=counts, icon="CHECKMARK")
 
 
-def _draw_entry_browser(layout, scene_props):
+def _draw_entry_browser(layout, scene_props, controller):
     panel_header, panel_body = layout.panel(
         idname="MHWANIMTOOLS_PT_timl_workspace_entries",
         default_closed=False,
@@ -117,7 +173,59 @@ def _draw_entry_browser(layout, scene_props):
     if panel_body is None:
         return
     if not scene_props.lmt_entries:
-        panel_body.label(text="No LMT session")
+        metadata = extract_timl_controller_metadata(controller) if controller is not None else None
+        if scene_props.timl_file_entries:
+            panel_body.template_list(
+                "MHWANIMTOOLS_UL_timl_file_entries",
+                "",
+                scene_props,
+                "timl_file_entries",
+                scene_props,
+                "selected_timl_file_entry_index",
+                rows=8,
+            )
+            row = panel_body.row(align=True)
+            row.scale_y = 1.05
+            selected_entry = _selected_timl_file_entry(scene_props)
+            import_selected = row.row(align=True)
+            import_selected.enabled = selected_entry is not None and bool(selected_entry.has_data)
+            import_selected.operator("mhw_anim_tools.import_selected_timl_entry", text="Import Selected", icon="IMPORT")
+            row.operator("mhw_anim_tools.import_all_timl_entries", text="Import All", icon="IMPORT")
+            row.operator("mhw_anim_tools.focus_selected_timl_entry_controller", text="Focus", icon="RESTRICT_SELECT_OFF")
+            if selected_entry is None:
+                return
+            details = panel_body.box()
+            details.label(text=f"Entry {int(selected_entry.entry_id):03d}", icon="CURRENT_FILE")
+            if selected_entry.has_data:
+                details.label(text=f"Offset {selected_entry.offset_display}")
+                details.label(
+                    text=(
+                        f"{int(selected_entry.type_count)}t | "
+                        f"{int(selected_entry.transform_count)}tr | "
+                        f"{int(selected_entry.keyframe_count)}k"
+                    )
+                )
+                details.label(
+                    text=(
+                        f"data_index_a / b {int(selected_entry.data_index_a)} / "
+                        f"{int(selected_entry.data_index_b)}"
+                    )
+                )
+                if selected_entry.label_hash_display:
+                    details.label(text=selected_entry.label_hash_display)
+            else:
+                details.label(text="Empty TIML entry slot", icon="INFO")
+            selected_controller = _controller_for_timl_file_entry(scene_props, selected_entry)
+            details.label(
+                text=f"Imported {selected_controller.name}" if selected_controller is not None else "Not imported"
+            )
+        elif metadata is not None and str(metadata.source_kind or "") == TIML_SOURCE_KIND_STANDALONE_FILE:
+            panel_body.label(text="Standalone TIML controller session", icon="CURRENT_FILE")
+            panel_body.label(text=f"Focused entry {int(metadata.entry_id):03d}")
+            if int(metadata.source_entry_count):
+                panel_body.label(text=f"Session entries {int(metadata.source_entry_count)}")
+        else:
+            panel_body.label(text="Inspect a standalone TIML from the 3D View sidebar.")
         return
     panel_body.template_list(
         "MHWANIMTOOLS_UL_lmt_entries",
@@ -223,12 +331,27 @@ def _draw_type_browser(layout, scene_props):
     actions = info.row(align=True)
     actions.operator("mhw_anim_tools.edit_timl_type", text="Edit Raw", icon="GREASEPENCIL")
     actions.operator("mhw_anim_tools.select_timl_block_curves", text="Curves", icon="FCURVE")
+    property_names = _block_property_names(block)
+    missing_preview_count = max(0, int(block.transform_count) - len(property_names))
+    if missing_preview_count:
+        actions.operator("mhw_anim_tools.materialize_timl_block_previews", text="Create Previews", icon="ADD")
     if int(block.keyframe_count):
         actions.operator("mhw_anim_tools.use_timl_block_frame_span", text="Use Span", icon="PREVIEW_RANGE")
     if int(block.keyframe_count):
         info.label(text=f"{float(block.first_frame):.3f} -> {float(block.last_frame):.3f}")
     if block.raw_timeline_label:
         info.label(text=block.raw_timeline_label)
+    if block.datatype_summary:
+        info.label(text=block.datatype_summary)
+    if block.edit_policy_summary:
+        info.label(text=block.edit_policy_summary)
+    if block.writeback_summary:
+        info.label(text=block.writeback_summary)
+    if missing_preview_count:
+        info.label(
+            text=f"Preview bindings missing: {missing_preview_count}/{int(block.transform_count)}",
+            icon="INFO",
+        )
 
 
 def _draw_transform_browser(layout, scene_props):
@@ -290,6 +413,12 @@ def _draw_transform_detail(layout, scene_props, controller):
         panel_body.label(text=transform.data_type_name)
     if transform.keyframe_count:
         panel_body.label(text=f"{float(transform.first_frame):.3f} -> {float(transform.last_frame):.3f} | {int(transform.keyframe_count)}k")
+    property_name = str(transform.property_name or "")
+    has_preview_binding = bool(property_name and property_name in controller.keys())
+    if has_preview_binding:
+        panel_body.label(text=f"Editable preview: {property_name}", icon="CHECKMARK")
+    else:
+        panel_body.label(text="Editable preview missing", icon="INFO")
     if transform.edit_policy_label:
         panel_body.label(
             text=transform.edit_policy_label,
@@ -304,7 +433,6 @@ def _draw_transform_detail(layout, scene_props, controller):
         )
     if transform.writeback_reason:
         panel_body.label(text=transform.writeback_reason)
-    property_name = str(transform.property_name or "")
     if property_name and property_name in controller.keys():
         panel_body.prop(controller, f'["{property_name}"]', text=property_name)
     elif transform.writeback_status_code == "preserve_raw" and transform.writeback_reason:
@@ -345,10 +473,11 @@ def draw_timl_workspace_editor_panel(layout, context):
     controller = timl_controller_for_workspace_panel(context)
 
     _draw_workspace_header(layout, scene_props, controller)
-    _draw_entry_browser(layout, scene_props)
+    _draw_entry_browser(layout, scene_props, controller)
     _draw_workspace_toolbar(layout)
 
     if controller is None:
+        _draw_workspace_diagnostics(layout, scene_props)
         return
 
     _draw_header_editor(layout, controller)

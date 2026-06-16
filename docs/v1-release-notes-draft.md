@@ -1,7 +1,7 @@
 # V1.0 Release Notes Draft
 
-`mhw_anim_tools v1.0.0` is the first public release of the clean-room Blender
-rewrite focused on Monster Hunter World LMT and embedded TIML workflows.
+`mhw_anim_tools v1.0.0` is the first public release of the Blender add-on
+focused on Monster Hunter World LMT and embedded TIML workflows.
 
 ## What v1 is for
 
@@ -36,7 +36,7 @@ from the same source file and is the main supported export flow now.
 - standalone TIML authoring/export outside a source-backed LMT workflow
 - unsafe advanced-source TIML structural rebuilds
 - unsupported Blender FCurve paths outside the supported motion channels
-- EFX rewrite work
+- EFX support work
 - broad coverage claims for every rare legacy asset edge case
 
 ## Current release-confidence focus

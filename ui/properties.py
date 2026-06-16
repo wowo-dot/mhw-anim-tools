@@ -5,6 +5,7 @@ import json
 
 import bpy
 
+from ..core.diagnostics.collections import has_text_diagnostic
 from ..core.formats.timl.editor_model import TimlEditorTransformView
 from ..core.formats.timl.editor_model import build_timl_editor_block_views
 from ..core.formats.timl.model import timl_data_type_name
@@ -90,6 +91,25 @@ class MhwAnimToolsTimlTransformItem(bpy.types.PropertyGroup):
     first_value_preview: bpy.props.StringProperty(name="First Value", default="")
     interpolation_summary: bpy.props.StringProperty(name="Interpolation", default="")
     easing_summary: bpy.props.StringProperty(name="Easing", default="")
+
+
+class MhwAnimToolsTimlFileEntryItem(bpy.types.PropertyGroup):
+    entry_id: bpy.props.IntProperty(name="Entry ID", default=0, min=0)
+    has_data: bpy.props.BoolProperty(name="Has Data", default=False)
+    offset_display: bpy.props.StringProperty(name="Offset", default="")
+    type_count: bpy.props.IntProperty(name="Type Count", default=0, min=0)
+    transform_count: bpy.props.IntProperty(name="Transform Count", default=0, min=0)
+    keyframe_count: bpy.props.IntProperty(name="Keyframe Count", default=0, min=0)
+    animation_length: bpy.props.FloatProperty(name="Animation Length", default=0.0)
+    loop_start_point: bpy.props.FloatProperty(name="Loop Start", default=0.0)
+    loop_control: bpy.props.IntProperty(name="Loop Control", default=0)
+    data_index_a: bpy.props.IntProperty(name="Data Index A", default=0)
+    data_index_b: bpy.props.IntProperty(name="Data Index B", default=0)
+    label_hash_display: bpy.props.StringProperty(name="Label Hash", default="")
+    data_type_breakdown: bpy.props.StringProperty(name="Data Types", default="")
+    timeline_breakdown: bpy.props.StringProperty(name="Timelines", default="")
+    transform_payload: bpy.props.StringProperty(name="Transform Payload", default="", options={"HIDDEN"})
+    parse_error: bpy.props.StringProperty(name="Parse Error", default="")
 
 
 class MhwAnimToolsTimlControllerTransformItem(bpy.types.PropertyGroup):
@@ -178,7 +198,27 @@ def clear_export_analysis(scene_props):
     scene_props.last_export_timl_writeback_scope = ""
 
 
+def clear_timl_file_session(scene_props):
+    scene_props.last_timl_path = ""
+    scene_props.last_timl_session_id = ""
+    scene_props.last_timl_entry_count = 0
+    scene_props.last_timl_type_count = 0
+    scene_props.last_timl_transform_count = 0
+    scene_props.last_timl_keyframe_count = 0
+    scene_props.last_timl_warning_count = 0
+    scene_props.last_timl_error_count = 0
+    scene_props.timl_file_entries.clear()
+    scene_props.selected_timl_file_entry_index = 0
+
+
 def add_diagnostic(scene_props, level: str, source: str, message: str):
+    if has_text_diagnostic(
+        scene_props.diagnostics,
+        level=level,
+        source=source,
+        message=message,
+    ):
+        return
     item = scene_props.diagnostics.add()
     item.level = level
     item.source = source
@@ -727,6 +767,16 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
         subtype="FILE_PATH",
         default="",
     )
+    last_timl_path: bpy.props.StringProperty(
+        name="Last TIML",
+        subtype="FILE_PATH",
+        default="",
+    )
+    last_timl_session_id: bpy.props.StringProperty(
+        name="TIML Session ID",
+        default="",
+        options={"HIDDEN"},
+    )
     last_entry_count: bpy.props.IntProperty(
         name="Entry Count",
         default=0,
@@ -752,6 +802,36 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
         default=0,
         min=0,
     )
+    last_timl_entry_count: bpy.props.IntProperty(
+        name="TIML Entry Count",
+        default=0,
+        min=0,
+    )
+    last_timl_type_count: bpy.props.IntProperty(
+        name="TIML Type Count",
+        default=0,
+        min=0,
+    )
+    last_timl_transform_count: bpy.props.IntProperty(
+        name="TIML Transform Count",
+        default=0,
+        min=0,
+    )
+    last_timl_keyframe_count: bpy.props.IntProperty(
+        name="TIML Keyframe Count",
+        default=0,
+        min=0,
+    )
+    last_timl_warning_count: bpy.props.IntProperty(
+        name="TIML Warnings",
+        default=0,
+        min=0,
+    )
+    last_timl_error_count: bpy.props.IntProperty(
+        name="TIML Errors",
+        default=0,
+        min=0,
+    )
     selected_entry_index: bpy.props.IntProperty(
         name="Selected Entry",
         default=0,
@@ -759,6 +839,12 @@ class MhwAnimToolsSceneProperties(bpy.types.PropertyGroup):
         update=selected_entry_update,
     )
     lmt_entries: bpy.props.CollectionProperty(type=MhwAnimToolsLmtEntryItem)
+    selected_timl_file_entry_index: bpy.props.IntProperty(
+        name="Selected TIML Entry",
+        default=0,
+        min=0,
+    )
+    timl_file_entries: bpy.props.CollectionProperty(type=MhwAnimToolsTimlFileEntryItem)
     selected_track_index: bpy.props.IntProperty(
         name="Selected Track",
         default=0,
@@ -795,6 +881,7 @@ classes = (
     MhwAnimToolsLmtEntryItem,
     MhwAnimToolsLmtTrackItem,
     MhwAnimToolsTimlTransformItem,
+    MhwAnimToolsTimlFileEntryItem,
     MhwAnimToolsTimlControllerTransformItem,
     MhwAnimToolsTimlBlockItem,
     MhwAnimToolsDiagnosticItem,

@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
+import tempfile
 import unittest
+from unittest.mock import patch
 
 from blender_adapter.export_workflow import effective_export_action
 from blender_adapter.export_workflow import resolve_source_action_export_metadata
 from blender_adapter.export_workflow import source_export_actions
+from blender_adapter.lmt_track_metadata import save_lmt_import_track_bindings
+from core.formats.lmt.export_context import LmtSourceActionExportContext
 
 
 class _Action(dict):
@@ -57,6 +62,107 @@ class ExportWorkflowTests(unittest.TestCase):
         self.assertEqual(metadata.version, 95)
         self.assertEqual(metadata.action_id, 5)
         self.assertEqual(report.warning_count, 1)
+        self.assertEqual(report.error_count, 0)
+
+    def test_resolve_source_metadata_blocks_duplicate_raw_track_identities(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_path = Path(tmpdir) / "duplicate.lmt"
+            source_path.write_bytes(b"LMT")
+            scene_props = SimpleNamespace(
+                last_lmt_path="",
+                lmt_entries=[],
+                selected_entry_index=0,
+            )
+            action = _Action(
+                "LMT::duplicate::000",
+                mhw_anim_tools_entry_id=0,
+                mhw_anim_tools_source_lmt=str(source_path),
+            )
+            source_context = LmtSourceActionExportContext(
+                source_name=str(source_path),
+                version=95,
+                header_unknown=b"\x00" * 8,
+                entry_count=1,
+                action_count=1,
+                action_id=0,
+                loop_frame=-1,
+                null0=(0, 0, 0),
+                translation=(0.0, 0.0, 0.0, 0.0),
+                rotation_lerp=(0.0, 0.0, 0.0, 1.0),
+                flags=0,
+                null2=b"\x00\x00",
+                flags2=0,
+                null3=(0, 0, 0, 0, 0),
+                has_timl=False,
+                timl_offset=0,
+                track_metadata_by_identity={(0, 1): {"buffer_type": 1}},
+                track_metadata_by_index={0: {"buffer_type": 1}, 1: {"buffer_type": 1}},
+                duplicate_track_identities=((0, 1, 2),),
+            )
+
+            with patch("blender_adapter.export_workflow.read_lmt_bytes", return_value=object()):
+                with patch(
+                    "blender_adapter.export_workflow.build_source_action_export_context",
+                    return_value=source_context,
+                ):
+                    metadata, report = resolve_source_action_export_metadata(scene_props, action)
+
+        self.assertEqual(metadata.export_mode, "merge")
+        self.assertEqual(report.error_count, 1)
+        self.assertEqual(report.diagnostics[0].code, "lmt.export.track_identity")
+        self.assertIn("raw-slot bindings", report.diagnostics[0].message)
+
+    def test_resolve_source_metadata_allows_duplicate_raw_track_identities_with_bindings(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_path = Path(tmpdir) / "duplicate.lmt"
+            source_path.write_bytes(b"LMT")
+            scene_props = SimpleNamespace(
+                last_lmt_path="",
+                lmt_entries=[],
+                selected_entry_index=0,
+            )
+            action = _Action(
+                "LMT::duplicate::000",
+                mhw_anim_tools_entry_id=0,
+                mhw_anim_tools_source_lmt=str(source_path),
+            )
+            save_lmt_import_track_bindings(
+                action,
+                [
+                    {"track_index": 0, "bone_id": 0, "usage": 1, "import_mode": "raw_duplicate"},
+                    {"track_index": 1, "bone_id": 0, "usage": 1, "import_mode": "raw_duplicate"},
+                ],
+            )
+            source_context = LmtSourceActionExportContext(
+                source_name=str(source_path),
+                version=95,
+                header_unknown=b"\x00" * 8,
+                entry_count=1,
+                action_count=1,
+                action_id=0,
+                loop_frame=-1,
+                null0=(0, 0, 0),
+                translation=(0.0, 0.0, 0.0, 0.0),
+                rotation_lerp=(0.0, 0.0, 0.0, 1.0),
+                flags=0,
+                null2=b"\x00\x00",
+                flags2=0,
+                null3=(0, 0, 0, 0, 0),
+                has_timl=False,
+                timl_offset=0,
+                track_metadata_by_identity={(0, 1): {"buffer_type": 1}},
+                track_metadata_by_index={0: {"buffer_type": 1}, 1: {"buffer_type": 1}},
+                duplicate_track_identities=((0, 1, 2),),
+            )
+
+            with patch("blender_adapter.export_workflow.read_lmt_bytes", return_value=object()):
+                with patch(
+                    "blender_adapter.export_workflow.build_source_action_export_context",
+                    return_value=source_context,
+                ):
+                    metadata, report = resolve_source_action_export_metadata(scene_props, action)
+
+        self.assertEqual(metadata.export_mode, "merge")
         self.assertEqual(report.error_count, 0)
 
     def test_source_export_actions_collects_matching_imported_lmt_actions_only(self):

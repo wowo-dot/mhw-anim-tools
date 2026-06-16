@@ -4,8 +4,11 @@
 import json
 import os
 
+import bpy
+
 from ..blender_adapter.armature import summarize_track_binding
 from ..blender_adapter.space import uses_mhw_model_editor_space_adapter
+from ..blender_adapter.timl_sampling import extract_timl_controller_metadata
 from ..blender_adapter.timl_sampling import is_imported_timl_controller
 from ..integration.model_editor import bonefunction_count
 from ..integration.model_editor import get_workspace_summary
@@ -17,6 +20,7 @@ from .timl_presenter import build_timl_writeback_summary
 from .timl_presenter import timl_display_source_name
 from .timl_labels import timl_edit_policy_icon
 from .timl_labels import timl_writeback_status_icon
+from .addon_preferences import draw_update_notice_box
 
 
 def timl_controller_for_object_panel(context):
@@ -26,6 +30,21 @@ def timl_controller_for_object_panel(context):
     controller = context.scene.mhw_anim_tools.timl_controller
     if is_imported_timl_controller(controller) and active_object == controller:
         return controller
+    return None
+
+
+def _workspace_timl_controller(context):
+    scene_props = context.scene.mhw_anim_tools
+    controller = scene_props.timl_controller
+    if is_imported_timl_controller(controller):
+        return controller
+    active_object = getattr(context, "active_object", None)
+    if is_imported_timl_controller(active_object):
+        return active_object
+    if scene_props.last_imported_timl_object_name:
+        candidate = bpy.data.objects.get(scene_props.last_imported_timl_object_name)
+        if is_imported_timl_controller(candidate):
+            return candidate
     return None
 
 
@@ -297,6 +316,131 @@ def _draw_lmt_inspector_section(layout, scene_props):
         _draw_track_details(tracks_body, scene_props)
 
 
+def _timl_controller_for_file_entry(scene_props, entry_id: int):
+    source_path = str(scene_props.last_timl_path or "")
+    session_id = str(scene_props.last_timl_session_id or "")
+    if not source_path:
+        return None
+    for candidate in bpy.data.objects:
+        if not is_imported_timl_controller(candidate):
+            continue
+        metadata = extract_timl_controller_metadata(candidate)
+        if str(metadata.source_lmt or "") != source_path:
+            continue
+        if session_id and str(metadata.session_id or "") != session_id:
+            continue
+        if int(metadata.entry_id) == int(entry_id):
+            return candidate
+    return None
+
+
+def _timl_file_import_counts(scene_props):
+    imported_count = 0
+    importable_count = 0
+    for item in scene_props.timl_file_entries:
+        if item.has_data:
+            importable_count += 1
+        if _timl_controller_for_file_entry(scene_props, int(item.entry_id)) is not None:
+            imported_count += 1
+    return imported_count, importable_count
+
+
+def _timl_export_readiness(scene_props):
+    error_count = int(scene_props.last_timl_analysis_error_count)
+    warning_count = int(scene_props.last_timl_analysis_warning_count)
+    blocked_count = int(scene_props.last_timl_writeback_blocked_count)
+    rebuild_count = int(scene_props.last_timl_writeback_rebuild_count)
+    patch_count = int(scene_props.last_timl_writeback_patch_values_count)
+    preserve_count = int(scene_props.last_timl_writeback_preserve_raw_count)
+
+    if error_count or blocked_count:
+        return "Blocked", "ERROR"
+    if warning_count or rebuild_count:
+        return "Needs Review", "INFO"
+    if patch_count or preserve_count or scene_props.last_timl_writeback_available:
+        return "Ready", "CHECKMARK"
+    return "Unanalyzed", "INFO"
+
+
+def _draw_timl_export_summary(panel_body, scene_props):
+    if scene_props.last_timl_analysis_controller_name and scene_props.last_timl_writeback_available:
+        readiness_label, readiness_icon = _timl_export_readiness(scene_props)
+        timl_box = panel_body.box()
+        timl_box.label(text="Focused TIML Writeback", icon="NODETREE")
+        timl_box.label(text=scene_props.last_timl_analysis_controller_name, icon=readiness_icon)
+        timl_box.label(text=f"State: {readiness_label}")
+        timl_box.label(
+            text=build_timl_writeback_summary(
+                preserve_raw_count=scene_props.last_timl_writeback_preserve_raw_count,
+                patch_values_count=scene_props.last_timl_writeback_patch_values_count,
+                rebuild_count=scene_props.last_timl_writeback_rebuild_count,
+                blocked_count=scene_props.last_timl_writeback_blocked_count,
+            )
+        )
+        timl_box.label(
+            text=build_timl_edit_policy_summary(
+                value_only_count=scene_props.last_timl_edit_value_only_count,
+                rebuild_capable_count=scene_props.last_timl_edit_rebuild_capable_count,
+                blocked_count=scene_props.last_timl_edit_blocked_count,
+            )
+        )
+        if scene_props.last_timl_payload_scope:
+            timl_box.label(text=scene_props.last_timl_payload_scope)
+
+    if scene_props.last_timl_path:
+        imported_count, importable_count = _timl_file_import_counts(scene_props)
+        timl_box = panel_body.box()
+        timl_box.label(text="Standalone TIML", icon="CURRENT_FILE")
+        timl_box.label(text=os.path.basename(scene_props.last_timl_path))
+        if scene_props.last_timl_entry_count:
+            timl_box.label(
+                text=(
+                    f"Entries: {int(scene_props.last_timl_entry_count)} | "
+                    f"Imported: {imported_count}/{importable_count or int(scene_props.last_timl_entry_count)}"
+                )
+            )
+        if imported_count <= 0:
+            timl_box.label(text="Import at least one TIML entry before writing.", icon="INFO")
+        elif imported_count < importable_count:
+            timl_box.label(text="Write TIML will update imported entries and preserve untouched source entries.", icon="INFO")
+        else:
+            timl_box.label(text="Write TIML is ready to rewrite all imported standalone entries.", icon="CHECKMARK")
+        timl_row = timl_box.row(align=True)
+        timl_row.scale_y = 1.05
+        timl_row.enabled = imported_count > 0
+        timl_row.operator("mhw_anim_tools.save_timl_file", icon="FILE_TICK", text="Write TIML")
+
+
+def _draw_timl_inspector_section(layout, scene_props):
+    panel_header, panel_body = layout.panel(
+        idname="MHWANIMTOOLS_PT_timl_inspector_section",
+        default_closed=True,
+    )
+    panel_header.label(text="TIML Inspector")
+    if panel_body is None:
+        return
+
+    row = panel_body.row(align=True)
+    row.scale_y = 1.1
+    row.operator("mhw_anim_tools.inspect_timl", icon="IMPORT")
+    row.operator("mhw_anim_tools.clear_timl_session", icon="TRASH", text="")
+    if not scene_props.last_timl_path:
+        panel_body.label(text="No TIML session loaded yet.", icon="INFO")
+        return
+
+    stats_box = panel_body.box()
+    stats_box.label(text=os.path.basename(scene_props.last_timl_path), icon="CURRENT_FILE")
+    stats_box.label(text=f"Entries: {scene_props.last_timl_entry_count}")
+    stats_box.label(text=f"Types: {scene_props.last_timl_type_count}")
+    stats_box.label(text=f"Transforms: {scene_props.last_timl_transform_count}")
+    stats_box.label(text=f"Keyframes: {scene_props.last_timl_keyframe_count}")
+    stats_box.label(text=f"Warnings: {scene_props.last_timl_warning_count}")
+    stats_box.label(text=f"Errors: {scene_props.last_timl_error_count}")
+    imported_count, importable_count = _timl_file_import_counts(scene_props)
+    if scene_props.timl_file_entries:
+        stats_box.label(text=f"Imported controllers: {imported_count}/{importable_count or len(scene_props.timl_file_entries)}")
+
+
 def _draw_diagnostics_section(layout, scene_props):
     panel_header, panel_body = layout.panel(
         idname="MHWANIMTOOLS_PT_diagnostics_section",
@@ -336,8 +480,8 @@ def _draw_export_section(layout, scene_props):
     row.scale_y = 1.1
     row.operator("mhw_anim_tools.analyze_export_action", icon="EXPORT")
     row.operator("mhw_anim_tools.export_source_lmt", icon="FILE_TICK", text="Write Full LMT")
-    single_row = panel_body.row(align=True)
-    single_row.operator("mhw_anim_tools.export_lmt_action", icon="ACTION", text="Write Action Only")
+    _draw_timl_export_summary(panel_body, scene_props)
+
     if not scene_props.last_export_action_name:
         return
     stats_box = panel_body.box()
@@ -386,9 +530,11 @@ def _draw_export_section(layout, scene_props):
 
 def draw_workspace_panel(layout, context):
     scene_props = context.scene.mhw_anim_tools
+    draw_update_notice_box(layout)
     _draw_workspace_header(layout, scene_props)
     _draw_workspace_section(layout, context, scene_props)
     _draw_lmt_inspector_section(layout, scene_props)
+    _draw_timl_inspector_section(layout, scene_props)
     _draw_diagnostics_section(layout, scene_props)
     _draw_export_section(layout, scene_props)
 

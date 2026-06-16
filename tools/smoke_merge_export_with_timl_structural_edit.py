@@ -187,7 +187,7 @@ def main():
 
         with tempfile.NamedTemporaryFile(suffix=".lmt", delete=False) as handle:
             output_path = Path(handle.name)
-        export_result = bpy.ops.mhw_anim_tools.export_lmt_action("EXEC_DEFAULT", filepath=str(output_path))
+        export_result = bpy.ops.mhw_anim_tools.export_source_lmt("EXEC_DEFAULT", filepath=str(output_path))
 
         payload = {
             "inspect_result": _operator_status(inspect_result),

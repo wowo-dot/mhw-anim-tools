@@ -97,6 +97,30 @@ class LmtExportContextTests(unittest.TestCase):
         self.assertFalse(context.has_timl)
         self.assertIn((3, 1), context.track_metadata_by_identity)
         self.assertEqual(context.track_metadata_by_identity[(3, 1)]["buffer_type"], 5)
+        self.assertIn(0, context.track_metadata_by_index)
+        self.assertEqual(context.track_metadata_by_index[0]["buffer_type"], 5)
+
+    def test_build_source_action_export_context_reports_duplicate_track_identities(self):
+        lmt = LmtFile(
+            source_name="duplicate.lmt",
+            file_size=256,
+            header=LmtHeader(signature=b"LMT\x00", version=95, entry_count=1, unknown=b"\x00" * 8),
+            entry_offsets=(32,),
+            actions=(
+                _action(
+                    action_id=0,
+                    tracks=(
+                        _track(bone_id=0, usage=1, buffer_type=1),
+                        _track(bone_id=0, usage=1, buffer_type=1),
+                        _track(bone_id=3, usage=0, buffer_type=2),
+                    ),
+                ),
+            ),
+        )
+
+        context = build_source_action_export_context(lmt, 0)
+
+        self.assertEqual(context.duplicate_track_identities, ((0, 1, 2),))
 
     def test_assess_standalone_export_context_warns_without_source_context(self):
         report = assess_standalone_export_context(None)

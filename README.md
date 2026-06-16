@@ -1,14 +1,58 @@
 # MHW Anim Tools
 
-`mhw_anim_tools` is a clean-room rewrite of the Monster Hunter World Blender
-animation tooling used for `.lmt`, `.timl`, `.efx`, and related workflows.
+`mhw_anim_tools` is a Blender add-on for Monster Hunter World animation
+workflows using `.lmt`, `.timl`, `.efx`, and related formats.
 
-This repository treats a separate legacy reference copy as a behavior oracle,
-not as implementation source to keep extending forever.
+The repository carries its own core format logic and Blender tooling. Optional
+comparison utilities can still be used against separate legacy reference
+copies during validation work.
 
-## Current milestone
+## Start Here
 
-Milestone 1 focuses on:
+If you are new to the add-on, use these first:
+
+- [Installation](docs/installation.md)
+- [Quickstart](docs/quickstart.md)
+- [Feature Map](docs/feature-map.md)
+- [Basic LMT Workflow](docs/workflow-lmt.md)
+- [TIML In LMT Workflow](docs/workflow-timl-in-lmt.md)
+- [Known Warnings](docs/known-warnings.md)
+
+Main UI locations in Blender:
+
+- `3D View > Sidebar > MHW Anim`: session, armature selection, LMT inspect,
+  import, diagnostics, and export
+- `Graph Editor > Sidebar > MHW Anim`: TIML Workspace
+- `Object Properties > TIML Inspector (Fallback)`: controller fallback view,
+  not the main editing surface
+
+Common first tasks:
+
+- inspect an `.lmt`: `LMT Inspector > Inspect LMT`
+- import one action: `LMT Inspector > Import Selected`
+- import all actions from one source file: `LMT Inspector > Import All`
+- edit embedded TIML: `Import TIML`, then `Open TIML Workspace`
+- inspect a standalone TIML: `TIML Inspector > Inspect TIML`
+- save a standalone TIML session: `Export > Write TIML`
+- export the edited source file: `Export > Write Full LMT`
+- check for add-on updates: `Edit > Preferences > Add-ons > MHW Anim Tools`
+
+## Credits
+
+- Lukas Cone, author of MT Framework tools
+- AsteriskAmpersand, author of Free Hyperkinetics
+- Free Hyperkinetics credits Stracker and PredatorCZ for background format
+  work, including datatype research
+- Free Hyperkinetics credits Silvris for TIML work used as the basis of its
+  TIMLWorks engine
+- Free Hyperkinetics credits DMQW ICE for EFX work used in its TIMLWorks
+  engine
+- Free Hyperkinetics credits LyraVeil for edge cases and issues from earlier
+  import-only tools
+
+## Current Scope
+
+Current focus:
 
 - a clean Blender 4.5 add-on shell
 - an original, Blender-independent read-only LMT parser
@@ -41,11 +85,14 @@ Current export-prep scope:
 - inverse MHW_Model_Editor space adaptation for MOD3-imported `MhBone_*` armatures
 - sparse reconstruction back into LMT-style basis / key / root-tail semantics
 - conservative export planning that chooses candidate buffer families per track and reports unsupported shapes before binary writing
-- duplicate track identity and value-dimension validation before writing
-- first binary writer milestone for single-action `.lmt` export covering basis vector/quaternion tracks, float vector key tracks, and q14 quaternion key tracks
+- duplicate track-slot/source-index validation plus value-dimension validation
+  before writing
+- raw duplicate-track identity import/export through technical `LMT Raw ...`
+  Graph Editor slots on the armature object
+- binary writer coverage for basis vector/quaternion tracks, float vector key tracks, and q14 quaternion key tracks
 - q14 writer safety that rejects frame deltas above 255 instead of wrapping them silently
 - basis-only exports preserve a nonzero action duration when the reconstructed action range is explicit
-- minimal Blender export operator/file dialog from the sidebar and File > Export menu
+- full-source Blender `.lmt` export from the sidebar
 - source-aware merge export that preserves sibling actions inside the original container
 - raw TIML subtree preservation with absolute-offset rebasing during merged export
 - source-backed TIML controller writeback for:
@@ -60,6 +107,8 @@ Current export-prep scope:
 - standalone TIML semantics / summary helpers plus a real-corpus profiler for timeline/datatype usage
 - LMT-side attached TIML subtree parsing and browser summaries for inspected actions
 - imported attached TIML payloads as dedicated Blender controller actions with custom-property fcurves
+- standalone TIML inspection/import into the same raw TIML workspace controller model
+- standalone TIML file save from inspected controller sessions back to `.timl`
 - reverse analysis of imported TIML controller actions back into typed TIML value space, with warnings for unsupported interpolation coverage, split-channel retiming, and quantization risk
 
 Quaternion note:
@@ -72,8 +121,7 @@ Not implemented yet:
 
 - helper/tether playback
 - broad TIML structural rebuild coverage beyond the current conservative source-backed path
-- standalone TIML import/export workflows outside source-backed LMT merge export
-- EFX rewrite
+- EFX support
 
 ## Layout
 
@@ -107,15 +155,21 @@ Useful corpus scans:
 - `tools/scan_timl_corpus.py`
 - `tools/scan_embedded_timl_corpus.py`
 
-Release planning:
+User docs:
 
-- `docs/v1-release-checklist.md`
-- `docs/v1-validation-matrix.md`
-- `docs/installation.md`
-- `docs/workflow-lmt.md`
-- `docs/workflow-timl-in-lmt.md`
-- `docs/credits-and-acknowledgements.md`
-- `docs/v1-release-notes-draft.md`
+- [Installation](docs/installation.md)
+- [Quickstart](docs/quickstart.md)
+- [Feature Map](docs/feature-map.md)
+- [Basic LMT Workflow](docs/workflow-lmt.md)
+- [TIML In LMT Workflow](docs/workflow-timl-in-lmt.md)
+- [Known Warnings](docs/known-warnings.md)
+- [Credits And Acknowledgements](docs/credits-and-acknowledgements.md)
+
+Developer / release docs:
+
+- [V1 Release Checklist](docs/v1-release-checklist.md)
+- [V1 Validation Matrix](docs/v1-validation-matrix.md)
+- [V1 Release Notes Draft](docs/v1-release-notes-draft.md)
 
 Writer-readiness scan notes:
 
@@ -123,7 +177,7 @@ Writer-readiness scan notes:
 - use `--max-files-per-run` or `--max-seconds` to chunk a scan across sessions
 - use `--output <path>` to keep a rolling human-readable summary beside the raw state file
 
-## Legacy reference
+## Legacy reference utilities
 
 Use a local legacy reference copy only for:
 
@@ -131,8 +185,8 @@ Use a local legacy reference copy only for:
 - buffer and flag semantics
 - edge-case behavior on known assets
 
-The new code should stay understandable on its own and should not become a
-line-by-line port of the legacy add-on.
+This repository should stay understandable on its own and should not become a
+line-by-line port of a legacy add-on.
 
 Optional legacy comparison scripts accept an explicit legacy-root path instead
 of assuming one fixed local workspace layout.

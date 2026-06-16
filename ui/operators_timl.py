@@ -33,6 +33,8 @@ from ..blender_adapter.timl_authoring import timl_header_state_from_controller
 from ..blender_adapter.fcurves import create_action_fcurves
 from ..blender_adapter.fcurves import create_scalar_action_fcurve
 from ..blender_adapter.timl_metadata import TIML_BINDINGS_KEY
+from ..blender_adapter.timl_metadata import TIML_SOURCE_KIND_ATTACHED_LMT
+from ..blender_adapter.timl_metadata import TIML_SOURCE_KIND_STANDALONE_FILE
 from ..blender_adapter.timl_writeback import assess_timl_controller_shared_payload
 from ..blender_adapter.timl_sampling import extract_timl_controller_metadata
 from ..blender_adapter.timl_sampling import is_imported_timl_controller
@@ -45,6 +47,7 @@ from ..core.diagnostics.errors import ValidationError
 from ..core.formats.lmt.reader import read_lmt_bytes
 from ..core.formats.timl.channels import build_timl_transform_samples
 from ..core.formats.timl.reader import read_timl_data_bytes
+from ..core.formats.timl.reader import read_timl_bytes
 from .properties import add_diagnostic
 from .properties import clear_diagnostics
 from .properties import clear_timl_analysis
@@ -341,11 +344,21 @@ def _ensure_timl_workspace(context):
 
     workspace = bpy.data.workspaces.get(_timl_workspace_name())
     if workspace is None:
+        existing_workspace_ids = {workspace_item.as_pointer() for workspace_item in bpy.data.workspaces}
         try:
             bpy.ops.workspace.duplicate()
         except RuntimeError as exc:
             return False, f"Could not create a TIML workspace: {exc}"
-        workspace = window.workspace
+        workspace = next(
+            (
+                workspace_item
+                for workspace_item in bpy.data.workspaces
+                if workspace_item.as_pointer() not in existing_workspace_ids
+            ),
+            None,
+        )
+        if workspace is None:
+            return False, "TIML workspace duplication succeeded, but the new workspace could not be identified."
         workspace.name = _timl_workspace_name()
     window.workspace = workspace
     configured = _configure_timl_workspace(window)
@@ -356,6 +369,8 @@ def _ensure_timl_workspace(context):
 
 def _build_source_backed_writeback_plan(controller, metadata, *, source_bytes: bytes):
     if metadata is None:
+        return None
+    if str(getattr(metadata, "source_kind", "") or "") == TIML_SOURCE_KIND_STANDALONE_FILE:
         return None
     source_lmt = str(getattr(metadata, "source_lmt", "") or "")
     if not source_lmt:
@@ -371,6 +386,8 @@ def _build_source_backed_writeback_plan(controller, metadata, *, source_bytes: b
 
 def _load_source_context(metadata):
     if metadata is None:
+        return None, None
+    if str(getattr(metadata, "source_kind", "") or "") == TIML_SOURCE_KIND_STANDALONE_FILE:
         return None, None
     source_lmt = str(getattr(metadata, "source_lmt", "") or "")
     if not source_lmt:
@@ -457,6 +474,34 @@ def _selected_transform_identity(scene_props):
 
 
 def _source_entry_for_controller(metadata):
+    if metadata is None:
+        return None, None
+    source_kind = str(getattr(metadata, "source_kind", "") or "")
+    source_path = str(getattr(metadata, "source_lmt", "") or "")
+    if not source_path:
+        return None, None
+
+    if source_kind == TIML_SOURCE_KIND_STANDALONE_FILE:
+        source_file = Path(source_path)
+        if not source_file.is_file():
+            raise FileNotFoundError(f"TIML source file is missing: {source_path}")
+        source_bytes = source_file.read_bytes()
+        entry_id = int(getattr(metadata, "entry_id", 0))
+        source_offset = int(getattr(metadata, "source_offset", 0))
+        if source_offset <= 0:
+            timl_file = read_timl_bytes(source_bytes, source_name=str(source_file))
+            if 0 <= entry_id < len(timl_file.entry_offsets):
+                source_offset = int(timl_file.entry_offsets[entry_id])
+        if source_offset <= 0:
+            return source_bytes, None
+        source_entry = read_timl_data_bytes(
+            source_bytes,
+            data_offset=source_offset,
+            source_name=str(source_file),
+            entry_id=entry_id,
+        )
+        return source_bytes, source_entry
+
     source_bytes, _source_lmt_file = _load_source_context(metadata)
     if source_bytes is None:
         return None, None
@@ -1337,6 +1382,50 @@ class MHWANIMTOOLS_OT_materialize_timl_transform_preview(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class MHWANIMTOOLS_OT_materialize_timl_block_previews(bpy.types.Operator):
+    bl_idname = "mhw_anim_tools.materialize_timl_block_previews"
+    bl_label = "Create Block Previews"
+    bl_description = "Create editable Blender preview curves for every source-backed transform in the selected TIML block"
+
+    def execute(self, context):
+        scene_props = context.scene.mhw_anim_tools
+        controller = _resolve_timl_controller(context)
+        block = _selected_timl_block(scene_props)
+        if controller is None or block is None:
+            scene_props.last_status = "Choose a TIML type first."
+            add_diagnostic(scene_props, "ERROR", "timl.block", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        existing_count = sum(
+            1
+            for binding in load_timl_bindings_raw(controller)
+            if int(binding["type_index"]) == int(block.type_index)
+        )
+        bindings, error_message = _materialize_type_preview_bindings_from_source(
+            context,
+            controller,
+            scene_props,
+            int(block.type_index),
+        )
+        if not bindings:
+            scene_props.last_status = error_message or "Could not create preview curves for the selected TIML block."
+            add_diagnostic(scene_props, "ERROR", "timl.block", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        created_count = max(0, len(bindings) - int(existing_count))
+        if created_count <= 0:
+            scene_props.last_status = f"Type {int(block.type_index):02d} already has preview curves for every source transform."
+        else:
+            scene_props.last_status = (
+                f"Created {created_count} preview entr{'y' if created_count == 1 else 'ies'} "
+                f"for type {int(block.type_index):02d}."
+            )
+        self.report({"INFO"}, scene_props.last_status)
+        return {"FINISHED"}
+
+
 class MHWANIMTOOLS_OT_duplicate_timl_type(bpy.types.Operator):
     bl_idname = "mhw_anim_tools.duplicate_timl_type"
     bl_label = "Duplicate Type"
@@ -1893,7 +1982,10 @@ class MHWANIMTOOLS_OT_select_timl_block_curves(bpy.types.Operator):
             property_names = []
         match_count = _select_controller_curves_by_property_names(controller, property_names)
         if match_count <= 0:
-            scene_props.last_status = f"No preview curves were found for {block.block_label or 'this block'}."
+            scene_props.last_status = (
+                f"No preview curves were found for {block.block_label or 'this block'}. "
+                "Create block previews first if you want direct Graph Editor editing."
+            )
             add_diagnostic(scene_props, "WARNING", "timl.block", scene_props.last_status)
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
@@ -1935,7 +2027,10 @@ class MHWANIMTOOLS_OT_select_timl_property_curves(bpy.types.Operator):
         match_count = _select_controller_curves_by_property_names(controller, [property_name])
         if match_count <= 0:
             field_name = str(self.display_name or property_name)
-            scene_props.last_status = f"No preview curves were found for {field_name}."
+            scene_props.last_status = (
+                f"No preview curves were found for {field_name}. "
+                "Create a preview binding first if you want direct Graph Editor editing."
+            )
             add_diagnostic(scene_props, "WARNING", "timl.field", scene_props.last_status)
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
@@ -1979,7 +2074,10 @@ class MHWANIMTOOLS_OT_select_timl_transform_curves(bpy.types.Operator):
         match_count = _select_controller_curves_by_property_names(controller, [transform.property_name])
 
         if match_count <= 0:
-            scene_props.last_status = f"No preview curves were found for {transform.semantic_label or transform.property_name}."
+            scene_props.last_status = (
+                f"No preview curves were found for {transform.semantic_label or transform.property_name}. "
+                "Create a preview binding first if you want direct Graph Editor editing."
+            )
             add_diagnostic(scene_props, "WARNING", "timl.transform", scene_props.last_status)
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
@@ -2156,6 +2254,7 @@ classes = (
     MHWANIMTOOLS_OT_edit_timl_transform,
     MHWANIMTOOLS_OT_add_timl_type,
     MHWANIMTOOLS_OT_materialize_timl_transform_preview,
+    MHWANIMTOOLS_OT_materialize_timl_block_previews,
     MHWANIMTOOLS_OT_duplicate_timl_type,
     MHWANIMTOOLS_OT_delete_timl_type,
     MHWANIMTOOLS_OT_add_timl_transform,

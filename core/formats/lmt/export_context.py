@@ -7,6 +7,7 @@ UI can surface unsafe export cases without burying more policy in operators.
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
 import struct
 
@@ -33,6 +34,8 @@ class LmtSourceActionExportContext:
     has_timl: bool
     timl_offset: int
     track_metadata_by_identity: dict[tuple[int, int], dict[str, object]]
+    track_metadata_by_index: dict[int, dict[str, object]]
+    duplicate_track_identities: tuple[tuple[int, int, int], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -180,6 +183,34 @@ def _track_metadata_map(action) -> dict[tuple[int, int], dict[str, object]]:
     }
 
 
+def _track_metadata_map_by_index(action) -> dict[int, dict[str, object]]:
+    return {
+        int(track_index): {
+            "buffer_type": int(track.header.buffer_type),
+            "joint_type": int(track.header.joint_type),
+            "unknown_tag": int(track.header.unknown_tag),
+            "weight": float(track.header.weight),
+            "lerp_mult": track.lerp_basis.mult if track.lerp_basis is not None else None,
+            "lerp_add": track.lerp_basis.add if track.lerp_basis is not None else None,
+            "bone_id": int(track.header.bone_id),
+            "usage": int(track.header.usage),
+        }
+        for track_index, track in enumerate(action.tracks)
+    }
+
+
+def find_duplicate_track_identities(action) -> tuple[tuple[int, int, int], ...]:
+    duplicate_counts = Counter(
+        (int(track.header.bone_id), int(track.header.usage))
+        for track in action.tracks
+    )
+    return tuple(
+        (int(bone_id), int(usage), int(count))
+        for (bone_id, usage), count in sorted(duplicate_counts.items())
+        if int(count) > 1
+    )
+
+
 def build_source_action_export_context(lmt, action_id: int) -> LmtSourceActionExportContext:
     source_action = None
     for candidate in lmt.actions:
@@ -207,6 +238,8 @@ def build_source_action_export_context(lmt, action_id: int) -> LmtSourceActionEx
         has_timl=bool(source_action.has_timl),
         timl_offset=int(source_action.header.timl_offset),
         track_metadata_by_identity=_track_metadata_map(source_action),
+        track_metadata_by_index=_track_metadata_map_by_index(source_action),
+        duplicate_track_identities=find_duplicate_track_identities(source_action),
     )
 
 

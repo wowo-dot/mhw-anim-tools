@@ -160,10 +160,13 @@ def _basis_xyzw(track, usage_info) -> tuple[float, float, float, float]:
     )
 
 
-def _track_write_metadata(track_metadata_by_identity, bone_id: int, usage: int) -> LmtTrackWriteMetadata:
-    if not track_metadata_by_identity:
-        return LmtTrackWriteMetadata()
-    metadata = track_metadata_by_identity.get((int(bone_id), int(usage)))
+def _track_write_metadata(track, track_metadata_by_identity, track_metadata_by_index) -> LmtTrackWriteMetadata:
+    metadata = None
+    source_track_index = getattr(track, "source_track_index", None)
+    if source_track_index is not None and track_metadata_by_index:
+        metadata = track_metadata_by_index.get(int(source_track_index))
+    if metadata is None and track_metadata_by_identity:
+        metadata = track_metadata_by_identity.get((int(track.bone_id), int(track.usage)))
     if metadata is None:
         return LmtTrackWriteMetadata()
     if isinstance(metadata, LmtTrackWriteMetadata):
@@ -223,6 +226,7 @@ def write_lmt_bytes(
     flags: int = 0,
     flags2: int = 0,
     track_metadata_by_identity: dict[tuple[int, int], LmtTrackWriteMetadata | dict[str, float | int]] | None = None,
+    track_metadata_by_index: dict[int, LmtTrackWriteMetadata | dict[str, float | int]] | None = None,
     raw_quaternion_source_identities: frozenset[tuple[int, int]] | set[tuple[int, int]] | None = None,
 ) -> bytes:
     if len(header_unknown) != 8:
@@ -230,6 +234,7 @@ def write_lmt_bytes(
     plan = plan_reconstructed_action_export(
         reconstructed_action,
         track_metadata_by_identity=track_metadata_by_identity,
+        track_metadata_by_index=track_metadata_by_index,
         raw_quaternion_source_identities=raw_quaternion_source_identities,
     )
     if plan.error_count:
@@ -241,7 +246,7 @@ def write_lmt_bytes(
 
     encoded_tracks = []
     for reconstructed_track, planned_track in zip(reconstructed_action.tracks, plan.tracks):
-        metadata = _track_write_metadata(track_metadata_by_identity, reconstructed_track.bone_id, reconstructed_track.usage)
+        metadata = _track_write_metadata(reconstructed_track, track_metadata_by_identity, track_metadata_by_index)
         usage_info = get_usage_semantics(reconstructed_track.usage)
         raw_buffer = _encode_track_buffer(reconstructed_track, planned_track, action_frame_count)
         encoded_tracks.append(

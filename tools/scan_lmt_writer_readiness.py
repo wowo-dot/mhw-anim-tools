@@ -233,6 +233,7 @@ def _process_file(path: Path, state: dict[str, object]) -> None:
         plan = plan_reconstructed_action_export(
             reconstructed_action,
             track_metadata_by_identity=source_context.track_metadata_by_identity,
+            track_metadata_by_index=source_context.track_metadata_by_index,
             raw_quaternion_source_identities=raw_quaternion_source_identities,
         )
 

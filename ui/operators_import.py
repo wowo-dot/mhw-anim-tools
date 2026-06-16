@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """Milestone-one import/inspection operators."""
 
+import json
 import os
 from pathlib import Path
+from uuid import uuid4
 
 import bpy
 from bpy_extras.io_utils import ImportHelper
@@ -11,15 +13,67 @@ from ..blender_adapter.actions import import_lmt_action_to_armature
 from ..blender_adapter.import_batch import import_all_lmt_actions_to_armature
 from ..blender_adapter.lmt_session import build_file_summary
 from ..blender_adapter.timl_actions import import_attached_timl_to_action
+from ..blender_adapter.timl_actions import import_standalone_timl_entries_to_actions
 from ..core.formats.lmt.reader import read_lmt_bytes
 from ..core.formats.lmt.reader import read_lmt_file
 from ..core.formats.lmt.validation import validate_lmt
+from ..core.formats.timl.reader import read_timl_bytes
+from ..core.formats.timl.summary import build_file_summary as build_timl_file_summary
+from ..core.formats.timl.validation import validate_timl
 from .properties import add_diagnostic
 from .properties import clear_export_analysis
 from .properties import clear_diagnostics
+from .properties import clear_timl_file_session
 from .properties import _populate_track_items
 from .properties import _populate_timl_transform_items
 from .properties import clear_timl_analysis
+
+
+def _selected_timl_file_entry(scene_props):
+    items = scene_props.timl_file_entries
+    index = int(scene_props.selected_timl_file_entry_index)
+    if 0 <= index < len(items):
+        return items[index]
+    return None
+
+
+def _populate_timl_file_session(scene_props, timl, report) -> None:
+    scene_props.timl_file_entries.clear()
+    scene_props.selected_timl_file_entry_index = 0
+    summary = build_timl_file_summary(timl)
+    entries_by_id = {int(entry["entry_id"]): entry for entry in summary["entries"]}
+    for entry_id in range(int(timl.header.entry_count)):
+        item = scene_props.timl_file_entries.add()
+        item.entry_id = int(entry_id)
+        offset = int(timl.entry_offsets[entry_id]) if entry_id < len(timl.entry_offsets) else 0
+        item.has_data = bool(offset)
+        item.offset_display = f"0x{offset:X}" if offset else ""
+        entry_summary = entries_by_id.get(int(entry_id))
+        if entry_summary is None:
+            continue
+        item.type_count = int(entry_summary["type_count"])
+        item.transform_count = int(entry_summary["transform_count"])
+        item.keyframe_count = int(entry_summary["keyframe_count"])
+        item.animation_length = float(entry_summary["animation_length"])
+        item.loop_start_point = float(entry_summary["loop_start_point"])
+        item.loop_control = int(entry_summary["loop_control"])
+        item.data_index_a = int(entry_summary["data_index_a"])
+        item.data_index_b = int(entry_summary["data_index_b"])
+        item.label_hash_display = f"0x{int(entry_summary['label_hash']) & 0xFFFFFFFF:08X}"
+        item.data_type_breakdown = ", ".join(
+            f"{count} {label}" for label, count in dict(entry_summary["data_type_counts"]).items()
+        )
+        item.timeline_breakdown = ", ".join(
+            f"{count} {label}" for label, count in dict(entry_summary["timeline_counts"]).items()
+        )
+        item.transform_payload = json.dumps(entry_summary["transform_payload"])
+
+    scene_props.last_timl_entry_count = int(timl.header.entry_count)
+    scene_props.last_timl_type_count = int(timl.type_count)
+    scene_props.last_timl_transform_count = int(timl.transform_count)
+    scene_props.last_timl_keyframe_count = int(timl.keyframe_count)
+    scene_props.last_timl_warning_count = int(report.warning_count)
+    scene_props.last_timl_error_count = int(report.error_count)
 
 
 class MHWANIMTOOLS_OT_inspect_lmt(bpy.types.Operator, ImportHelper):
@@ -95,6 +149,42 @@ class MHWANIMTOOLS_OT_inspect_lmt(bpy.types.Operator, ImportHelper):
                     "timl",
                     f"Entry {int(action_summary['entry_id']):03d} attached TIML could not be parsed: {action_summary['timl_parse_error']}",
                 )
+        self.report({"INFO"}, scene_props.last_status)
+        return {"FINISHED"}
+
+
+class MHWANIMTOOLS_OT_inspect_timl(bpy.types.Operator, ImportHelper):
+    bl_idname = "mhw_anim_tools.inspect_timl"
+    bl_label = "Inspect TIML"
+    bl_description = "Parse a standalone TIML file and build a browsable session"
+
+    filename_ext = ".timl"
+    filter_glob: bpy.props.StringProperty(default="*.timl", options={"HIDDEN"}, maxlen=255)
+
+    def execute(self, context):
+        scene_props = context.scene.mhw_anim_tools
+        clear_diagnostics(scene_props)
+        clear_timl_analysis(scene_props)
+        clear_timl_file_session(scene_props)
+        scene_props.last_imported_timl_action_name = ""
+        scene_props.last_imported_timl_object_name = ""
+
+        source_bytes = Path(self.filepath).read_bytes()
+        timl = read_timl_bytes(source_bytes, source_name=self.filepath)
+        report = validate_timl(timl)
+        _populate_timl_file_session(scene_props, timl, report)
+        scene_props.last_timl_path = self.filepath
+        scene_props.last_timl_session_id = uuid4().hex
+        scene_props.last_status = (
+            f"Parsed {os.path.basename(self.filepath)}: "
+            f"entries={timl.header.entry_count}, types={timl.type_count}, "
+            f"transforms={timl.transform_count}, keyframes={timl.keyframe_count}, "
+            f"warnings={report.warning_count}, errors={report.error_count}"
+        )
+        if report.warning_count:
+            add_diagnostic(scene_props, "WARNING", "validation", f"TIML validation reported {report.warning_count} warning(s).")
+        if report.error_count:
+            add_diagnostic(scene_props, "ERROR", "validation", f"TIML validation reported {report.error_count} error(s).")
         self.report({"INFO"}, scene_props.last_status)
         return {"FINISHED"}
 
@@ -361,6 +451,185 @@ class MHWANIMTOOLS_OT_import_all_attached_timl(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class MHWANIMTOOLS_OT_import_selected_timl_entry(bpy.types.Operator):
+    bl_idname = "mhw_anim_tools.import_selected_timl_entry"
+    bl_label = "Import Selected TIML Entry"
+    bl_description = "Import the selected standalone TIML entry into the TIML workspace"
+
+    def execute(self, context):
+        scene_props = context.scene.mhw_anim_tools
+        clear_diagnostics(scene_props)
+        scene_props.last_imported_timl_action_name = ""
+        scene_props.last_imported_timl_object_name = ""
+        if not scene_props.last_timl_path:
+            scene_props.last_status = "Inspect a TIML file before importing an entry."
+            add_diagnostic(scene_props, "ERROR", "session", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        entry = _selected_timl_file_entry(scene_props)
+        if entry is None:
+            scene_props.last_status = "Choose a TIML entry first."
+            add_diagnostic(scene_props, "ERROR", "timl", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        if not entry.has_data:
+            scene_props.last_status = f"TIML entry {int(entry.entry_id):03d} is empty."
+            add_diagnostic(scene_props, "ERROR", "timl", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        try:
+            result = import_standalone_timl_entries_to_actions(
+                scene_props.last_timl_path,
+                entry_ids=(int(entry.entry_id),),
+                session_id=str(scene_props.last_timl_session_id or ""),
+                target_armature=scene_props.target_armature,
+            )
+        except Exception as exc:
+            scene_props.last_status = f"TIML import failed: {exc}"
+            add_diagnostic(scene_props, "ERROR", "timl", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        for diagnostic in result.diagnostics:
+            add_diagnostic(scene_props, diagnostic.level, diagnostic.source, diagnostic.message)
+
+        if result.error_count or result.imported_entry_count <= 0:
+            scene_props.last_status = (
+                f"TIML import failed: {result.error_count} error(s), "
+                f"{result.warning_count} warning(s)."
+            )
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        scene_props.last_imported_timl_action_name = result.last_action_name
+        scene_props.last_imported_timl_object_name = result.last_carrier_name
+        scene_props.timl_controller = bpy.data.objects.get(result.last_carrier_name)
+        clear_timl_analysis(scene_props)
+        if result.frame_end:
+            context.scene.frame_start = min(int(context.scene.frame_start), 0)
+            context.scene.frame_end = max(int(context.scene.frame_end), int(result.frame_end))
+
+        if scene_props.timl_controller is not None:
+            try:
+                bpy.ops.mhw_anim_tools.open_timl_workspace()
+            except RuntimeError:
+                pass
+
+        scene_props.last_status = (
+            f"Imported TIML entry {int(entry.entry_id):03d}: "
+            f"transforms={result.imported_transform_count}, "
+            f"warnings={result.warning_count}"
+        )
+        self.report({"INFO"}, scene_props.last_status)
+        return {"FINISHED"}
+
+
+class MHWANIMTOOLS_OT_import_all_timl_entries(bpy.types.Operator):
+    bl_idname = "mhw_anim_tools.import_all_timl_entries"
+    bl_label = "Import All TIML Entries"
+    bl_description = "Import every non-empty entry from the inspected standalone TIML file"
+
+    def execute(self, context):
+        scene_props = context.scene.mhw_anim_tools
+        clear_diagnostics(scene_props)
+        scene_props.last_imported_timl_action_name = ""
+        scene_props.last_imported_timl_object_name = ""
+        if not scene_props.last_timl_path:
+            scene_props.last_status = "Inspect a TIML file before importing entries."
+            add_diagnostic(scene_props, "ERROR", "session", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        try:
+            result = import_standalone_timl_entries_to_actions(
+                scene_props.last_timl_path,
+                entry_ids=None,
+                session_id=str(scene_props.last_timl_session_id or ""),
+                target_armature=scene_props.target_armature,
+            )
+        except Exception as exc:
+            scene_props.last_status = f"TIML import failed: {exc}"
+            add_diagnostic(scene_props, "ERROR", "timl", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        for diagnostic in result.diagnostics:
+            add_diagnostic(scene_props, diagnostic.level, diagnostic.source, diagnostic.message)
+        if result.error_count or result.imported_entry_count <= 0:
+            scene_props.last_status = (
+                f"TIML import failed: {result.error_count} error(s), "
+                f"{result.warning_count} warning(s)."
+            )
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        scene_props.last_imported_timl_action_name = result.last_action_name
+        scene_props.last_imported_timl_object_name = result.last_carrier_name
+        scene_props.timl_controller = bpy.data.objects.get(result.last_carrier_name)
+        clear_timl_analysis(scene_props)
+        if result.frame_end:
+            context.scene.frame_start = min(int(context.scene.frame_start), 0)
+            context.scene.frame_end = max(int(context.scene.frame_end), int(result.frame_end))
+        scene_props.last_status = (
+            f"Imported {result.imported_entry_count} TIML entr{'y' if result.imported_entry_count == 1 else 'ies'}: "
+            f"transforms={result.imported_transform_count}, warnings={result.warning_count}"
+        )
+        self.report({"INFO"}, scene_props.last_status)
+        return {"FINISHED"}
+
+
+class MHWANIMTOOLS_OT_focus_selected_timl_entry_controller(bpy.types.Operator):
+    bl_idname = "mhw_anim_tools.focus_selected_timl_entry_controller"
+    bl_label = "Focus TIML Entry Controller"
+    bl_description = "Focus the imported TIML controller for the selected standalone TIML entry"
+
+    def execute(self, context):
+        scene_props = context.scene.mhw_anim_tools
+        entry = _selected_timl_file_entry(scene_props)
+        if entry is None:
+            scene_props.last_status = "Choose a TIML entry first."
+            add_diagnostic(scene_props, "WARNING", "timl.controller", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        if not scene_props.last_timl_path:
+            scene_props.last_status = "Inspect a TIML file first."
+            add_diagnostic(scene_props, "WARNING", "timl.controller", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        controller = next(
+            (
+                obj for obj in bpy.data.objects
+                if bool(obj)
+                and str(obj.get("mhw_anim_tools_timl_source_lmt", "") or "") == str(scene_props.last_timl_path or "")
+                and str(obj.get("mhw_anim_tools_timl_session_id", "") or "") == str(scene_props.last_timl_session_id or "")
+                and int(obj.get("mhw_anim_tools_timl_entry_id", -1) or -1) == int(entry.entry_id)
+            ),
+            None,
+        )
+        if controller is None:
+            scene_props.last_status = f"TIML entry {int(entry.entry_id):03d} has not been imported yet."
+            add_diagnostic(scene_props, "WARNING", "timl.controller", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        scene_props.timl_controller = controller
+        if context.mode == "OBJECT":
+            for candidate in context.selected_objects:
+                candidate.select_set(False)
+            controller.select_set(True)
+            context.view_layer.objects.active = controller
+        if scene_props.last_timl_analysis_controller_name != controller.name:
+            try:
+                bpy.ops.mhw_anim_tools.analyze_timl_controller()
+            except RuntimeError:
+                pass
+        scene_props.last_status = f"Focused {controller.name}."
+        self.report({"INFO"}, scene_props.last_status)
+        return {"FINISHED"}
+
+
 class MHWANIMTOOLS_OT_clear_lmt_session(bpy.types.Operator):
     bl_idname = "mhw_anim_tools.clear_lmt_session"
     bl_label = "Clear Session"
@@ -392,13 +661,34 @@ class MHWANIMTOOLS_OT_clear_lmt_session(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class MHWANIMTOOLS_OT_clear_timl_session(bpy.types.Operator):
+    bl_idname = "mhw_anim_tools.clear_timl_session"
+    bl_label = "Clear TIML Session"
+    bl_description = "Clear the currently loaded standalone TIML session summary"
+
+    def execute(self, context):
+        scene_props = context.scene.mhw_anim_tools
+        clear_diagnostics(scene_props)
+        clear_timl_file_session(scene_props)
+        scene_props.last_imported_timl_action_name = ""
+        scene_props.last_imported_timl_object_name = ""
+        clear_timl_analysis(scene_props)
+        scene_props.last_status = "Cleared TIML session."
+        return {"FINISHED"}
+
+
 classes = (
     MHWANIMTOOLS_OT_inspect_lmt,
+    MHWANIMTOOLS_OT_inspect_timl,
     MHWANIMTOOLS_OT_import_selected_lmt_action,
     MHWANIMTOOLS_OT_import_all_lmt_actions,
     MHWANIMTOOLS_OT_import_selected_attached_timl,
     MHWANIMTOOLS_OT_import_all_attached_timl,
+    MHWANIMTOOLS_OT_import_selected_timl_entry,
+    MHWANIMTOOLS_OT_import_all_timl_entries,
+    MHWANIMTOOLS_OT_focus_selected_timl_entry_controller,
     MHWANIMTOOLS_OT_clear_lmt_session,
+    MHWANIMTOOLS_OT_clear_timl_session,
 )
 
 

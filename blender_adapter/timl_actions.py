@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from pathlib import Path
 from types import SimpleNamespace
+from uuid import uuid4
 
 import bpy
 
@@ -38,6 +39,12 @@ from .timl_metadata import TIML_HEADER_LOOP_CONTROL_KEY
 from .timl_metadata import TIML_HEADER_LOOP_START_POINT_KEY
 from .timl_metadata import TIML_IMPORTED_PREVIEW_SIGNATURE_KEY
 from .timl_metadata import TIML_PROPERTY_LIST_KEY
+from .timl_metadata import TIML_SESSION_ID_KEY
+from .timl_metadata import TIML_SOURCE_ENTRY_COUNT_KEY
+from .timl_metadata import TIML_SOURCE_ENTRY_IDS_KEY
+from .timl_metadata import TIML_SOURCE_KIND_ATTACHED_LMT
+from .timl_metadata import TIML_SOURCE_KIND_KEY
+from .timl_metadata import TIML_SOURCE_KIND_STANDALONE_FILE
 from .timl_preview_state import imported_preview_signature_json
 from .timl_metadata import TIML_SOURCE_LMT_KEY
 from .timl_metadata import TIML_SOURCE_OFFSET_KEY
@@ -53,6 +60,7 @@ from .timl_templates import DEFAULT_EVENT_LOOP_FLAG_ON
 from .timl_templates import DEFAULT_EVENT_LOOP_RELEASE_TIME_A
 from .timl_templates import DEFAULT_EVENT_LOOP_REQNO_A
 from .timl_templates import set_timl_template_metadata
+from ..core.formats.timl.reader import read_timl_bytes
 
 
 SUPPORTED_TIML_DATA_TYPES = {0, 1, 2, 3, 4}
@@ -86,6 +94,42 @@ class ImportTimlResult:
     @property
     def error_count(self) -> int:
         return sum(1 for item in self.diagnostics if item.level == "ERROR")
+
+
+@dataclass
+class ImportTimlFileResult:
+    source_path: str = ""
+    session_id: str = ""
+    imported_entry_ids: list[int] = field(default_factory=list)
+    imported_action_names: list[str] = field(default_factory=list)
+    imported_carrier_names: list[str] = field(default_factory=list)
+    imported_transform_count: int = 0
+    skipped_entry_count: int = 0
+    frame_end: int = 0
+    diagnostics: list[ImportDiagnostic] = field(default_factory=list)
+
+    def add(self, level: str, source: str, message: str):
+        self.diagnostics.append(ImportDiagnostic(level=level, source=source, message=message))
+
+    @property
+    def warning_count(self) -> int:
+        return sum(1 for item in self.diagnostics if item.level == "WARNING")
+
+    @property
+    def error_count(self) -> int:
+        return sum(1 for item in self.diagnostics if item.level == "ERROR")
+
+    @property
+    def imported_entry_count(self) -> int:
+        return len(self.imported_entry_ids)
+
+    @property
+    def last_action_name(self) -> str:
+        return self.imported_action_names[-1] if self.imported_action_names else ""
+
+    @property
+    def last_carrier_name(self) -> str:
+        return self.imported_carrier_names[-1] if self.imported_carrier_names else ""
 
 
 def _scene_frame_int(value) -> int:
@@ -160,6 +204,49 @@ def _load_json_list(raw_value) -> list[str]:
     return [str(item) for item in decoded]
 
 
+def _entry_ids_json(entry_ids) -> str:
+    return json.dumps(
+        sorted({int(entry_id) for entry_id in entry_ids}),
+        separators=(",", ":"),
+    )
+
+
+def _tag_timl_source_metadata(
+    controller,
+    blender_action,
+    *,
+    source_path: str,
+    source_kind: str,
+    entry_id: int,
+    source_offset: int,
+    source_entry_count: int = 0,
+    session_id: str = "",
+    source_entry_ids_json: str = "",
+) -> None:
+    blender_action["mhw_anim_tools_source_lmt"] = source_path
+    blender_action["mhw_anim_tools_entry_id"] = int(entry_id)
+    blender_action["mhw_anim_tools_source_timl_offset"] = int(source_offset)
+    blender_action["mhw_anim_tools_timl_source_kind"] = str(source_kind or "")
+    blender_action["mhw_anim_tools_timl_source_entry_count"] = int(source_entry_count)
+    blender_action["mhw_anim_tools_timl_session_id"] = str(session_id or "")
+    if source_entry_ids_json:
+        blender_action["mhw_anim_tools_timl_source_entry_ids"] = str(source_entry_ids_json)
+    elif "mhw_anim_tools_timl_source_entry_ids" in blender_action:
+        del blender_action["mhw_anim_tools_timl_source_entry_ids"]
+
+    controller[TIML_SOURCE_LMT_KEY] = source_path
+    controller[TIML_SOURCE_KIND_KEY] = str(source_kind or "")
+    controller[TIML_SOURCE_ENTRY_COUNT_KEY] = int(source_entry_count)
+    if source_entry_ids_json:
+        controller[TIML_SOURCE_ENTRY_IDS_KEY] = str(source_entry_ids_json)
+    else:
+        controller[TIML_SOURCE_ENTRY_IDS_KEY] = "[]"
+    controller[TIML_ENTRY_ID_KEY] = int(entry_id)
+    controller[TIML_SOURCE_OFFSET_KEY] = int(source_offset)
+    controller[TIML_SESSION_ID_KEY] = str(session_id or "")
+    controller[TIML_ACTION_NAME_KEY] = blender_action.name
+
+
 def _clear_timl_carrier_properties(carrier):
     for prop_name in load_timl_property_names(carrier):
         if prop_name in carrier:
@@ -185,6 +272,18 @@ def _clear_timl_carrier_properties(carrier):
         del carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY]
     if TIML_DELETED_BINDINGS_KEY in carrier:
         del carrier[TIML_DELETED_BINDINGS_KEY]
+    for metadata_key in (
+        TIML_SOURCE_KIND_KEY,
+        TIML_SOURCE_ENTRY_COUNT_KEY,
+        TIML_SOURCE_ENTRY_IDS_KEY,
+        TIML_SESSION_ID_KEY,
+        TIML_SOURCE_LMT_KEY,
+        TIML_ENTRY_ID_KEY,
+        TIML_SOURCE_OFFSET_KEY,
+        TIML_ACTION_NAME_KEY,
+    ):
+        if metadata_key in carrier:
+            del carrier[metadata_key]
     clear_timl_template_metadata(carrier)
 
 
@@ -342,9 +441,6 @@ def seed_eventloop_template_on_controller(
     animation_data = ensure_object_animation_data(controller)
     animation_data.action = blender_action
     blender_action["mhw_anim_tools_import_kind"] = "attached_timl"
-    blender_action["mhw_anim_tools_source_lmt"] = source_path
-    blender_action["mhw_anim_tools_entry_id"] = int(entry_id)
-    blender_action["mhw_anim_tools_source_timl_offset"] = int(source_offset)
     blender_action["mhw_anim_tools_timl_transform_count"] = int(len(transforms))
 
     property_names: list[str] = []
@@ -381,10 +477,14 @@ def seed_eventloop_template_on_controller(
     save_timl_property_names(controller, property_names)
     save_timl_bindings_raw(controller, bindings)
     controller[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY] = imported_preview_signature_json(())
-    controller[TIML_SOURCE_LMT_KEY] = source_path
-    controller[TIML_ENTRY_ID_KEY] = int(entry_id)
-    controller[TIML_SOURCE_OFFSET_KEY] = int(source_offset)
-    controller[TIML_ACTION_NAME_KEY] = blender_action.name
+    _tag_timl_source_metadata(
+        controller,
+        blender_action,
+        source_path=source_path,
+        source_kind=TIML_SOURCE_KIND_ATTACHED_LMT,
+        entry_id=int(entry_id),
+        source_offset=int(source_offset),
+    )
     ensure_timl_header_props(
         controller,
         source_lmt=source_path,
@@ -404,38 +504,27 @@ def seed_eventloop_template_on_controller(
     return blender_action.name
 
 
-def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, source_bytes: bytes, target_armature=None):
+def _import_timl_data_entry_to_action(
+    data_entry,
+    *,
+    source_path: str,
+    entry_id: int,
+    import_kind: str,
+    source_kind: str,
+    source_offset: int,
+    source_entry_count: int = 0,
+    source_entry_ids_json: str = "",
+    session_id: str = "",
+    target_armature=None,
+):
     result = ImportTimlResult()
-    if action_index < 0 or action_index >= len(lmt.actions):
-        result.add("ERROR", "session", "Selected LMT action is out of range for the current session.")
-        return result
-
-    source_action = lmt.actions[action_index]
-    if not source_action.has_timl or not source_action.header.timl_offset:
-        result.add("ERROR", "timl", "The selected LMT entry does not contain an attached TIML payload.")
-        return result
-
-    try:
-        data_entry = read_timl_data_bytes(
-            source_bytes,
-            data_offset=int(source_action.header.timl_offset),
-            source_name=f"{source_path}#timl",
-            entry_id=int(source_action.id),
-        )
-    except Exception as exc:
-        result.add("ERROR", "timl", f"Failed to parse attached TIML payload: {exc}")
-        return result
-
     transform_samples = build_timl_transform_samples(data_entry)
 
-    action_name = _action_name_for_import(source_path, source_action.id)
-    carrier_name = _carrier_name_for_import(source_path, source_action.id)
+    action_name = _action_name_for_import(source_path, entry_id)
+    carrier_name = _carrier_name_for_import(source_path, entry_id)
     blender_action = ensure_action(action_name)
     clear_action_fcurves(blender_action)
-    blender_action["mhw_anim_tools_source_lmt"] = source_path
-    blender_action["mhw_anim_tools_entry_id"] = int(source_action.id)
-    blender_action["mhw_anim_tools_import_kind"] = "attached_timl"
-    blender_action["mhw_anim_tools_source_timl_offset"] = int(source_action.header.timl_offset)
+    blender_action["mhw_anim_tools_import_kind"] = str(import_kind or "")
     blender_action["mhw_anim_tools_timl_transform_count"] = int(len(transform_samples))
 
     try:
@@ -456,14 +545,21 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
         save_timl_property_names(carrier, [])
         save_timl_bindings_raw(carrier, [])
         carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY] = imported_preview_signature_json(())
-        carrier[TIML_SOURCE_LMT_KEY] = source_path
-        carrier[TIML_ENTRY_ID_KEY] = int(source_action.id)
-        carrier[TIML_SOURCE_OFFSET_KEY] = int(source_action.header.timl_offset)
-        carrier[TIML_ACTION_NAME_KEY] = blender_action.name
+        _tag_timl_source_metadata(
+            carrier,
+            blender_action,
+            source_path=source_path,
+            source_kind=source_kind,
+            entry_id=int(entry_id),
+            source_offset=int(source_offset),
+            source_entry_count=int(source_entry_count),
+            session_id=str(session_id or ""),
+            source_entry_ids_json=str(source_entry_ids_json or ""),
+        )
         ensure_timl_header_props(
             carrier,
             source_lmt=source_path,
-            entry_id=int(source_action.id),
+            entry_id=int(entry_id),
             data_index_a=int(data_entry.data_index_a),
             data_index_b=int(data_entry.data_index_b),
             animation_length=float(data_entry.animation_length),
@@ -471,11 +567,7 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
             loop_control=int(data_entry.loop_control),
             label_hash=int(data_entry.label_hash),
         )
-        result.add(
-            "WARNING",
-            "timl",
-            "Attached TIML container has no transforms yet.",
-        )
+        result.add("WARNING", "timl", "TIML container has no transforms yet.")
         return result
 
     property_names: list[str] = []
@@ -579,14 +671,21 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
     save_timl_property_names(carrier, property_names)
     save_timl_bindings_raw(carrier, bindings)
     carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY] = imported_preview_signature_json(imported_preview_transforms)
-    carrier[TIML_SOURCE_LMT_KEY] = source_path
-    carrier[TIML_ENTRY_ID_KEY] = int(source_action.id)
-    carrier[TIML_SOURCE_OFFSET_KEY] = int(source_action.header.timl_offset)
-    carrier[TIML_ACTION_NAME_KEY] = blender_action.name
+    _tag_timl_source_metadata(
+        carrier,
+        blender_action,
+        source_path=source_path,
+        source_kind=source_kind,
+        entry_id=int(entry_id),
+        source_offset=int(source_offset),
+        source_entry_count=int(source_entry_count),
+        session_id=str(session_id or ""),
+        source_entry_ids_json=str(source_entry_ids_json or ""),
+    )
     ensure_timl_header_props(
         carrier,
         source_lmt=source_path,
-        entry_id=int(source_action.id),
+        entry_id=int(entry_id),
         data_index_a=int(data_entry.data_index_a),
         data_index_b=int(data_entry.data_index_b),
         animation_length=float(data_entry.animation_length),
@@ -594,4 +693,102 @@ def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, 
         loop_control=int(data_entry.loop_control),
         label_hash=int(data_entry.label_hash),
     )
+    return result
+
+
+def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, source_bytes: bytes, target_armature=None):
+    result = ImportTimlResult()
+    if action_index < 0 or action_index >= len(lmt.actions):
+        result.add("ERROR", "session", "Selected LMT action is out of range for the current session.")
+        return result
+
+    source_action = lmt.actions[action_index]
+    if not source_action.has_timl or not source_action.header.timl_offset:
+        result.add("ERROR", "timl", "The selected LMT entry does not contain an attached TIML payload.")
+        return result
+
+    try:
+        data_entry = read_timl_data_bytes(
+            source_bytes,
+            data_offset=int(source_action.header.timl_offset),
+            source_name=f"{source_path}#timl",
+            entry_id=int(source_action.id),
+        )
+    except Exception as exc:
+        result.add("ERROR", "timl", f"Failed to parse attached TIML payload: {exc}")
+        return result
+    return _import_timl_data_entry_to_action(
+        data_entry,
+        source_path=source_path,
+        entry_id=int(source_action.id),
+        import_kind="attached_timl",
+        source_kind=TIML_SOURCE_KIND_ATTACHED_LMT,
+        source_offset=int(source_action.header.timl_offset),
+        target_armature=target_armature,
+    )
+
+
+def import_standalone_timl_file_to_actions(source_path: str, *, target_armature=None):
+    return import_standalone_timl_entries_to_actions(
+        source_path,
+        entry_ids=None,
+        session_id="",
+        target_armature=target_armature,
+    )
+
+
+def import_standalone_timl_entries_to_actions(
+    source_path: str,
+    *,
+    entry_ids=None,
+    session_id: str = "",
+    target_armature=None,
+):
+    result = ImportTimlFileResult(source_path=str(source_path or ""))
+    source_bytes = Path(source_path).read_bytes()
+    timl_file = read_timl_bytes(source_bytes, source_name=source_path)
+    resolved_session_id = str(session_id or uuid4().hex)
+    source_entry_ids = tuple(int(entry.id) for entry in timl_file.data_entries)
+    source_entry_ids_json = _entry_ids_json(source_entry_ids)
+    result.session_id = resolved_session_id
+
+    if not timl_file.data_entries:
+        result.add("WARNING", "timl", "TIML file has no data entries to import.")
+        return result
+
+    requested_entry_ids = None if entry_ids is None else {int(entry_id) for entry_id in entry_ids}
+    data_entries = tuple(
+        entry
+        for entry in timl_file.data_entries
+        if requested_entry_ids is None or int(entry.id) in requested_entry_ids
+    )
+    if requested_entry_ids is not None and not data_entries:
+        result.add("ERROR", "timl", "Requested TIML entry ids were not found in the source file.")
+        return result
+
+    for data_entry in data_entries:
+        entry_id = int(data_entry.id)
+        entry_offset = int(timl_file.entry_offsets[entry_id]) if 0 <= entry_id < len(timl_file.entry_offsets) else 0
+        entry_result = _import_timl_data_entry_to_action(
+            data_entry,
+            source_path=source_path,
+            entry_id=entry_id,
+            import_kind="standalone_timl",
+            source_kind=TIML_SOURCE_KIND_STANDALONE_FILE,
+            source_offset=entry_offset,
+            source_entry_count=int(timl_file.header.entry_count),
+            source_entry_ids_json=source_entry_ids_json,
+            session_id=resolved_session_id,
+            target_armature=target_armature,
+        )
+        result.diagnostics.extend(entry_result.diagnostics)
+        if entry_result.error_count:
+            result.skipped_entry_count += 1
+            continue
+        result.imported_entry_ids.append(entry_id)
+        result.imported_action_names.append(entry_result.action_name)
+        result.imported_carrier_names.append(entry_result.carrier_name)
+        result.imported_transform_count += int(entry_result.imported_transform_count)
+        result.frame_end = max(result.frame_end, int(entry_result.frame_end))
+
     return result

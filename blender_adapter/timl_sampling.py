@@ -14,6 +14,10 @@ try:
     from .timl_metadata import TIML_ACTION_NAME_KEY
     from .timl_metadata import TIML_BINDINGS_KEY
     from .timl_metadata import TIML_ENTRY_ID_KEY
+    from .timl_metadata import TIML_SESSION_ID_KEY
+    from .timl_metadata import TIML_SOURCE_ENTRY_COUNT_KEY
+    from .timl_metadata import TIML_SOURCE_KIND_ATTACHED_LMT
+    from .timl_metadata import TIML_SOURCE_KIND_KEY
     from .timl_metadata import TIML_SOURCE_LMT_KEY
     from .timl_metadata import TIML_SOURCE_OFFSET_KEY
 except ImportError:  # pragma: no cover - test runner imports from addon root
@@ -22,6 +26,10 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from blender_adapter.timl_metadata import TIML_ACTION_NAME_KEY
     from blender_adapter.timl_metadata import TIML_BINDINGS_KEY
     from blender_adapter.timl_metadata import TIML_ENTRY_ID_KEY
+    from blender_adapter.timl_metadata import TIML_SESSION_ID_KEY
+    from blender_adapter.timl_metadata import TIML_SOURCE_ENTRY_COUNT_KEY
+    from blender_adapter.timl_metadata import TIML_SOURCE_KIND_ATTACHED_LMT
+    from blender_adapter.timl_metadata import TIML_SOURCE_KIND_KEY
     from blender_adapter.timl_metadata import TIML_SOURCE_LMT_KEY
     from blender_adapter.timl_metadata import TIML_SOURCE_OFFSET_KEY
 
@@ -39,6 +47,9 @@ class TimlControllerMetadata:
     entry_id: int
     source_offset: int
     transform_count: int
+    source_kind: str = ""
+    source_entry_count: int = 0
+    session_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -183,12 +194,15 @@ def extract_timl_controller_metadata(controller_object, action=None) -> TimlCont
         carrier_name=_safe_name(controller_object),
         action_name=_safe_name(active_action) or str(_safe_get(controller_object, TIML_ACTION_NAME_KEY, "")),
         source_lmt=str(_safe_get(controller_object, TIML_SOURCE_LMT_KEY, "")),
+        source_kind=str(_safe_get(controller_object, TIML_SOURCE_KIND_KEY, "")),
+        source_entry_count=_safe_int(_safe_get(controller_object, TIML_SOURCE_ENTRY_COUNT_KEY, 0), 0),
         entry_id=_safe_int(_safe_get(controller_object, TIML_ENTRY_ID_KEY, 0), 0),
         source_offset=_safe_int(_safe_get(controller_object, TIML_SOURCE_OFFSET_KEY, 0), 0),
         transform_count=_safe_int(
             _safe_get(active_action, "mhw_anim_tools_timl_transform_count", 0),
             _safe_int(_safe_get(controller_object, "mhw_anim_tools_timl_transform_count", 0), 0),
         ),
+        session_id=str(_safe_get(controller_object, TIML_SESSION_ID_KEY, "")),
     )
 
 
@@ -389,7 +403,8 @@ def sample_timl_controller_action(controller_object, action=None) -> TimlSamplin
 
     metadata = extract_timl_controller_metadata(controller_object, action=action)
     result.metadata = metadata
-    if str(_safe_get(action, "mhw_anim_tools_import_kind", "")) != "attached_timl":
+    import_kind = str(_safe_get(action, "mhw_anim_tools_import_kind", ""))
+    if import_kind not in {"attached_timl", "standalone_timl"}:
         result.add(
             "WARNING",
             "timl.controller",

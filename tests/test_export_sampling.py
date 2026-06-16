@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from blender_adapter.export_sampling import sample_action_for_lmt_export
+from blender_adapter.lmt_track_metadata import save_lmt_import_track_bindings
 
 
 class FakeBone:
@@ -58,8 +59,9 @@ class FakeFCurve:
         return self._values_by_frame.get(int(frame), 0.0)
 
 
-class FakeAction:
+class FakeAction(dict):
     def __init__(self, name: str, fcurves, frame_range=(0.0, 0.0)):
+        super().__init__()
         self.name = name
         self.fcurves = list(fcurves)
         self.frame_range = frame_range
@@ -196,6 +198,46 @@ class ExportSamplingTests(unittest.TestCase):
 
         self.assertEqual(result.sampled_track_count, 1)
         self.assertFalse(result.sampled_tracks[0].all_authored_keys_linear)
+
+    def test_samples_raw_duplicate_track_slots_from_custom_properties(self):
+        root = FakeBone("Root")
+        armature = FakeArmatureObject([root])
+        property_name = "lmt_raw_test_a000_t03_b0_u1"
+        action = FakeAction(
+            "DuplicateRawSlot",
+            [
+                FakeFCurve(f'["{property_name}"]', 0, {0: 0.0, 2: 2.0}, authored_frames=(0, 2)),
+                FakeFCurve(f'["{property_name}"]', 1, {0: 1.0, 2: 3.0}, authored_frames=(0, 2)),
+                FakeFCurve(f'["{property_name}"]', 2, {0: 2.0, 2: 4.0}, authored_frames=(0, 2)),
+            ],
+            frame_range=(0.0, 2.0),
+        )
+        save_lmt_import_track_bindings(
+            action,
+            [
+                {
+                    "track_index": 3,
+                    "bone_id": 0,
+                    "usage": 1,
+                    "buffer_type": 3,
+                    "import_mode": "raw_duplicate",
+                    "property_name": property_name,
+                    "channel_count": 3,
+                    "display_name": "T03 Bone 0 Translation",
+                    "transform": "location",
+                }
+            ],
+        )
+
+        result = sample_action_for_lmt_export(action, armature)
+
+        self.assertEqual(result.error_count, 0)
+        self.assertEqual(result.sampled_track_count, 1)
+        track = result.sampled_tracks[0]
+        self.assertEqual((track.bone_id, track.usage), (0, 1))
+        self.assertEqual(track.source_kind, "raw_duplicate")
+        self.assertEqual(track.source_track_index, 3)
+        self.assertEqual(track.frames[2].value, (2.0, 3.0, 4.0))
 
 
 if __name__ == "__main__":

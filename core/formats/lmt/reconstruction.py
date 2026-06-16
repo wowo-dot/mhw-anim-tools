@@ -267,6 +267,8 @@ def _reconstruct_source_raw_quaternion_track(track) -> LmtReconstructedTrack | N
         ),
         tail_frame=int(tail_frame) if tail_frame is not None else None,
         tail_value=tuple(float(component) for component in tail_value) if tail_value is not None else None,
+        source_track_index=getattr(track, "source_track_index", None),
+        preserve_raw_quaternion_values=bool(getattr(track, "preserve_raw_quaternion_values", False)),
     )
 
 
@@ -283,22 +285,37 @@ def reconstruct_sampled_action(
     reconstructed_tracks = []
     for track in sampled_tracks:
         identity = (int(track.bone_id), int(track.usage))
-        if identity in raw_quaternion_source_identities:
+        preserve_raw_quaternion_values = bool(getattr(track, "preserve_raw_quaternion_values", False))
+        if preserve_raw_quaternion_values or identity in raw_quaternion_source_identities:
             raw_track = _reconstruct_source_raw_quaternion_track(track)
             if raw_track is not None:
                 reconstructed_tracks.append(raw_track)
                 continue
+        reconstructed_track = reconstruct_track_samples(
+            bone_id=track.bone_id,
+            usage=track.usage,
+            frames=track.frames,
+            authored_frames=getattr(track, "authored_frames", ()),
+            authored_frame_end=getattr(track, "authored_frame_end", None),
+            tolerance=tolerance,
+        )
         reconstructed_tracks.append(
-            reconstruct_track_samples(
-                bone_id=track.bone_id,
-                usage=track.usage,
-                frames=track.frames,
-                authored_frames=getattr(track, "authored_frames", ()),
-                authored_frame_end=getattr(track, "authored_frame_end", None),
-                tolerance=tolerance,
+            LmtReconstructedTrack(
+                bone_id=int(reconstructed_track.bone_id),
+                usage=int(reconstructed_track.usage),
+                basis_value=tuple(float(component) for component in reconstructed_track.basis_value),
+                keyframes=tuple(reconstructed_track.keyframes),
+                tail_frame=reconstructed_track.tail_frame,
+                tail_value=reconstructed_track.tail_value,
+                source_track_index=getattr(track, "source_track_index", None),
+                preserve_raw_quaternion_values=preserve_raw_quaternion_values,
             )
         )
-    tracks = tuple(reconstructed_tracks)
+    indexed_tracks = [track for track in reconstructed_tracks if getattr(track, "source_track_index", None) is not None]
+    if indexed_tracks and len(indexed_tracks) == len(reconstructed_tracks):
+        tracks = tuple(sorted(reconstructed_tracks, key=lambda item: int(item.source_track_index)))
+    else:
+        tracks = tuple(reconstructed_tracks)
     return LmtReconstructedAction(
         action_name=action_name,
         frame_start=int(frame_start),
@@ -328,6 +345,7 @@ def reconstruct_decoded_action(
     for track in getattr(decoded_action, "tracks", ()):
         if getattr(track, "decode_error", None):
             continue
+        usage_info = get_usage_semantics(track.usage)
         reconstructed_tracks.append(
             LmtReconstructedTrack(
                 bone_id=int(track.bone_id),
@@ -344,6 +362,10 @@ def reconstruct_decoded_action(
                 tail_value=tuple(float(component) for component in track.tail_value)
                 if track.tail_value is not None
                 else None,
+                source_track_index=int(getattr(track, "track_index", 0)),
+                preserve_raw_quaternion_values=bool(
+                    usage_info.is_quaternion and int(getattr(track, "buffer_type", 0)) in {7, 11, 12, 13, 14, 15}
+                ),
             )
         )
 

@@ -97,6 +97,38 @@ class MHWANIMTOOLS_UL_timl_transforms(bpy.types.UIList):
             layout.label(text=f"{item.type_index}:{item.transform_index}")
 
 
+class MHWANIMTOOLS_UL_timl_file_entries(bpy.types.UIList):
+    bl_idname = "MHWANIMTOOLS_UL_timl_file_entries"
+
+    def draw_item(
+        self,
+        context,
+        layout,
+        data,
+        item,
+        icon,
+        active_data,
+        active_propname,
+        index,
+    ):
+        del context, data, icon, active_data, active_propname, index
+        if self.layout_type in {"DEFAULT", "COMPACT"}:
+            row = layout.row(align=True)
+            row.label(text=f"{item.entry_id:03d}")
+            row.label(text=item.offset_display or "-")
+            if item.has_data:
+                row.label(text=f"{item.type_count}t/{item.transform_count}tr/{item.keyframe_count}k")
+            else:
+                row.label(text="empty")
+            icon_name = "CHECKMARK" if item.has_data else "REMOVE"
+            if item.parse_error:
+                icon_name = "ERROR"
+            row.label(text="", icon=icon_name)
+        elif self.layout_type == "GRID":
+            layout.alignment = "CENTER"
+            layout.label(text=str(item.entry_id))
+
+
 class MHWANIMTOOLS_UL_diagnostics(bpy.types.UIList):
     bl_idname = "MHWANIMTOOLS_UL_diagnostics"
 
@@ -171,7 +203,9 @@ class MHWANIMTOOLS_UL_timl_controller_transforms(bpy.types.UIList):
             row.label(text=item.semantic_label or item.timeline_display or item.raw_timeline_display or "?")
             row.label(text=item.data_type_name or "?")
             row.label(text=f"{item.keyframe_count} keys")
-            if item.edit_policy_label:
+            if not str(item.property_name or ""):
+                row.label(text="Needs Preview", icon="INFO")
+            elif item.edit_policy_label:
                 row.label(text=item.edit_policy_label, icon=timl_edit_policy_icon(item.edit_policy_code))
             elif item.writeback_status_label:
                 row.label(text=item.writeback_status_label, icon=timl_writeback_status_icon(item.writeback_status_code))
@@ -184,6 +218,7 @@ classes = (
     MHWANIMTOOLS_UL_lmt_entries,
     MHWANIMTOOLS_UL_lmt_tracks,
     MHWANIMTOOLS_UL_timl_transforms,
+    MHWANIMTOOLS_UL_timl_file_entries,
     MHWANIMTOOLS_UL_diagnostics,
     MHWANIMTOOLS_UL_timl_blocks,
     MHWANIMTOOLS_UL_timl_controller_transforms,

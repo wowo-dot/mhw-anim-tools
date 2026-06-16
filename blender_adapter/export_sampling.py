@@ -23,6 +23,8 @@ try:
     from ..integration.mhw_bones import is_bonefunction_name
     from ..integration.mhw_bones import is_mhbone_name
     from .armature import find_root_bone_name
+    from .lmt_track_metadata import import_track_binding_by_identity
+    from .lmt_track_metadata import raw_duplicate_binding_by_property
     from .space import TrackSpaceTarget
     from .space import adapt_track_frames_for_export_space
 except ImportError:  # pragma: no cover - test runner imports from addon root
@@ -36,11 +38,14 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from integration.mhw_bones import is_bonefunction_name
     from integration.mhw_bones import is_mhbone_name
     from blender_adapter.armature import find_root_bone_name
+    from blender_adapter.lmt_track_metadata import import_track_binding_by_identity
+    from blender_adapter.lmt_track_metadata import raw_duplicate_binding_by_property
     from blender_adapter.space import TrackSpaceTarget
     from blender_adapter.space import adapt_track_frames_for_export_space
 
 
 POSE_BONE_PATH = re.compile(r'^pose\.bones\["(?P<name>.+)"\]\.(?P<transform>rotation_quaternion|location|scale)$')
+CUSTOM_PROPERTY_PATH = re.compile(r'^\["(?P<name>.+)"\]$')
 OBJECT_TRANSFORMS = {"rotation_quaternion": 4, "location": 3, "scale": 3}
 USAGE_BY_SCOPE_AND_TRANSFORM = {
     ("local", "rotation_quaternion"): 0,
@@ -79,6 +84,8 @@ class SampledActionTrack:
     authored_frames: tuple[int, ...] = ()
     all_authored_keys_linear: bool = True
     authored_frame_end: int | None = None
+    source_track_index: int | None = None
+    preserve_raw_quaternion_values: bool = False
 
     @property
     def basis_value(self) -> tuple[float, ...]:
@@ -131,18 +138,31 @@ def _parse_fcurve_path(data_path: str):
     return ("bone", match.group("name"), match.group("transform"))
 
 
-def _collect_supported_groups(action):
-    groups: dict[tuple[str, str, str], dict[int, object]] = {}
+def _collect_supported_groups(action, raw_duplicate_bindings_by_property):
+    groups: dict[tuple[str, str, str], dict[str, object]] = {}
     unsupported_paths: list[str] = []
     for fcurve in getattr(action, "fcurves", ()):
-        parsed = _parse_fcurve_path(getattr(fcurve, "data_path", ""))
-        if parsed is None:
-            unsupported_paths.append(getattr(fcurve, "data_path", ""))
+        data_path = str(getattr(fcurve, "data_path", "") or "")
+        parsed = _parse_fcurve_path(data_path)
+        if parsed is not None:
+            source_kind, source_name, transform = parsed
+            group_key = (source_kind, source_name, transform)
+            group = groups.setdefault(group_key, {"kind": "armature", "channel_map": {}})
+            group["channel_map"][int(fcurve.array_index)] = fcurve
             continue
-        source_kind, source_name, transform = parsed
-        group_key = (source_kind, source_name, transform)
-        channel_map = groups.setdefault(group_key, {})
-        channel_map[int(fcurve.array_index)] = fcurve
+
+        match = CUSTOM_PROPERTY_PATH.match(data_path)
+        property_name = str(match.group("name")) if match else ""
+        binding = raw_duplicate_bindings_by_property.get(property_name)
+        if binding is None:
+            unsupported_paths.append(data_path)
+            continue
+        group_key = ("raw_duplicate", property_name, "")
+        group = groups.setdefault(
+            group_key,
+            {"kind": "raw_duplicate", "binding": binding, "channel_map": {}},
+        )
+        group["channel_map"][int(fcurve.array_index)] = fcurve
     return groups, tuple(sorted(set(filter(None, unsupported_paths))))
 
 
@@ -238,12 +258,88 @@ def sample_action_for_lmt_export(action, armature_object, *, sample_frames=None)
     result.frame_start = frame_numbers[0] if frame_numbers else 0
     result.frame_end = frame_numbers[-1] if frame_numbers else 0
 
-    grouped_fcurves, unsupported_paths = _collect_supported_groups(action)
+    identity_bindings = import_track_binding_by_identity(action)
+    raw_duplicate_bindings = raw_duplicate_binding_by_property(action)
+    grouped_fcurves, unsupported_paths = _collect_supported_groups(action, raw_duplicate_bindings)
     for path in unsupported_paths:
         result.add("WARNING", "fcurve", f"Skipped unsupported data path '{path}'.")
+    seen_raw_duplicate_paths = {
+        str(group_key[1])
+        for group_key, group in grouped_fcurves.items()
+        if str(group.get("kind", "")) == "raw_duplicate"
+    }
+    for property_name, binding in sorted(raw_duplicate_bindings.items()):
+        if property_name in seen_raw_duplicate_paths:
+            continue
+        result.skipped_track_count += 1
+        result.add(
+            "ERROR",
+            str(binding.get("display_name", "") or property_name),
+            "Missing raw duplicate-track fcurves for this imported source track slot.",
+        )
 
     sampled_tracks: list[SampledActionTrack] = []
-    for (source_kind, source_name, transform), channel_map in sorted(grouped_fcurves.items()):
+    for group_key, group in sorted(grouped_fcurves.items()):
+        group_kind = str(group.get("kind", "") or "")
+        channel_map = group.get("channel_map", {})
+        if group_kind == "raw_duplicate":
+            binding = dict(group.get("binding", {}) or {})
+            channel_count = int(binding.get("channel_count", 0) or 0)
+            source_label = str(binding.get("display_name", "") or group_key[1] or "Raw Duplicate Track")
+            if channel_count <= 0:
+                result.skipped_track_count += 1
+                result.add("WARNING", source_label, "Skipped raw duplicate track with unknown channel count.")
+                continue
+            if set(channel_map) != set(range(channel_count)):
+                result.skipped_track_count += 1
+                result.add(
+                    "WARNING",
+                    source_label,
+                    f"Skipped incomplete raw duplicate-track channels; expected {channel_count}, found {len(channel_map)}.",
+                )
+                continue
+
+            bone_id = int(binding.get("bone_id", 0))
+            usage = int(binding.get("usage", 0))
+            usage_info = get_usage_semantics(usage)
+            sampled_frame_values = _sample_channel_group(channel_map, frame_numbers, channel_count)
+            raw_sampled_frame_values = sampled_frame_values
+            if usage_info.is_quaternion:
+                sampled_frame_values = _normalize_quaternion_frames(
+                    sampled_frame_values,
+                    source_label=source_label,
+                    result=result,
+                )
+                if sampled_frame_values is None:
+                    result.skipped_track_count += 1
+                    continue
+            authored_frames = _authored_frames(channel_map)
+            sampled_tracks.append(
+                SampledActionTrack(
+                    bone_id=int(bone_id),
+                    usage=int(usage),
+                    source_kind="raw_duplicate",
+                    source_name=source_label,
+                    transform=str(binding.get("transform", "") or usage_info.blender_path_hint or usage_info.transform),
+                    channel_count=channel_count,
+                    frames=tuple(
+                        SampledActionFrame(frame=int(frame), value=tuple(float(component) for component in value))
+                        for frame, value in sampled_frame_values
+                    ),
+                    raw_frames=tuple(
+                        SampledActionFrame(frame=int(frame), value=tuple(float(component) for component in value))
+                        for frame, value in raw_sampled_frame_values
+                    ) if usage_info.is_quaternion else (),
+                    authored_frames=authored_frames,
+                    all_authored_keys_linear=_all_keyframes_linear(channel_map),
+                    authored_frame_end=_authored_frame_end(authored_frames),
+                    source_track_index=int(binding.get("track_index", 0)),
+                    preserve_raw_quaternion_values=bool(binding.get("preserve_raw_quaternion_values", False)),
+                )
+            )
+            continue
+
+        source_kind, source_name, transform = group_key
         channel_count = CHANNEL_COUNT_BY_TRANSFORM[transform]
         source_label = source_name or "Armature Object"
         if set(channel_map) != set(range(channel_count)):
@@ -281,7 +377,7 @@ def sample_action_for_lmt_export(action, armature_object, *, sample_frames=None)
                 result.skipped_track_count += 1
                 continue
         authored_frames = _authored_frames(channel_map)
-
+        binding = identity_bindings.get((int(bone_id), int(usage)))
         sampled_tracks.append(
             SampledActionTrack(
                 bone_id=int(bone_id),
@@ -301,9 +397,15 @@ def sample_action_for_lmt_export(action, armature_object, *, sample_frames=None)
                 authored_frames=authored_frames,
                 all_authored_keys_linear=_all_keyframes_linear(channel_map),
                 authored_frame_end=_authored_frame_end(authored_frames),
+                source_track_index=int(binding.get("track_index", 0)) if binding is not None else None,
+                preserve_raw_quaternion_values=bool(binding.get("preserve_raw_quaternion_values", False))
+                if binding is not None
+                else False,
             )
         )
 
+    if sampled_tracks and all(track.source_track_index is not None for track in sampled_tracks):
+        sampled_tracks.sort(key=lambda track: int(track.source_track_index))
     result.sampled_track_count = len(sampled_tracks)
     result.sampled_tracks = tuple(sampled_tracks)
     if result.sampled_track_count == 0 and not result.error_count:

@@ -546,6 +546,12 @@ def build_embedded_timl_data_payload(
     *,
     base_offset: int,
     deleted_identities=(),
+    data_index_a: int | None = None,
+    data_index_b: int | None = None,
+    animation_length: float | None = None,
+    loop_start_point: float | None = None,
+    loop_control: int | None = None,
+    label_hash: int | None = None,
 ) -> tuple[bytes, tuple[int, ...]]:
     """Return an embedded TIML payload plus pointer fields that need rebasing.
 
@@ -720,6 +726,13 @@ def build_embedded_timl_data_payload(
     payload = bytearray(current_rel)
     rebase_offsets: list[int] = []
 
+    resolved_data_index_a = int(source_entry.data_index_a if data_index_a is None else data_index_a)
+    resolved_data_index_b = int(source_entry.data_index_b if data_index_b is None else data_index_b)
+    resolved_animation_length = float(source_entry.animation_length if animation_length is None else animation_length)
+    resolved_loop_start_point = float(source_entry.loop_start_point if loop_start_point is None else loop_start_point)
+    resolved_loop_control = int(source_entry.loop_control if loop_control is None else loop_control)
+    resolved_label_hash = int(source_entry.label_hash if label_hash is None else label_hash)
+
     absolute_type_table_offset = int(base_offset) + int(type_table_rel) if type_table_rel else 0
     if absolute_type_table_offset:
         rebase_offsets.append(0)
@@ -728,12 +741,12 @@ def build_embedded_timl_data_payload(
         0,
         absolute_type_table_offset,
         len(type_records),
-        int(source_entry.data_index_a),
-        int(source_entry.data_index_b),
-        max(float(source_entry.animation_length), float(highest_frame)),
-        float(source_entry.loop_start_point),
-        int(source_entry.loop_control),
-        int(source_entry.label_hash),
+        resolved_data_index_a,
+        resolved_data_index_b,
+        max(resolved_animation_length, float(highest_frame)),
+        resolved_loop_start_point,
+        resolved_loop_control,
+        resolved_label_hash,
     )
 
     for type_index, type_record in enumerate(type_records):

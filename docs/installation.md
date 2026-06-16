@@ -44,6 +44,15 @@ After enabling the add-on:
 3. If you also use `MHW_Model_Editor`, import a known `.mod3` target and make
    sure the target armature picker sees it
 
+## Read next
+
+After install, these are the best next docs:
+
+- [Quickstart](quickstart.md)
+- [Feature Map](feature-map.md)
+- [Basic LMT Workflow](workflow-lmt.md)
+- [TIML In LMT Workflow](workflow-timl-in-lmt.md)
+
 ## Known setup expectations
 
 - `Inspect LMT` works without a target armature
@@ -52,3 +61,4 @@ After enabling the add-on:
   source LMT import and still has source metadata
 - TIML editing currently lives inside source-backed LMT workflows, not as a
   standalone TIML authoring/export pipeline
+- updater controls live in `Edit > Preferences > Add-ons > MHW Anim Tools`

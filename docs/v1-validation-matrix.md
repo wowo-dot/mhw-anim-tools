@@ -21,7 +21,8 @@ Use it to track:
 Observed on `2026-06-16`:
 
 - `python -m compileall -q .` passed
-- `python -m unittest discover -s tests -v` passed with `220/220` tests green
+- `python -m unittest discover -s tests -v` passed with `241/241` tests green
+- Blender 4.5 register smoke passed
 - full-source export is now explicit in the main export workflow
 - real-asset grindstone smokes passed:
   - selected LMT action import
@@ -47,16 +48,22 @@ Observed on `2026-06-16`:
   - `97235` unique embedded payloads
   - `0` embedded TIML parse errors
   - `0` unsupported embedded TIML data-type transforms
+- whole-corpus standalone TIML scan summary is complete:
+  - `268/268` files parsed
+  - `0` validation-error files
+  - `0` validation-warning files
 - whole-corpus standalone-export safety scan summary is complete:
   - `105040` actions checked
   - `1` standalone-safe action
   - current v1 assumption remains source-backed export, not standalone container replacement
-- whole-corpus writer-readiness scan is still in progress:
-  - `750/5774` files processed so far
-  - `25458/25471` actions fully supported in the current read-only replay probe
-  - observed unsupported families so far are:
-    - duplicate `bone_id + usage` source-track identities in `gm174_600`
-    - non-unit root-rotation source values in parts of the `em037` corpus
+- whole-corpus writer-readiness scan summary is complete:
+  - `5774/5774` files processed
+  - `105021/105040` actions fully supported in the read-only replay probe
+  - `19` actions remain unsupported
+  - duplicate `bone_id + usage` source-track identities are no longer a corpus blocker after the raw-slot import/export path
+  - remaining unsupported families are a narrow quaternion edge-case set:
+    - non-normalized root-rotation planning in parts of the `em037` corpus
+    - raw source-aware quaternion lerp fits that still refuse the current q14 fallback in a handful of actions
 
 Useful note:
 
@@ -101,7 +108,7 @@ paths used for the final smoke runs and keep the release notes generic.
 | TIML writeback | Simple-source structural rebuild | rebuild-friendly real assets | `tools/smoke_merge_export_with_timl_simple_structural_edit.py`, `tools/run_timl_simple_structural_suite.py` | manual confirmation that edited timing/value behavior is still sane after reimport | `Partial` |
 | TIML writeback | Unsafe structural rebuild blocking | advanced-source and quantization-risk cases | `tools/smoke_merge_export_with_timl_structural_edit.py`, `tools/smoke_merge_export_with_timl_integer_quantization_block.py` | none beyond regression checking | `Automated` |
 | Shared payload safety | Detect shared TIML conflicts and impact scope before export | synthetic shared-offset sources + live examples | `tests/test_timl_writeback.py`, `tests/test_export_impact.py`, shared-payload suite | one manual UI sanity pass for conflict/error messaging | `Partial` |
-| Corpus readiness | Scan export/TIML corpus for risk and workflow candidates | whole extracted corpus | `tools/scan_lmt_export_safety.py`, `tools/scan_lmt_writer_readiness.py`, `tools/scan_timl_corpus.py`, `tools/scan_embedded_timl_corpus.py` | finish writer-readiness resume and archive final summary output | `Partial` |
+| Corpus readiness | Scan export/TIML corpus for risk and workflow candidates | whole extracted corpus | `tools/scan_lmt_export_safety.py`, `tools/scan_lmt_writer_readiness.py`, `tools/scan_timl_corpus.py`, `tools/scan_embedded_timl_corpus.py` | archive final summary output and decide whether the remaining 19 quaternion-edge actions are v1 blockers or documented exceptions | `Partial` |
 
 ## What still blocks release confidence
 

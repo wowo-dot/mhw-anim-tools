@@ -225,6 +225,41 @@ class LmtWriterTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             write_lmt_bytes(source)
 
+    def test_write_supports_duplicate_track_identity_with_source_track_slots(self):
+        source = LmtReconstructedAction(
+            action_name="DuplicateIdentitySlots",
+            frame_start=0,
+            frame_end=0,
+            tracks=(
+                LmtReconstructedTrack(
+                    bone_id=0,
+                    usage=1,
+                    basis_value=(0.0, 0.0, 0.0),
+                    source_track_index=0,
+                ),
+                LmtReconstructedTrack(
+                    bone_id=0,
+                    usage=1,
+                    basis_value=(1.0, 0.0, 0.0),
+                    source_track_index=1,
+                ),
+            ),
+        )
+
+        payload = write_lmt_bytes(
+            source,
+            track_metadata_by_index={
+                0: {"buffer_type": 1},
+                1: {"buffer_type": 1},
+            },
+        )
+        lmt = read_lmt_bytes(payload, source_name="duplicate-slots.lmt")
+        decoded = decode_action_tracks(lmt.actions[0], strict=True)
+
+        self.assertEqual(len(decoded.tracks), 2)
+        self.assertEqual(decoded.tracks[0].basis_value, (0.0, 0.0, 0.0))
+        self.assertEqual(decoded.tracks[1].basis_value, (1.0, 0.0, 0.0))
+
     def test_write_source_u8_vector_lerp_roundtrips(self):
         source = LmtReconstructedAction(
             action_name="VectorLerp8",

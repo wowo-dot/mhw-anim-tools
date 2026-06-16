@@ -79,10 +79,15 @@ class LmtExportPlan:
 
 
 def _track_source_label(track) -> str:
+    source_track_index = getattr(track, "source_track_index", None)
     usage = get_usage_semantics(track.usage)
     if usage.scope == "root":
-        return f"root {usage.transform}"
-    return f"bone {track.bone_id} {usage.transform}"
+        label = f"root {usage.transform}"
+    else:
+        label = f"bone {track.bone_id} {usage.transform}"
+    if source_track_index is None:
+        return label
+    return f"track {int(source_track_index):02d} / {label}"
 
 
 def _all_values(track) -> list[tuple[float, ...]]:
@@ -131,10 +136,15 @@ def _choose_buffer_type(track, usage_info) -> int | None:
     return None
 
 
-def _source_track_metadata(track_metadata_by_identity, bone_id: int, usage: int):
+def _source_track_metadata(track, track_metadata_by_identity, track_metadata_by_index):
+    source_track_index = getattr(track, "source_track_index", None)
+    if source_track_index is not None and track_metadata_by_index:
+        metadata = track_metadata_by_index.get(int(source_track_index))
+        if metadata is not None:
+            return metadata
     if not track_metadata_by_identity:
         return None
-    return track_metadata_by_identity.get((int(bone_id), int(usage)))
+    return track_metadata_by_identity.get((int(track.bone_id), int(track.usage)))
 
 
 def _resolve_vector_lerp_preference(
@@ -362,6 +372,7 @@ def plan_reconstructed_action_export(
     quaternion_lerp_tolerance: float = QUATERNION_LERP_DEFAULT_TOLERANCE,
     vector_lerp_tolerance: float = VECTOR_LERP_DEFAULT_TOLERANCE,
     track_metadata_by_identity: dict[tuple[int, int], dict[str, object]] | None = None,
+    track_metadata_by_index: dict[int, dict[str, object]] | None = None,
     preserve_source_identities: frozenset[tuple[int, int]] | set[tuple[int, int]] | None = None,
     raw_quaternion_source_identities: frozenset[tuple[int, int]] | set[tuple[int, int]] | None = None,
 ) -> LmtExportPlan:
@@ -374,7 +385,6 @@ def plan_reconstructed_action_export(
         for identity, count in Counter((int(track.bone_id), int(track.usage)) for track in reconstructed_action.tracks).items()
         if count > 1
     }
-
     for track in reconstructed_action.tracks:
         usage_info = get_usage_semantics(track.usage)
         source_label = _track_source_label(track)
@@ -384,8 +394,10 @@ def plan_reconstructed_action_export(
         lerp_mult = None
         lerp_add = None
         track_identity = (int(track.bone_id), int(track.usage))
-        raw_quaternion_source = track_identity in raw_quaternion_source_identities
-        track_metadata = _source_track_metadata(track_metadata_by_identity, track.bone_id, track.usage)
+        raw_quaternion_source = bool(getattr(track, "preserve_raw_quaternion_values", False)) or (
+            track_identity in raw_quaternion_source_identities
+        )
+        track_metadata = _source_track_metadata(track, track_metadata_by_identity, track_metadata_by_index)
 
         if usage_info.transform not in {"rotation", "translation", "scale"}:
             supported = False
@@ -457,14 +469,29 @@ def plan_reconstructed_action_export(
                 break
 
         if track_identity in duplicate_identities:
-            supported = False
-            diagnostics.append(
-                LmtExportPlanDiagnostic(
-                    "ERROR",
-                    source_label,
-                    "Duplicate track identity detected for the same bone_id and usage.",
+            source_track_index = getattr(track, "source_track_index", None)
+            if source_track_index is None:
+                supported = False
+                diagnostics.append(
+                    LmtExportPlanDiagnostic(
+                        "ERROR",
+                        source_label,
+                        "Duplicate track identity detected without source track-slot metadata.",
+                    )
                 )
-            )
+            elif sum(
+                1
+                for candidate in reconstructed_action.tracks
+                if getattr(candidate, "source_track_index", None) == source_track_index
+            ) > 1:
+                supported = False
+                diagnostics.append(
+                    LmtExportPlanDiagnostic(
+                        "ERROR",
+                        source_label,
+                        f"Source track slot {int(source_track_index):02d} was mapped more than once.",
+                    )
+                )
 
         buffer_type = _choose_buffer_type(track, usage_info)
         if supported and track_metadata and preserve_source_identities and track_identity in preserve_source_identities:

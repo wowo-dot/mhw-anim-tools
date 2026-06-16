@@ -11,8 +11,12 @@ from ..blender_adapter.export_workflow import analyze_export_action
 from ..blender_adapter.export_workflow import analyze_source_export_actions
 from ..blender_adapter.export_workflow import effective_export_action
 from ..blender_adapter.export_workflow import source_export_actions
-from ..blender_adapter.export_workflow import write_export_file
 from ..blender_adapter.export_workflow import write_source_export_file
+from ..blender_adapter.timl_file_export import analyze_standalone_timl_export
+from ..blender_adapter.timl_file_export import write_standalone_timl_file
+from ..blender_adapter.timl_metadata import TIML_SOURCE_KIND_STANDALONE_FILE
+from ..blender_adapter.timl_sampling import extract_timl_controller_metadata
+from ..blender_adapter.timl_sampling import is_imported_timl_controller
 from ..core.diagnostics.errors import BinaryFormatError
 from ..core.diagnostics.errors import ValidationError
 from .properties import add_diagnostic
@@ -60,6 +64,39 @@ def _apply_export_summary(scene_props, analysis):
     scene_props.last_export_timl_writeback_scope = analysis.impact_summary.timl_writeback_scope_label
 
 
+def _active_timl_controller(scene_props, context):
+    controller = scene_props.timl_controller
+    if is_imported_timl_controller(controller):
+        return controller
+    active_object = getattr(context, "active_object", None)
+    if is_imported_timl_controller(active_object):
+        return active_object
+    if scene_props.last_imported_timl_object_name:
+        candidate = bpy.data.objects.get(scene_props.last_imported_timl_object_name)
+        if is_imported_timl_controller(candidate):
+            return candidate
+    source_path = str(scene_props.last_timl_path or "")
+    session_id = str(scene_props.last_timl_session_id or "")
+    if source_path:
+        for candidate in bpy.data.objects:
+            if not is_imported_timl_controller(candidate):
+                continue
+            metadata = extract_timl_controller_metadata(candidate)
+            if str(metadata.source_kind or "") != TIML_SOURCE_KIND_STANDALONE_FILE:
+                continue
+            if str(metadata.source_lmt or "") != source_path:
+                continue
+            if session_id and str(metadata.session_id or "") != session_id:
+                continue
+            return candidate
+    return None
+
+
+def _publish_standalone_timl_diagnostics(scene_props, diagnostics):
+    for diagnostic in diagnostics:
+        add_diagnostic(scene_props, diagnostic.level, diagnostic.source, diagnostic.message)
+
+
 class MHWANIMTOOLS_OT_analyze_export_action(bpy.types.Operator):
     bl_idname = "mhw_anim_tools.analyze_export_action"
     bl_label = "Analyze Export Action"
@@ -93,62 +130,6 @@ class MHWANIMTOOLS_OT_analyze_export_action(bpy.types.Operator):
             f"skipped={analysis.sampling_result.skipped_track_count}, "
             f"warnings={analysis.warning_count}, "
             f"frames=0->{analysis.sampling_result.frame_end}, "
-            f"entry={analysis.impact_summary.entry_id:03d}, "
-            f"mode={analysis.impact_summary.export_mode}"
-        )
-        self.report({"INFO"}, scene_props.last_status)
-        return {"FINISHED"}
-
-
-class MHWANIMTOOLS_OT_export_lmt_action(bpy.types.Operator, ExportHelper):
-    bl_idname = "mhw_anim_tools.export_lmt_action"
-    bl_label = "Export LMT Action"
-    bl_description = "Write the selected Blender Action as a single-action LMT using the new core writer"
-
-    filename_ext = ".lmt"
-    filter_glob: bpy.props.StringProperty(default="*.lmt", options={"HIDDEN"}, maxlen=255)
-
-    def invoke(self, context, _event):
-        scene_props = context.scene.mhw_anim_tools
-        action = effective_export_action(scene_props)
-        if action is not None and not self.filepath:
-            self.filepath = _sanitize_export_name(action.name) + self.filename_ext
-        context.window_manager.fileselect_add(self)
-        return {"RUNNING_MODAL"}
-
-    def execute(self, context):
-        scene_props = context.scene.mhw_anim_tools
-        clear_diagnostics(scene_props)
-        clear_export_analysis(scene_props)
-        analysis = analyze_export_action(scene_props, actions=bpy.data.actions, objects=bpy.data.objects)
-        _publish_export_diagnostics(scene_props, analysis.diagnostics)
-        if analysis.action is None:
-            scene_props.last_status = analysis.status_message
-            self.report({"WARNING"}, scene_props.last_status)
-            return {"CANCELLED"}
-        _apply_export_summary(scene_props, analysis)
-        if analysis.error_count:
-            scene_props.last_status = (
-                f"Export analysis failed: {analysis.error_count} error(s), "
-                f"{analysis.warning_count} warning(s)."
-            )
-            self.report({"WARNING"}, scene_props.last_status)
-            return {"CANCELLED"}
-
-        try:
-            output_path = write_export_file(self.filepath, analysis)
-        except (ValidationError, BinaryFormatError, OSError, ValueError) as exc:
-            add_diagnostic(scene_props, "ERROR", "writer", str(exc))
-            scene_props.last_export_error_count = analysis.error_count + 1
-            scene_props.last_status = f"Export failed: {exc}"
-            self.report({"WARNING"}, scene_props.last_status)
-            return {"CANCELLED"}
-
-        scene_props.last_status = (
-            f"Exported {analysis.sampling_result.action_name} to {output_path.name}: "
-            f"tracks={analysis.plan.supported_track_count}, "
-            f"sparse_keys={analysis.reconstructed.sparse_key_count}, "
-            f"warnings={analysis.warning_count}, "
             f"entry={analysis.impact_summary.entry_id:03d}, "
             f"mode={analysis.impact_summary.export_mode}"
         )
@@ -234,24 +215,89 @@ class MHWANIMTOOLS_OT_export_source_lmt(bpy.types.Operator, ExportHelper):
         return {"FINISHED"}
 
 
-def _menu_export(self, _context):
-    self.layout.operator(MHWANIMTOOLS_OT_export_lmt_action.bl_idname, text="MHW Anim Tools LMT (.lmt)")
+class MHWANIMTOOLS_OT_save_timl_file(bpy.types.Operator, ExportHelper):
+    bl_idname = "mhw_anim_tools.save_timl_file"
+    bl_label = "Write TIML File"
+    bl_description = "Write the full standalone TIML file from the current imported TIML controller session"
 
+    filename_ext = ".timl"
+    filter_glob: bpy.props.StringProperty(default="*.timl", options={"HIDDEN"}, maxlen=255)
 
+    @staticmethod
+    def _missing_controller_message(scene_props) -> str:
+        if str(getattr(scene_props, "last_timl_path", "") or ""):
+            return "Import at least one standalone TIML entry before saving."
+        return "Choose an imported standalone TIML controller before saving."
+
+    def invoke(self, context, _event):
+        scene_props = context.scene.mhw_anim_tools
+        controller = _active_timl_controller(scene_props, context)
+        if controller is None:
+            scene_props.last_status = self._missing_controller_message(scene_props)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        metadata = extract_timl_controller_metadata(controller)
+        if not self.filepath:
+            source_path = str(metadata.source_lmt or "")
+            if source_path.lower().endswith(".timl"):
+                self.filepath = source_path
+            else:
+                self.filepath = _sanitize_export_name(controller.name) + self.filename_ext
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
+    def execute(self, context):
+        scene_props = context.scene.mhw_anim_tools
+        clear_diagnostics(scene_props)
+        controller = _active_timl_controller(scene_props, context)
+        if controller is None:
+            scene_props.last_status = self._missing_controller_message(scene_props)
+            add_diagnostic(scene_props, "ERROR", "timl.export", scene_props.last_status)
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        analysis = analyze_standalone_timl_export(
+            controller,
+            controller_objects=bpy.data.objects,
+        )
+        _publish_standalone_timl_diagnostics(scene_props, analysis.diagnostics)
+        if analysis.error_count:
+            scene_props.last_status = (
+                f"TIML save analysis failed: {analysis.error_count} error(s), "
+                f"{analysis.warning_count} warning(s)."
+            )
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        try:
+            output_path = write_standalone_timl_file(self.filepath, analysis)
+        except (ValidationError, BinaryFormatError, OSError, ValueError) as exc:
+            add_diagnostic(scene_props, "ERROR", "timl.export", str(exc))
+            scene_props.last_status = f"TIML save failed: {exc}"
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+
+        scene_props.last_status = (
+            f"Saved {output_path.name}: "
+            f"edited_entries={analysis.sampled_entry_count}, "
+            f"source_entries={analysis.source_entry_count}, "
+            f"transforms={analysis.sampled_transform_count}, "
+            f"warnings={analysis.warning_count}"
+        )
+        self.report({"INFO"}, scene_props.last_status)
+        return {"FINISHED"}
 classes = (
     MHWANIMTOOLS_OT_analyze_export_action,
     MHWANIMTOOLS_OT_export_source_lmt,
-    MHWANIMTOOLS_OT_export_lmt_action,
+    MHWANIMTOOLS_OT_save_timl_file,
 )
 
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-    bpy.types.TOPBAR_MT_file_export.append(_menu_export)
 
 
 def unregister():
-    bpy.types.TOPBAR_MT_file_export.remove(_menu_export)
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

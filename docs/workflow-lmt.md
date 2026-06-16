@@ -2,6 +2,10 @@
 
 This is the supported v1 path for editing an LMT action and writing it back.
 
+Main UI location:
+
+- `3D View > Sidebar > MHW Anim`
+
 ## 1. Prepare the scene
 
 1. Import the target model/armature into Blender
@@ -24,6 +28,9 @@ The inspector shows:
 - track counts
 - root translation/rotation summary
 - whether the entry has attached TIML
+
+Open the selected `Entry` and `Tracks` foldouts when you want the per-entry or
+per-track details.
 
 ## 3. Import the action
 
@@ -69,14 +76,10 @@ This gives you:
 
 ## 6. Write the file
 
-Use one of the two write buttons:
+Use `Write Full LMT`.
 
-- `Write Full LMT`: writes the full source container using every imported
-  Blender action from that same source file
-- `Write Action Only`: writes just the selected action using the older
-  one-action path
-
-For normal v1 workflow, prefer `Write Full LMT`.
+That writes the full source container using every imported Blender action from
+that same source file.
 
 ## What is safe today
 
@@ -87,6 +90,9 @@ For normal v1 workflow, prefer `Write Full LMT`.
 ## What still needs care
 
 - unsupported FCurve paths are skipped
-- unusual duplicate track-identity source actions are still rare edge cases
+- duplicate raw track-identity source actions import as technical `LMT Raw ...`
+  Graph Editor slots on the armature object, not normal pose preview channels
 - export confidence is strongest on the supported rotation/translation/scale
   path, not on arbitrary Blender rig logic
+- a small remaining quaternion edge-case family is still called out in
+  [Known Warnings](known-warnings.md)

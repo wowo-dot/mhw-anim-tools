@@ -180,6 +180,42 @@ class TimlSamplingTests(unittest.TestCase):
         self.assertIsNotNone(result.metadata)
         self.assertEqual(result.metadata.transform_count, 0)
 
+    def test_standalone_timl_controller_does_not_emit_fake_import_kind_warning(self):
+        action = FakeAction(
+            "TIML::standalone::001",
+            [FakeFCurve('["timl_float"]', 0, {0.0: 1.0, 8.0: 2.0})],
+            mhw_anim_tools_import_kind="standalone_timl",
+            mhw_anim_tools_timl_transform_count=1,
+        )
+        controller = FakeController(
+            "TIML Controller::standalone::001",
+            action=action,
+            **{
+                TIML_SOURCE_LMT_KEY: "sample.timl",
+                TIML_ENTRY_ID_KEY: 1,
+                TIML_SOURCE_OFFSET_KEY: 0x80,
+                TIML_ACTION_NAME_KEY: action.name,
+                TIML_BINDINGS_KEY: json.dumps(
+                    [
+                        _binding(
+                            property_name="timl_float",
+                            type_index=0,
+                            transform_index=0,
+                            data_type=2,
+                            data_type_name="float",
+                            component_labels=("value",),
+                        )
+                    ]
+                ),
+            },
+        )
+
+        result = sample_timl_controller_action(controller)
+
+        self.assertEqual(result.error_count, 0)
+        self.assertEqual(result.warning_count, 0)
+        self.assertEqual(result.sampled_transform_count, 1)
+
     def test_mismatched_channel_keyframe_times_are_rejected(self):
         action = _attached_timl_action(
             "TIML::broken::000",
