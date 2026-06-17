@@ -147,6 +147,16 @@ def _source_track_metadata(track, track_metadata_by_identity, track_metadata_by_
     return track_metadata_by_identity.get((int(track.bone_id), int(track.usage)))
 
 
+def _allows_non_normalized_basis_quaternion(track, track_metadata) -> bool:
+    if track.keyframes:
+        return False
+    try:
+        buffer_type = int(track_metadata.get("buffer_type"))
+    except (AttributeError, TypeError, ValueError):
+        return False
+    return buffer_type == 2
+
+
 def _resolve_vector_lerp_preference(
     track,
     *,
@@ -393,6 +403,7 @@ def plan_reconstructed_action_export(
             track_identity in raw_quaternion_source_identities
         )
         track_metadata = _source_track_metadata(track, track_metadata_by_identity, track_metadata_by_index)
+        non_normalized_basis_quaternion = _allows_non_normalized_basis_quaternion(track, track_metadata)
 
         if usage_info.transform not in {"rotation", "translation", "scale"}:
             supported = False
@@ -431,6 +442,8 @@ def plan_reconstructed_action_export(
         if usage_info.is_quaternion and not _has_normalized_quaternion_values(track, quaternion_tolerance):
             if raw_quaternion_source:
                 notes.append("Using raw source-aware quaternion key values.")
+            elif non_normalized_basis_quaternion:
+                notes.append("Using source float basis quaternion values directly.")
             else:
                 supported = False
                 diagnostics.append(

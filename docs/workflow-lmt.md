@@ -104,5 +104,9 @@ that same source file.
   pose-bone/armature channels, not normal pose preview channels
 - export confidence is strongest on the supported rotation/translation/scale
   path, not on arbitrary Blender rig logic
-- a small remaining quaternion edge-case family is still called out in
-  [Known Warnings](known-warnings.md)
+- source-backed `Write Full LMT` remains the main supported export path
+
+See also:
+
+- [Testing And Caveats](testing-and-caveats.md)
+- [Known Warnings](known-warnings.md)

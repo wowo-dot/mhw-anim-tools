@@ -17,6 +17,7 @@ If you are new to the add-on, use these first:
 - [Feature Map](docs/feature-map.md)
 - [Basic LMT Workflow](docs/workflow-lmt.md)
 - [TIML In LMT Workflow](docs/workflow-timl-in-lmt.md)
+- [Testing And Caveats](docs/testing-and-caveats.md)
 - [Known Warnings](docs/known-warnings.md)
 
 Main UI locations in Blender:
@@ -37,6 +38,28 @@ Common first tasks:
 - save a standalone TIML session: `Export > Export TIML`
 - export the edited source file: `Export > Write Full LMT`
 - check for add-on updates: `Edit > Preferences > Add-ons > MHW Anim Tools`
+
+## Validation Snapshot
+
+Current release-confidence highlights:
+
+- `python -m unittest discover -s tests` passes with `268 / 268` tests green
+- the full whole-corpus LMT writer-readiness replay currently lands at:
+  - `5774 / 5774` files processed
+  - `105040 / 105040` actions fully supported
+  - `0` replay-planning failures
+  - `0` decode-error actions
+- embedded TIML corpus scan:
+  - `5774 / 5774` LMT files parsed
+  - `0` embedded TIML parse errors
+- standalone TIML corpus scan:
+  - `268 / 268` files parsed
+  - `0` validation-error files
+- representative live Blender source-backed merge export / reimport smokes pass for:
+  - `stm730_084_00`
+  - `em037_09` action `048`
+  - `em080_00`
+  - `em013_03`
 
 ## Credits
 
@@ -128,8 +151,33 @@ Current limits:
 - broad TIML structural rebuild coverage beyond the current conservative
   source-backed path
 - EFX support
-- a narrow quaternion edge-case family documented in
-  [Known Warnings](docs/known-warnings.md)
+
+## Main Caveats
+
+The current `v1` caveats are mostly about representation and workflow surface,
+not broad read/write correctness:
+
+- the main supported export path is still `Write Full LMT` on source-backed
+  imported actions
+- duplicate raw source tracks with the same `bone_id + usage` identity import as
+  technical raw custom-property FCurves:
+  - on the resolved pose bone when possible
+  - on the armature object when Blender cannot attach them to a real pose bone
+- those duplicate/raw channels remain editable and exportable, but they do not
+  behave like ordinary viewport pose controls
+- Blender is the main editing shell, so the add-on aims to preserve motion
+  intent and source semantics rather than recreate Capcom's internal authoring
+  environment byte-for-byte for every edited case
+- unsupported Blender rig logic, constraints, and procedural setups should be
+  baked back into ordinary FCurves before export
+- TIML writeback is strong for unchanged payloads, value edits, and the current
+  conservative rebuild-friendly structural path, but advanced-source structural
+  rebuilds are still intentionally blocked instead of guessed
+
+See also:
+
+- [Testing And Caveats](docs/testing-and-caveats.md)
+- [Known Warnings](docs/known-warnings.md)
 
 ## Layout
 
@@ -172,6 +220,7 @@ User docs:
 - [Feature Map](docs/feature-map.md)
 - [Basic LMT Workflow](docs/workflow-lmt.md)
 - [TIML In LMT Workflow](docs/workflow-timl-in-lmt.md)
+- [Testing And Caveats](docs/testing-and-caveats.md)
 - [Known Warnings](docs/known-warnings.md)
 - [Credits And Acknowledgements](docs/credits-and-acknowledgements.md)
 

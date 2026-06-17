@@ -21,7 +21,7 @@ Use it to track:
 Observed on `2026-06-17`:
 
 - `python -m compileall -q .` passed
-- `python -m unittest discover -s tests -v` passed with `265/265` tests green
+- `python -m unittest discover -s tests -v` passed with `267/267` tests green
 - Blender 4.5 register smoke passed
 - full-source export is now explicit in the main export workflow
 - baseline live-asset smokes passed:
@@ -31,8 +31,10 @@ Observed on `2026-06-17`:
   - writer/read-decode roundtrip
 - additional live-asset LMT smoke passes now include:
   - `stm730_084_00` sampled export readiness with q14 fallback warnings instead of a hard failure
+  - `stm730_084_00` no-edit source-backed merge export returning to byte-identical output
   - `em080_00` source-backed merge export / reimport
   - `em013_03` source-backed merge export / reimport
+  - `em037_09` action `048` sampled export readiness after the root-basis quaternion planning fix
 - real-asset shared TIML suite passed `4/4` selected cases:
   - `npc018_09_st`
   - `npc016_09`
@@ -60,18 +62,18 @@ Observed on `2026-06-17`:
   - `105040` actions checked
   - `1` standalone-safe action
   - current v1 assumption remains source-backed export, not standalone container replacement
-- whole-corpus writer-readiness scan summary is complete:
+- a fresh whole-corpus writer-readiness rerun is now complete:
   - `5774/5774` files processed
-  - `105021/105040` actions fully supported in the read-only replay probe
-  - `19` actions remain unsupported
-  - duplicate `bone_id + usage` source-track identities are no longer a corpus blocker after the raw-slot import/export path
-  - remaining unsupported families are a narrow quaternion edge-case set:
-    - non-normalized root-rotation planning in parts of the `em037` corpus
-    - raw source-aware quaternion lerp fits that still refuse the current q14 fallback in a handful of actions
-- targeted rechecks during the release-candidate sweep confirmed:
-  - `em037_09` still reproduces the root-rotation normalization planning edge case
-  - `em100_05` still reproduces the raw quaternion lerp-basis edge case
-  - checked copies of `evm067_00`, `otomo000_00`, and `wp_one000` passed the narrow writer-readiness probe
+  - `105040/105040` actions fully supported in the read-only replay probe
+  - `0` replay-planning failures
+  - `0` decode-error actions
+  - duplicate `bone_id + usage` source-track identities are not a corpus blocker
+    in the current raw-slot import/export path
+- targeted rechecks during the release-candidate sweep confirm:
+  - `em037_09` action `048` no longer reproduces the root-rotation planning edge case
+  - `em037_10` no longer reproduces the same replay-planning failure family
+  - checked copies of `em100_05`, `evm067_00`, `otomo000_00`, and `wp_one000`
+    pass the narrow writer-readiness probe
 
 Useful note:
 
@@ -116,7 +118,7 @@ paths used for the final smoke runs and keep the release notes generic.
 | TIML writeback | Simple-source structural rebuild | rebuild-friendly real assets | `tools/smoke_merge_export_with_timl_simple_structural_edit.py`, `tools/run_timl_simple_structural_suite.py` | manual confirmation that edited timing/value behavior is still sane after reimport | `Partial` |
 | TIML writeback | Unsafe structural rebuild blocking | advanced-source and quantization-risk cases | `tools/smoke_merge_export_with_timl_structural_edit.py`, `tools/smoke_merge_export_with_timl_integer_quantization_block.py` | none beyond regression checking | `Automated` |
 | Shared payload safety | Detect shared TIML conflicts and impact scope before export | synthetic shared-offset sources + live examples | `tests/test_timl_writeback.py`, `tests/test_export_impact.py`, shared-payload suite | one manual UI sanity pass for conflict/error messaging | `Partial` |
-| Corpus readiness | Scan export/TIML corpus for risk and workflow candidates | whole extracted corpus | `tools/scan_lmt_export_safety.py`, `tools/scan_lmt_writer_readiness.py`, `tools/scan_timl_corpus.py`, `tools/scan_embedded_timl_corpus.py` | archive final summary output and decide whether the remaining 19 quaternion-edge actions are v1 blockers or documented exceptions | `Partial` |
+| Corpus readiness | Scan export/TIML corpus for risk and workflow candidates | whole extracted corpus | `tools/scan_lmt_export_safety.py`, `tools/scan_lmt_writer_readiness.py`, `tools/scan_timl_corpus.py`, `tools/scan_embedded_timl_corpus.py` | archive the final post-fix summaries and keep a small live-asset smoke set for release confidence | `Partial` |
 
 ## What still blocks release confidence
 
@@ -126,9 +128,8 @@ current blockers are mostly validation and workflow confidence:
 1. broader real-asset export/reimport coverage across multiple asset families
 2. manual Blender playback checks for root motion and quaternion-heavy actions
 3. one clean fresh-install test from a packaged zip
-4. a release decision on whether the remaining confirmed quaternion-edge corpus
-   cases (`em037` family plus at least one `em100_05` action) are documented
-   exceptions or a v1 blocker
+4. document the remaining fidelity limits and workflow assumptions plainly so
+   the release notes reflect current reality instead of old pre-fix blockers
 4. final release-note polish and public packaging cleanup
 
 ## Suggested release-candidate run order

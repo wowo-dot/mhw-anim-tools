@@ -75,8 +75,29 @@ This is still the main path for TIML that came from an `.lmt`.
 - Prefer `Write Full LMT`
 - Check `Diagnostics` and export analysis before writing
 - Keep final motion and TIML values baked into ordinary FCurves
+- Treat duplicate raw track channels as technical Graph Editor data, not as
+  ordinary pose preview controls
+
+## Main caveat to remember
+
+The add-on is strongest as a conservative source-backed workflow tool.
+
+Use it like this:
+
+1. inspect the source file
+2. import the action or TIML session
+3. edit supported curves/values
+4. export back through `Write Full LMT` or `Export TIML`
+
+If a case is represented as a raw technical channel or the tool blocks a TIML
+rebuild shape, believe that warning before trying to force it.
 
 ## Not the v1 path
 
 - EFX authoring/export
 - arbitrary Blender rig logic presented as safe LMT export
+- treating every duplicate raw source track like a normal viewport pose lane
+
+See also:
+
+- [Testing And Caveats](testing-and-caveats.md)

@@ -60,6 +60,39 @@ class LmtWriterTests(unittest.TestCase):
 
         self.assertEqual(lmt.actions[0].header.frame_count, 20)
 
+    def test_write_basis_only_root_rotation_preserves_non_normalized_values(self):
+        source = LmtReconstructedAction(
+            action_name="RootRotationBasis",
+            frame_start=0,
+            frame_end=59,
+            tracks=(
+                LmtReconstructedTrack(
+                    bone_id=-1,
+                    usage=3,
+                    basis_value=(0.9656599760055542, 0.0, 0.0, 0.0),
+                    tail_frame=59,
+                    tail_value=(0.9656599760055542, 0.0, 0.0, 0.0),
+                    source_track_index=423,
+                ),
+            ),
+        )
+
+        payload = write_lmt_bytes(
+            source,
+            track_metadata_by_index={
+                423: {"buffer_type": 2},
+            },
+        )
+        lmt = read_lmt_bytes(payload, source_name="root-rotation-basis.lmt")
+        decoded = decode_action_tracks(lmt.actions[0], strict=True)
+        track = decoded.tracks[0]
+
+        self.assertEqual(track.buffer_type, 2)
+        self.assertEqual(track.keyframes, ())
+        self.assertEqual(track.tail_frame, 59)
+        self.assertAlmostEqual(track.basis_value[0], 0.9656599760055542, delta=1e-6)
+        self.assertAlmostEqual(track.tail_value[0], 0.9656599760055542, delta=1e-6)
+
     def test_write_preserves_explicit_source_header_version_and_unknown_bytes(self):
         source = LmtReconstructedAction(
             action_name="HeaderMetadata",

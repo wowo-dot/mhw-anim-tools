@@ -52,6 +52,8 @@ class _SerializedTrack:
     basis_xyzw: tuple[float, float, float, float]
     raw_buffer: bytes
     lerp_bytes: bytes
+    source_buffer_offset: int = 0
+    source_lerp_offset: int = 0
 
 
 @dataclass(frozen=True)
@@ -124,6 +126,8 @@ def _serialize_source_track(track) -> _SerializedTrack:
         basis_xyzw=tuple(float(value) for value in track.header.basis),
         raw_buffer=bytes(track.raw_buffer),
         lerp_bytes=lerp_bytes,
+        source_buffer_offset=int(track.header.buffer_offset),
+        source_lerp_offset=int(track.header.lerp_offset),
     )
 
 
@@ -247,6 +251,8 @@ def _serialize_reconstructed_action(
                 basis_xyzw=_basis_xyzw(reconstructed_track, usage_info),
                 raw_buffer=raw_buffer,
                 lerp_bytes=lerp_bytes,
+                source_buffer_offset=0,
+                source_lerp_offset=0,
             )
         )
 
@@ -288,20 +294,56 @@ def _serialize_action_bytes(
     track_table_offset = action_offset + ACTION_STRUCT.size if action.tracks else 0
     current_buffer_offset = action_offset + ACTION_STRUCT.size + (TRACK_STRUCT.size * len(action.tracks))
     current_buffer_offset = _align(current_buffer_offset, 4)
+    chunk_records: list[dict[str, object]] = []
+    fallback_order = 0
+    for track_index, track in enumerate(action.tracks):
+        if track.raw_buffer:
+            chunk_records.append(
+                {
+                    "track_index": track_index,
+                    "kind": "raw",
+                    "data": track.raw_buffer,
+                    "source_offset": int(track.source_buffer_offset) if int(track.source_buffer_offset) > 0 else None,
+                    "fallback_order": fallback_order,
+                }
+            )
+            fallback_order += 1
+        if track.lerp_bytes:
+            chunk_records.append(
+                {
+                    "track_index": track_index,
+                    "kind": "lerp",
+                    "data": track.lerp_bytes,
+                    "source_offset": int(track.source_lerp_offset) if int(track.source_lerp_offset) > 0 else None,
+                    "fallback_order": fallback_order,
+                }
+            )
+            fallback_order += 1
+
+    chunk_records.sort(
+        key=lambda item: (
+            item["source_offset"] is None,
+            int(item["source_offset"]) if item["source_offset"] is not None else 0,
+            int(item["fallback_order"]),
+        )
+    )
+
+    track_buffer_offsets = [0] * len(action.tracks)
+    track_lerp_offsets = [0] * len(action.tracks)
+    buffer_chunks: list[bytes] = []
+    for item in chunk_records:
+        data_chunk = bytes(item["data"])
+        offset = current_buffer_offset
+        if item["kind"] == "raw":
+            track_buffer_offsets[int(item["track_index"])] = offset
+        else:
+            track_lerp_offsets[int(item["track_index"])] = offset
+        buffer_chunks.append(data_chunk)
+        current_buffer_offset += len(data_chunk)
+        current_buffer_offset = _align(current_buffer_offset, 4)
 
     track_headers: list[bytes] = []
-    buffer_chunks: list[bytes] = []
-    for track in action.tracks:
-        buffer_offset = current_buffer_offset if track.raw_buffer else 0
-        if track.raw_buffer:
-            current_buffer_offset += len(track.raw_buffer)
-            current_buffer_offset = _align(current_buffer_offset, 4)
-
-        lerp_offset = current_buffer_offset if track.lerp_bytes else 0
-        if track.lerp_bytes:
-            current_buffer_offset += len(track.lerp_bytes)
-            current_buffer_offset = _align(current_buffer_offset, 4)
-
+    for track_index, track in enumerate(action.tracks):
         track_headers.append(
             TRACK_STRUCT.pack(
                 int(track.buffer_type),
@@ -311,15 +353,11 @@ def _serialize_action_bytes(
                 int(track.bone_id),
                 float(track.weight),
                 len(track.raw_buffer),
-                int(buffer_offset),
+                int(track_buffer_offsets[track_index]),
                 *track.basis_xyzw,
-                int(lerp_offset),
+                int(track_lerp_offsets[track_index]),
             )
         )
-        if track.raw_buffer:
-            buffer_chunks.append(track.raw_buffer)
-        if track.lerp_bytes:
-            buffer_chunks.append(track.lerp_bytes)
 
     data = bytearray()
     data.extend(

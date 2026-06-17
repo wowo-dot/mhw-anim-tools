@@ -27,12 +27,41 @@ This release is meant to be a trustworthy engineer-facing workflow for:
 - standalone TIML export for imported standalone TIML sessions
 - blocking unsupported or unsafe export cases instead of silently dropping data
 
+## Validation snapshot
+
+Current release-confidence highlights:
+
+- `268 / 268` unit tests green
+- full whole-corpus writer-readiness replay:
+  - `5774 / 5774` files
+  - `105040 / 105040` actions fully supported
+  - `0` replay-planning failures
+  - `0` decode-error actions
+- representative live Blender source-backed merge export / reimport smokes pass
+  for:
+  - `stm730_084_00`
+  - `em037_09` action `048`
+  - `em080_00`
+  - `em013_03`
+
 ## Important workflow note
 
 For normal v1 use, prefer `Write Full LMT`.
 
 That path writes the full source container using all imported Blender actions
 from the same source file and is the main supported export flow now.
+
+## Important caveats
+
+- duplicate raw source tracks are preserved as technical raw custom-property
+  FCurves on a pose bone when possible, with armature-level fallback when not
+- those raw duplicate-track channels remain editable/exportable, but they are
+  not ordinary viewport pose controls
+- the add-on is designed to preserve motion intent and source semantics, not to
+  claim byte-identical Capcom-internal authoring parity for every edited case
+- unsupported Blender rig logic should be baked back into ordinary supported
+  FCurves before export
+- advanced-source TIML structural rebuilds are still intentionally blocked
 
 ## What is intentionally blocked or still out of scope
 

@@ -32,30 +32,31 @@ Practical meaning:
 - you should treat them as technical/raw channels, not as ordinary viewport
   motion controls
 
-## Remaining whole-corpus writer-readiness failures
+## Writer-readiness scan status
 
-The full read-only source replay scan now lands at:
+The older read-only replay warning about `19` remaining quaternion-edge actions
+was real at the time, but it is no longer current.
 
-- `105021 / 105040` actions fully supported
-- `19` actions still unsupported
+What we verified after the latest root-basis quaternion planning fix:
 
-Current remaining failure families are narrow quaternion edge cases, not the old
-duplicate-track family:
+- targeted core replay rechecks now pass for:
+  - `em037_09.lmt`
+  - `em037_10.lmt`
+  - `em100_05.lmt`
+  - `evm067_00.lmt`
+  - `otomo000_00.lmt`
+  - `wp_one000.lmt`
+- a fresh full whole-corpus writer-readiness rerun is now complete:
+  - `5774 / 5774` files processed
+  - `105040 / 105040` actions fully supported
+  - `0` replay-planning failures
+  - `0` decode-error actions
 
-- `10` actions in parts of the `em037` corpus with root-rotation samples that
-  are not normalized closely enough for planning
-- `9` actions across a small set of files where raw source-aware quaternion
-  values do not fit the preserved source lerp basis closely enough to allow the
-  current fallback path
+Practical meaning:
 
-Representative assets from the latest scan:
-
-- `em037_09.lmt`
-- `em037_10.lmt`
-- `em100_05.lmt`
-- `evm067_00.lmt`
-- `otomo000_00.lmt`
-- `wp_one000.lmt`
+- the previously documented `em037` root-rotation blocker was a real planner
+  bug in our code, and it is now fixed
+- the current source replay path now covers the full extracted game corpus cleanly
 
 ## TIML corpus status
 
@@ -72,10 +73,15 @@ For `v1`, the important warning is no longer "duplicate raw source tracks are a
 hard blocker." The current warning is simpler:
 
 - duplicate source tracks are now a technical Graph Editor path
-- the remaining release-risk family is a much smaller quaternion edge-case set
+- the current whole-corpus writer-readiness replay now lands cleanly, so the
+  remaining release risk is not broad planner coverage but user-facing workflow
+  confidence and documented fidelity limits
 
 One useful recent sanity note:
 
 - the baseline live sampled-export / writer-roundtrip path for `stm730_084_00`
   no longer hard-fails after import; the current behavior is a warning-backed
   fallback to `q14` quaternion keys on the affected visible Blender lanes
+- the no-edit source-backed merge export path for `stm730_084_00` is now
+  byte-identical again after preserving source chunk ordering inside the merge
+  writer

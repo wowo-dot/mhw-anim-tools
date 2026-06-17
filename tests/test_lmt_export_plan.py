@@ -112,6 +112,37 @@ class LmtExportPlanTests(unittest.TestCase):
         self.assertEqual(plan.error_count, 1)
         self.assertFalse(plan.tracks[0].supported)
 
+    def test_non_normalized_source_basis_quaternion_is_allowed(self):
+        action = LmtReconstructedAction(
+            action_name="SourceBasisQuat",
+            frame_start=0,
+            frame_end=59,
+            tracks=(
+                LmtReconstructedTrack(
+                    bone_id=-1,
+                    usage=3,
+                    basis_value=(0.9656599760055542, 0.0, 0.0, 0.0),
+                    tail_frame=59,
+                    tail_value=(0.9656599760055542, 0.0, 0.0, 0.0),
+                    source_track_index=423,
+                ),
+            ),
+        )
+
+        plan = plan_reconstructed_action_export(
+            action,
+            track_metadata_by_index={
+                423: {
+                    "buffer_type": 2,
+                }
+            },
+        )
+
+        self.assertEqual(plan.error_count, 0)
+        self.assertTrue(plan.tracks[0].supported)
+        self.assertEqual(plan.tracks[0].buffer_type, 2)
+        self.assertIn("source float basis quaternion values directly", " ".join(plan.tracks[0].notes).lower())
+
     def test_duplicate_track_identity_is_rejected(self):
         action = LmtReconstructedAction(
             action_name="DuplicateIdentity",

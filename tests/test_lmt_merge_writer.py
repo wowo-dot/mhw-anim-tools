@@ -12,6 +12,8 @@ from core.formats.lmt.reader import read_lmt_bytes
 from core.formats.lmt.reconstructed import LmtReconstructedAction
 from core.formats.lmt.reconstructed import LmtReconstructedKeyframe
 from core.formats.lmt.reconstructed import LmtReconstructedTrack
+from core.formats.lmt.writer import LERP_BASIS_STRUCT
+from core.formats.lmt.writer import TRACK_STRUCT
 from core.formats.timl.embedded_writer import build_embedded_timl_data_payload
 from core.formats.timl.reader import read_timl_data_bytes
 
@@ -105,6 +107,88 @@ def _build_source_container_with_shared_timl() -> tuple[bytes, bytes]:
         + bytes(timl_payload),
         bytes(timl_payload),
     )
+
+
+def _build_source_container_with_lerp_before_raw_tracks() -> bytes:
+    entry_count = 1
+    action_offset = 32
+    track_count = 2
+    track_table_offset = action_offset + ACTION_STRUCT.size
+    chunk_base = action_offset + ACTION_STRUCT.size + (TRACK_STRUCT.size * track_count)
+    lerp0 = LERP_BASIS_STRUCT.pack(
+        1.0, 1.0, 1.0, 1.0,
+        0.0, 0.0, 0.0, 0.0,
+    )
+    lerp1 = LERP_BASIS_STRUCT.pack(
+        2.0, 2.0, 2.0, 2.0,
+        1.0, 1.0, 1.0, 1.0,
+    )
+    raw0 = bytes(range(84))
+    raw1 = bytes(reversed(range(84)))
+    lerp0_offset = chunk_base
+    lerp1_offset = lerp0_offset + len(lerp0)
+    raw0_offset = lerp1_offset + len(lerp1)
+    raw1_offset = raw0_offset + len(raw0)
+
+    header = HEADER_STRUCT.pack(b"LMT\x00", 95, entry_count, b"ABCDEFGH")
+    entry_table = ENTRY_OFFSET_STRUCT.pack(action_offset)
+    action = ACTION_STRUCT.pack(
+        track_table_offset,
+        track_count,
+        20,
+        -1,
+        0,
+        0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0,
+        b"\x00\x00",
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    )
+    track0 = TRACK_STRUCT.pack(
+        13,
+        0,
+        0,
+        205,
+        1,
+        1.0,
+        len(raw0),
+        raw0_offset,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        lerp0_offset,
+    )
+    track1 = TRACK_STRUCT.pack(
+        13,
+        0,
+        0,
+        205,
+        2,
+        1.0,
+        len(raw1),
+        raw1_offset,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        lerp1_offset,
+    )
+    return header + entry_table + (b"\x00" * (action_offset - (len(header) + len(entry_table)))) + action + track0 + track1 + lerp0 + lerp1 + raw0 + raw1
 
 
 class LmtMergeWriterTests(unittest.TestCase):
@@ -295,6 +379,57 @@ class LmtMergeWriterTests(unittest.TestCase):
         self.assertNotEqual(layouts[merged_timl_offset].payload, timl_payload)
         (type_offset,) = struct.unpack_from("<Q", merged_bytes, merged_timl_offset)
         self.assertEqual(type_offset, merged_timl_offset + 48)
+
+    def test_merge_writer_preserves_source_chunk_order_for_unchanged_raw_tracks(self):
+        source_bytes = _build_source_container_with_lerp_before_raw_tracks()
+        source_lmt = read_lmt_bytes(source_bytes, source_name="source-layout.lmt")
+        reconstructed = LmtReconstructedAction(
+            action_name="NoOpAction",
+            frame_start=0,
+            frame_end=20,
+            tracks=(
+                LmtReconstructedTrack(
+                    bone_id=1,
+                    usage=0,
+                    basis_value=(1.0, 0.0, 0.0, 0.0),
+                    source_track_index=0,
+                ),
+                LmtReconstructedTrack(
+                    bone_id=2,
+                    usage=0,
+                    basis_value=(1.0, 0.0, 0.0, 0.0),
+                    source_track_index=1,
+                ),
+            ),
+        )
+
+        merged_bytes = write_merged_lmt_bytes(
+            source_lmt,
+            source_bytes,
+            reconstructed,
+            action_id=0,
+            track_metadata_by_index={
+                0: {
+                    "buffer_type": 13,
+                    "joint_type": 0,
+                    "unknown_tag": 205,
+                    "weight": 1.0,
+                    "lerp_mult": (1.0, 1.0, 1.0, 1.0),
+                    "lerp_add": (0.0, 0.0, 0.0, 0.0),
+                },
+                1: {
+                    "buffer_type": 13,
+                    "joint_type": 0,
+                    "unknown_tag": 205,
+                    "weight": 1.0,
+                    "lerp_mult": (2.0, 2.0, 2.0, 2.0),
+                    "lerp_add": (1.0, 1.0, 1.0, 1.0),
+                },
+            },
+            preserve_source_identities={(1, 0), (2, 0)},
+        )
+
+        self.assertEqual(merged_bytes, source_bytes)
 
 
 if __name__ == "__main__":
