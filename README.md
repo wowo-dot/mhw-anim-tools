@@ -77,6 +77,9 @@ Current release-confidence highlights:
 More project notes and acknowledgements are collected in
 [Credits And Acknowledgements](docs/credits-and-acknowledgements.md).
 
+If you want to support ongoing maintenance of the project, there is also a
+[Patreon](https://www.patreon.com/wowowiwa).
+
 ## Supported Today
 
 Main supported workflows:
