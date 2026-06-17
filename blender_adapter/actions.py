@@ -142,6 +142,17 @@ def _resolved_pose_bone(armature_object, bone_name: str):
         return None
 
 
+def _normal_track_data_path(target, blender_path_hint: str) -> str:
+    if str(getattr(target, "kind", "") or "") == "bone":
+        return f'pose.bones["{target.name}"].{blender_path_hint}'
+    return str(blender_path_hint or "")
+
+
+def _collision_priority(decoded_track, usage_info) -> tuple[int, int, int]:
+    is_root = bool(getattr(usage_info, "scope", "") == "root" or int(decoded_track.usage) >= 3 or int(decoded_track.bone_id) == -1)
+    return (0 if is_root else 1, int(decoded_track.track_index), int(decoded_track.bone_id))
+
+
 def _delete_custom_property(owner, property_name: str) -> bool:
     if owner is None or not property_name:
         return False
@@ -238,6 +249,69 @@ def _resolve_raw_duplicate_target(armature_object, *, bone_id: int, usage: int, 
     }
 
 
+def _import_track_as_raw_duplicate(
+    *,
+    blender_action,
+    armature_object,
+    source_path: str,
+    source_action,
+    decoded_track,
+    usage_info,
+):
+    frames = _build_track_frames(decoded_track, usage_info)
+    property_name = raw_duplicate_property_name(
+        source_path=source_path,
+        action_id=int(source_action.id),
+        track_index=int(decoded_track.track_index),
+        bone_id=int(decoded_track.bone_id),
+        usage=int(decoded_track.usage),
+    )
+    duplicate_target = _resolve_raw_duplicate_target(
+        armature_object,
+        bone_id=int(decoded_track.bone_id),
+        usage=int(decoded_track.usage),
+        track_index=int(decoded_track.track_index),
+    )
+    owner_kind = str(duplicate_target["owner_kind"])
+    owner_name = str(duplicate_target["owner_name"])
+    binding = {
+        "track_index": int(decoded_track.track_index),
+        "bone_id": int(decoded_track.bone_id),
+        "usage": int(decoded_track.usage),
+        "buffer_type": int(decoded_track.buffer_type),
+        "import_mode": LMT_RAW_DUPLICATE_IMPORT_MODE,
+        "source_kind": "raw_duplicate",
+        "source_name": "",
+        "transform": str(usage_info.blender_path_hint or ""),
+        "property_name": property_name,
+        "channel_count": len(tuple(decoded_track.basis_value)),
+        "display_name": raw_duplicate_display_name(
+            bone_id=int(decoded_track.bone_id),
+            usage=int(decoded_track.usage),
+            track_index=int(decoded_track.track_index),
+        ),
+        "action_group": str(duplicate_target["action_group"]),
+        "owner_kind": owner_kind,
+        "owner_name": owner_name,
+        "data_path": raw_duplicate_data_path(
+            property_name=property_name,
+            owner_kind=owner_kind,
+            owner_name=owner_name,
+        ),
+        "preserve_raw_quaternion_values": bool(
+            usage_info.is_quaternion and int(decoded_track.buffer_type) in QUATERNION_LERP_BUFFER_TYPES
+        ),
+    }
+    ensure_raw_duplicate_property(duplicate_target["owner"], binding, basis_value=decoded_track.basis_value)
+    created_fcurves = create_action_fcurves(
+        blender_action,
+        data_path=str(binding["data_path"]),
+        action_group=str(binding["action_group"]),
+        channel_values=build_channel_value_lists(frames),
+    )
+    return binding, created_fcurves, frames, str(duplicate_target.get("fallback_warning", "") or "")
+
+
 def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, source_path: str) -> ImportActionResult:
     result = ImportActionResult()
     if armature_object is None or armature_object.type != "ARMATURE":
@@ -271,6 +345,55 @@ def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, so
     blender_action["mhw_anim_tools_source_duplicate_track_identities"] = _format_duplicate_track_identities(
         duplicate_track_identities
     )
+    collision_candidates_by_path: dict[str, list[dict[str, object]]] = {}
+    for decoded_track in decoded_action.tracks:
+        track_identity = (int(decoded_track.bone_id), int(decoded_track.usage))
+        if duplicate_identity_counts.get(track_identity, 0) > 1:
+            continue
+        usage_info = get_usage_semantics(decoded_track.usage)
+        if usage_info.transform not in {"rotation", "translation", "scale"} or not usage_info.blender_path_hint:
+            continue
+        if decoded_track.buffer_type not in SUPPORTED_BUFFER_TYPES or decoded_track.decode_error:
+            continue
+        target, _target_error = resolve_track_binding_target(
+            armature_object,
+            decoded_track.bone_id,
+            decoded_track.usage,
+        )
+        if target is None:
+            continue
+        data_path = _normal_track_data_path(target, str(usage_info.blender_path_hint or ""))
+        collision_candidates_by_path.setdefault(data_path, []).append(
+            {
+                "decoded_track": decoded_track,
+                "usage_info": usage_info,
+                "target": target,
+            }
+        )
+    raw_collision_reasons_by_track_index: dict[int, str] = {}
+    for data_path, candidates in collision_candidates_by_path.items():
+        if len(candidates) <= 1:
+            continue
+        ranked = sorted(
+            candidates,
+            key=lambda item: _collision_priority(item["decoded_track"], item["usage_info"]),
+        )
+        winner = ranked[0]
+        winner_track = winner["decoded_track"]
+        winner_usage_info = winner["usage_info"]
+        winner_target = winner["target"]
+        winner_label = track_display_name(
+            bone_id=int(winner_track.bone_id),
+            usage=int(winner_track.usage),
+            track_index=int(winner_track.track_index),
+        )
+        winner_target_label = str(getattr(winner_target, "name", "") or getattr(winner_target, "action_group", "") or "target")
+        for loser in ranked[1:]:
+            loser_track = loser["decoded_track"]
+            raw_collision_reasons_by_track_index[int(loser_track.track_index)] = (
+                f"collides with visible {winner_label} on '{winner_target_label}' "
+                f"({winner_usage_info.blender_path_hint or data_path})"
+            )
 
     animation_data = ensure_armature_animation_data(armature_object)
     result.action_name = blender_action.name
@@ -313,66 +436,46 @@ def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, so
             continue
 
         if duplicate_identity_counts.get(track_identity, 0) > 1:
-            frames = _build_track_frames(decoded_track, usage_info)
-            property_name = raw_duplicate_property_name(
+            binding, created_fcurves, frames, fallback_warning = _import_track_as_raw_duplicate(
+                blender_action=blender_action,
+                armature_object=armature_object,
                 source_path=source_path,
-                action_id=int(source_action.id),
-                track_index=int(decoded_track.track_index),
-                bone_id=int(decoded_track.bone_id),
-                usage=int(decoded_track.usage),
+                source_action=source_action,
+                decoded_track=decoded_track,
+                usage_info=usage_info,
             )
-            duplicate_target = _resolve_raw_duplicate_target(
-                armature_object,
-                bone_id=int(decoded_track.bone_id),
-                usage=int(decoded_track.usage),
-                track_index=int(decoded_track.track_index),
-            )
-            owner_kind = str(duplicate_target["owner_kind"])
-            owner_name = str(duplicate_target["owner_name"])
-            binding = {
-                "track_index": int(decoded_track.track_index),
-                "bone_id": int(decoded_track.bone_id),
-                "usage": int(decoded_track.usage),
-                "buffer_type": int(decoded_track.buffer_type),
-                "import_mode": LMT_RAW_DUPLICATE_IMPORT_MODE,
-                "source_kind": "raw_duplicate",
-                "source_name": "",
-                "transform": str(usage_info.blender_path_hint or ""),
-                "property_name": property_name,
-                "channel_count": len(tuple(decoded_track.basis_value)),
-                "display_name": raw_duplicate_display_name(
-                    bone_id=int(decoded_track.bone_id),
-                    usage=int(decoded_track.usage),
-                    track_index=int(decoded_track.track_index),
-                ),
-                "action_group": str(duplicate_target["action_group"]),
-                "owner_kind": owner_kind,
-                "owner_name": owner_name,
-                "data_path": raw_duplicate_data_path(
-                    property_name=property_name,
-                    owner_kind=owner_kind,
-                    owner_name=owner_name,
-                ),
-                "preserve_raw_quaternion_values": bool(
-                    usage_info.is_quaternion and int(decoded_track.buffer_type) in QUATERNION_LERP_BUFFER_TYPES
-                ),
-            }
-            if str(duplicate_target.get("fallback_warning", "") or ""):
+            if fallback_warning:
                 result.add(
                     "WARNING",
                     source_label,
                     (
                         "Imported duplicate track as an armature-attached raw slot because the resolved pose target "
-                        f"could not be used: {duplicate_target['fallback_warning']}"
+                        f"could not be used: {fallback_warning}"
                     ),
                 )
-            ensure_raw_duplicate_property(duplicate_target["owner"], binding, basis_value=decoded_track.basis_value)
-            created_fcurves = create_action_fcurves(
-                blender_action,
-                data_path=str(binding["data_path"]),
-                action_group=str(binding["action_group"]),
-                channel_values=build_channel_value_lists(frames),
+            imported_track_bindings.append(binding)
+            result.imported_track_count += 1
+            result.created_fcurve_count += len(created_fcurves)
+            result.frame_end = max(result.frame_end, int(frames[-1][0]) if frames else source_action.header.frame_count)
+            continue
+
+        collision_reason = raw_collision_reasons_by_track_index.get(int(decoded_track.track_index), "")
+        if collision_reason:
+            binding, created_fcurves, frames, fallback_warning = _import_track_as_raw_duplicate(
+                blender_action=blender_action,
+                armature_object=armature_object,
+                source_path=source_path,
+                source_action=source_action,
+                decoded_track=decoded_track,
+                usage_info=usage_info,
             )
+            message = (
+                "Imported this track as a raw editable slot because it "
+                f"{collision_reason}. Blender cannot represent both source tracks on one visible transform lane."
+            )
+            if fallback_warning:
+                message += f" Raw slot target fallback: {fallback_warning}"
+            result.add("WARNING", source_label, message)
             imported_track_bindings.append(binding)
             result.imported_track_count += 1
             result.created_fcurve_count += len(created_fcurves)

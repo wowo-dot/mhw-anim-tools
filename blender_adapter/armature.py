@@ -69,7 +69,9 @@ def find_root_bone_name(armature_object) -> str | None:
         if bone.name.lower() == "root":
             return bone.name
     if has_mhw_style_bones(armature_object):
-        return None
+        for preferred_name in ("MhBone_000", "BoneFunction.000"):
+            if preferred_name in bones:
+                return preferred_name
     root_candidates = [bone.name for bone in bones if bone.parent is None]
     if len(root_candidates) == 1:
         return root_candidates[0]

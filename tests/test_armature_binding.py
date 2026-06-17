@@ -43,9 +43,13 @@ class ArmatureBindingTests(unittest.TestCase):
         self.assertEqual(bone_name, "BoneFunction.003")
         self.assertIsNone(error)
 
-    def test_find_root_bone_name_does_not_promote_mhbone_zero_to_root(self):
+    def test_find_root_bone_name_promotes_mhbone_zero_for_mhw_style_armature(self):
         armature = FakeArmatureObject([FakeBone("MhBone_000"), FakeBone("MhBone_001")])
-        self.assertIsNone(find_root_bone_name(armature))
+        self.assertEqual(find_root_bone_name(armature), "MhBone_000")
+
+    def test_find_root_bone_name_prefers_bonefunction_zero_when_mhbone_zero_missing(self):
+        armature = FakeArmatureObject([FakeBone("BoneFunction.000"), FakeBone("BoneFunction.001")])
+        self.assertEqual(find_root_bone_name(armature), "BoneFunction.000")
 
     def test_summarize_track_binding_reports_missing_local_bones(self):
         root = FakeBone("Root")
@@ -66,7 +70,7 @@ class ArmatureBindingTests(unittest.TestCase):
         self.assertTrue(summary.root_resolved)
         self.assertEqual(summary.root_target_label, "Root")
 
-    def test_summarize_track_binding_uses_object_root_for_mhw_style_armature(self):
+    def test_summarize_track_binding_uses_mhbone_zero_root_for_mhw_style_armature(self):
         armature = FakeArmatureObject([FakeBone("MhBone_000"), FakeBone("MhBone_001")])
         summary = summarize_track_binding(
             armature,
@@ -78,7 +82,7 @@ class ArmatureBindingTests(unittest.TestCase):
         self.assertEqual(summary.resolved_track_count, 1)
         self.assertTrue(summary.root_required)
         self.assertTrue(summary.root_resolved)
-        self.assertEqual(summary.root_target_label, "Armature Object")
+        self.assertEqual(summary.root_target_label, "MhBone_000")
 
     def test_summarize_track_binding_handles_no_armature(self):
         summary = summarize_track_binding(None, [])

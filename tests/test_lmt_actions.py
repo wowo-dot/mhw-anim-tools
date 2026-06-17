@@ -44,12 +44,20 @@ def _track(
 
 
 class _FakeDecodedTrack:
-    def __init__(self, track_index: int, *, bone_id: int, usage: int, buffer_type: int = 1):
+    def __init__(
+        self,
+        track_index: int,
+        *,
+        bone_id: int,
+        usage: int,
+        buffer_type: int = 1,
+        basis_value=(0.0, 0.0, 0.0),
+    ):
         self.track_index = track_index
         self.bone_id = bone_id
         self.usage = usage
         self.buffer_type = buffer_type
-        self.basis_value = (0.0, 0.0, 0.0)
+        self.basis_value = tuple(basis_value)
         self.keyframes = ()
         self.tail_frame = None
         self.tail_value = None
@@ -379,6 +387,105 @@ class LmtActionImportTests(unittest.TestCase):
         bindings = load_lmt_import_track_bindings(fake_action)
         self.assertIn(bindings[0]["property_name"], armature_object.pose.bones["MhBone_000"])
         self.assertTrue(any("stale raw duplicate-slot" in diagnostic.message for diagnostic in result.diagnostics))
+
+    def test_import_routes_local_root_collision_into_raw_slot_and_keeps_root_visible(self):
+        action = LmtAction(
+            header=LmtActionHeader(
+                id=9,
+                fcurve_offset=0,
+                fcurve_count=2,
+                frame_count=10,
+                loop_frame=-1,
+                null0=(0, 0, 0),
+                translation=(0.0, 0.0, 0.0, 0.0),
+                rotation_lerp=(0.0, 0.0, 0.0, 1.0),
+                flags=0,
+                null2=b"\x00\x00",
+                flags2=0,
+                null3=(0, 0, 0, 0, 0),
+                timl_offset=0,
+            ),
+            tracks=(
+                _track(bone_id=0, usage=0, buffer_type=6),
+                _track(bone_id=-1, usage=3, buffer_type=6),
+            ),
+        )
+        lmt = LmtFile(
+            source_name="collision.lmt",
+            file_size=0,
+            header=LmtHeader(signature=b"LMT\x00", version=95, entry_count=1, unknown=b"\x00" * 8),
+            entry_offsets=(32,),
+            actions=(action,),
+        )
+        armature_object = _FakeArmature(bone_names=("MhBone_000",))
+        fake_action = _FakeAction("LMT::collision::009")
+        fake_animation_data = SimpleNamespace(action=None, action_slot=None, action_slot_handle=0)
+        transform_calls = []
+        raw_calls = []
+
+        def _create_transform(_action, *, bone_name: str, data_path_suffix: str, channel_values):
+            transform_calls.append((bone_name, data_path_suffix, len(channel_values)))
+            return [object() for _ in channel_values]
+
+        def _create_action(_action, *, data_path: str, action_group: str, channel_values):
+            raw_calls.append((data_path, action_group, len(channel_values)))
+            return [object() for _ in channel_values]
+
+        with patch(
+            "blender_adapter.actions.decode_action_tracks",
+            return_value=SimpleNamespace(
+                tracks=(
+                    _FakeDecodedTrack(
+                        0,
+                        bone_id=0,
+                        usage=0,
+                        buffer_type=6,
+                        basis_value=(1.0, 0.0, 0.0, 0.0),
+                    ),
+                    _FakeDecodedTrack(
+                        1,
+                        bone_id=-1,
+                        usage=3,
+                        buffer_type=6,
+                        basis_value=(1.0, 0.0, 0.0, 0.0),
+                    ),
+                )
+            ),
+        ):
+            with patch("blender_adapter.actions.ensure_action", return_value=fake_action):
+                with patch(
+                    "blender_adapter.actions.ensure_armature_animation_data",
+                    return_value=fake_animation_data,
+                ):
+                    with patch(
+                        "blender_adapter.actions.create_transform_fcurves",
+                        side_effect=_create_transform,
+                    ):
+                        with patch(
+                            "blender_adapter.actions.create_action_fcurves",
+                            side_effect=_create_action,
+                        ):
+                            result = import_lmt_action_to_armature(
+                                lmt,
+                                0,
+                                armature_object,
+                                source_path="collision.lmt",
+                            )
+
+        self.assertEqual(result.error_count, 0)
+        self.assertEqual(transform_calls, [("MhBone_000", "rotation_quaternion", 4)])
+        self.assertEqual(len(raw_calls), 1)
+        self.assertTrue(raw_calls[0][0].startswith('pose.bones["MhBone_000"]["lmt_raw_collision_a009_t00_b0_u0"]'))
+        bindings = load_lmt_import_track_bindings(fake_action)
+        self.assertEqual(len(bindings), 2)
+        by_track = {int(binding["track_index"]): binding for binding in bindings}
+        self.assertEqual(by_track[1]["import_mode"], "armature")
+        self.assertEqual(by_track[1]["source_name"], "MhBone_000")
+        self.assertEqual(by_track[0]["import_mode"], "raw_duplicate")
+        self.assertEqual(by_track[0]["owner_kind"], "bone")
+        self.assertEqual(by_track[0]["owner_name"], "MhBone_000")
+        self.assertIn(by_track[0]["property_name"], armature_object.pose.bones["MhBone_000"])
+        self.assertTrue(any("collides with visible" in diagnostic.message for diagnostic in result.diagnostics))
 
 
 if __name__ == "__main__":
