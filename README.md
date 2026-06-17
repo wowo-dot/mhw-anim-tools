@@ -67,16 +67,12 @@ Current release-confidence highlights:
 
 ## Credits
 
-- Lukas Cone, author of MT Framework tools
-- AsteriskAmpersand, author of Free Hyperkinetics
-- Free Hyperkinetics credits Stracker and PredatorCZ for background format
-  work, including datatype research
-- Free Hyperkinetics credits Silvris for TIML work used as the basis of its
-  TIMLWorks engine
-- Free Hyperkinetics credits DMQW ICE for EFX work used in its TIMLWorks
-  engine
-- Free Hyperkinetics credits LyraVeil for edge cases and issues from earlier
-  import-only tools
+- Lukas Cone, [MT Framework tools](https://lukascone.wordpress.com/2017/06/18/mt-framework-tools/)
+- Stracker, [MHW-LMT-Loader](https://github.com/Strackeror/MHW-LMT-Loader)
+- Silvris, [TIMLJSON](https://github.com/Silvris/TIMLJSON)
+- MHW modding community ([Discord](https://discord.gg/gJwMdhK))
+- [Monster Hunter World Modding Wiki](https://github.com/Ezekial711/MonsterHunterWorldModding/wiki)
+- Daenius <3
 
 More project notes and acknowledgements are collected in
 [Credits And Acknowledgements](docs/credits-and-acknowledgements.md).

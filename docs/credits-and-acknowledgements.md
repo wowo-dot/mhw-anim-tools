@@ -5,21 +5,15 @@ workflows in Blender.
 
 ## Project lineage
 
-- Lukas Cone, author of MT Framework tools
-- AsteriskAmpersand, author of Free Hyperkinetics
-- Free Hyperkinetics credits Stracker and PredatorCZ for background format
-  work, including datatype research
-- Free Hyperkinetics credits Silvris for TIML work used as the basis of its
-  TIMLWorks engine
-- Free Hyperkinetics credits DMQW ICE for EFX work used in its TIMLWorks
-  engine
-- Free Hyperkinetics credits LyraVeil for edge cases and issues from earlier
-  import-only tools
+- Lukas Cone, [MT Framework tools](https://lukascone.wordpress.com/2017/06/18/mt-framework-tools/)
+- Stracker, [MHW-LMT-Loader](https://github.com/Strackeror/MHW-LMT-Loader)
+- Silvris, [TIMLJSON](https://github.com/Silvris/TIMLJSON)
+- MHW modding community ([Discord](https://discord.gg/gJwMdhK))
+- [Monster Hunter World Modding Wiki](https://github.com/Ezekial711/MonsterHunterWorldModding/wiki)
+- Daenius <3
 
 ## Thanks
 
-- the Monster Hunter World modding community for years of format research,
-  testing, and practical workflow knowledge
 - the `MHW_Model_Editor` toolchain and its maintainers, whose armature/import
   conventions make the Blender-side workflow much more usable
 - Blender and the Blender Foundation for the host application and Python API
