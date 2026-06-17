@@ -50,6 +50,7 @@ def import_all_lmt_actions_to_armature(
     source_path: str,
     import_action,
     entry_indices=None,
+    source_identity=None,
 ):
     """Import one or more LMT actions through the single-action importer callback."""
 
@@ -85,6 +86,7 @@ def import_all_lmt_actions_to_armature(
             action_index,
             armature_object,
             source_path=source_path,
+            source_identity=source_identity,
         )
         result.imported_track_count += int(getattr(single_result, "imported_track_count", 0))
         result.skipped_track_count += int(getattr(single_result, "skipped_track_count", 0))

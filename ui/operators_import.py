@@ -12,10 +12,11 @@ from bpy_extras.io_utils import ImportHelper
 from ..blender_adapter.actions import import_lmt_action_to_armature
 from ..blender_adapter.import_batch import import_all_lmt_actions_to_armature
 from ..blender_adapter.lmt_session import build_file_summary
+from ..blender_adapter.source_identity import source_file_identity_from_bytes
 from ..blender_adapter.timl_actions import import_attached_timl_to_action
 from ..blender_adapter.timl_actions import import_standalone_timl_entries_to_actions
+from ..core.diagnostics.errors import BinaryFormatError
 from ..core.formats.lmt.reader import read_lmt_bytes
-from ..core.formats.lmt.reader import read_lmt_file
 from ..core.formats.lmt.validation import validate_lmt
 from ..core.formats.timl.reader import read_timl_bytes
 from ..core.formats.timl.summary import build_file_summary as build_timl_file_summary
@@ -35,6 +36,41 @@ def _selected_timl_file_entry(scene_props):
     if 0 <= index < len(items):
         return items[index]
     return None
+
+
+def _read_lmt_source_bytes(path: str) -> bytes:
+    return Path(path).read_bytes()
+
+
+def _load_lmt_from_path(path: str):
+    source_bytes = _read_lmt_source_bytes(path)
+    return source_bytes, read_lmt_bytes(source_bytes, source_name=path)
+
+
+def _load_timl_from_path(path: str):
+    source_bytes = Path(path).read_bytes()
+    return source_bytes, read_timl_bytes(source_bytes, source_name=path)
+
+
+def _report_file_read_failure(scene_props, *, source: str, message: str, exc: Exception):
+    scene_props.last_status = message
+    add_diagnostic(scene_props, "ERROR", source, f"{message} {exc}")
+
+
+def _try_load_lmt_for_ui(scene_props, path: str, *, source: str, message: str):
+    try:
+        return _load_lmt_from_path(path)
+    except (OSError, ValueError, TypeError, BinaryFormatError) as exc:
+        _report_file_read_failure(scene_props, source=source, message=message, exc=exc)
+        return None, None
+
+
+def _try_load_timl_for_ui(scene_props, path: str, *, source: str, message: str):
+    try:
+        return _load_timl_from_path(path)
+    except (OSError, ValueError, TypeError, BinaryFormatError) as exc:
+        _report_file_read_failure(scene_props, source=source, message=message, exc=exc)
+        return None, None
 
 
 def _populate_timl_file_session(scene_props, timl, report) -> None:
@@ -85,11 +121,18 @@ class MHWANIMTOOLS_OT_inspect_lmt(bpy.types.Operator, ImportHelper):
     filter_glob: bpy.props.StringProperty(default="*.lmt", options={"HIDDEN"}, maxlen=255)
 
     def execute(self, context):
-        source_bytes = Path(self.filepath).read_bytes()
-        lmt = read_lmt_bytes(source_bytes, source_name=self.filepath)
-        report = validate_lmt(lmt)
         scene_props = context.scene.mhw_anim_tools
         clear_diagnostics(scene_props)
+        source_bytes, lmt = _try_load_lmt_for_ui(
+            scene_props,
+            self.filepath,
+            source="session",
+            message=f"Could not inspect LMT '{os.path.basename(self.filepath)}'.",
+        )
+        if source_bytes is None or lmt is None:
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        report = validate_lmt(lmt)
         scene_props.lmt_entries.clear()
         scene_props.last_imported_action_name = ""
         scene_props.last_imported_action_count = 0
@@ -169,8 +212,15 @@ class MHWANIMTOOLS_OT_inspect_timl(bpy.types.Operator, ImportHelper):
         scene_props.last_imported_timl_action_name = ""
         scene_props.last_imported_timl_object_name = ""
 
-        source_bytes = Path(self.filepath).read_bytes()
-        timl = read_timl_bytes(source_bytes, source_name=self.filepath)
+        source_bytes, timl = _try_load_timl_for_ui(
+            scene_props,
+            self.filepath,
+            source="session",
+            message=f"Could not inspect TIML '{os.path.basename(self.filepath)}'.",
+        )
+        if source_bytes is None or timl is None:
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
         report = validate_timl(timl)
         _populate_timl_file_session(scene_props, timl, report)
         scene_props.last_timl_path = self.filepath
@@ -207,12 +257,22 @@ class MHWANIMTOOLS_OT_import_selected_lmt_action(bpy.types.Operator):
             add_diagnostic(scene_props, "ERROR", "armature", scene_props.last_status)
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
-        lmt = read_lmt_file(scene_props.last_lmt_path)
+        source_bytes, lmt = _try_load_lmt_for_ui(
+            scene_props,
+            scene_props.last_lmt_path,
+            source="session",
+            message="Could not read the current LMT session for import.",
+        )
+        if source_bytes is None or lmt is None:
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        source_identity = source_file_identity_from_bytes(source_bytes)
         result = import_lmt_action_to_armature(
             lmt,
             scene_props.selected_entry_index,
             scene_props.target_armature,
             source_path=scene_props.last_lmt_path,
+            source_identity=source_identity,
         )
         for diagnostic in result.diagnostics:
             add_diagnostic(scene_props, diagnostic.level, diagnostic.source, diagnostic.message)
@@ -258,12 +318,22 @@ class MHWANIMTOOLS_OT_import_all_lmt_actions(bpy.types.Operator):
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
 
-        lmt = read_lmt_file(scene_props.last_lmt_path)
+        source_bytes, lmt = _try_load_lmt_for_ui(
+            scene_props,
+            scene_props.last_lmt_path,
+            source="session",
+            message="Could not read the current LMT session for batch import.",
+        )
+        if source_bytes is None or lmt is None:
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
+        source_identity = source_file_identity_from_bytes(source_bytes)
         result = import_all_lmt_actions_to_armature(
             lmt,
             scene_props.target_armature,
             source_path=scene_props.last_lmt_path,
             import_action=import_lmt_action_to_armature,
+            source_identity=source_identity,
         )
         for diagnostic in result.diagnostics:
             add_diagnostic(scene_props, diagnostic.level, diagnostic.source, diagnostic.message)
@@ -335,8 +405,15 @@ class MHWANIMTOOLS_OT_import_selected_attached_timl(bpy.types.Operator):
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
 
-        source_bytes = Path(scene_props.last_lmt_path).read_bytes()
-        lmt = read_lmt_bytes(source_bytes, source_name=scene_props.last_lmt_path)
+        source_bytes, lmt = _try_load_lmt_for_ui(
+            scene_props,
+            scene_props.last_lmt_path,
+            source="timl",
+            message="Could not read the current LMT session for attached TIML import.",
+        )
+        if source_bytes is None or lmt is None:
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
         result = import_attached_timl_to_action(
             lmt,
             scene_props.selected_entry_index,
@@ -391,8 +468,15 @@ class MHWANIMTOOLS_OT_import_all_attached_timl(bpy.types.Operator):
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
 
-        source_bytes = Path(scene_props.last_lmt_path).read_bytes()
-        lmt = read_lmt_bytes(source_bytes, source_name=scene_props.last_lmt_path)
+        source_bytes, lmt = _try_load_lmt_for_ui(
+            scene_props,
+            scene_props.last_lmt_path,
+            source="timl",
+            message="Could not read the current LMT session for batch TIML import.",
+        )
+        if source_bytes is None or lmt is None:
+            self.report({"WARNING"}, scene_props.last_status)
+            return {"CANCELLED"}
         imported_count = 0
         skipped_count = 0
         warning_count = 0

@@ -26,6 +26,9 @@ workflows in Blender.
 - everyone who provided real assets, failure cases, and workflow feedback while
   this add-on was being hardened
 
+If you want to support ongoing maintenance of the project, there is also a
+[Patreon](https://www.patreon.com/wowowiwa).
+
 ## Format and project note
 
 - Monster Hunter World and its asset formats belong to Capcom

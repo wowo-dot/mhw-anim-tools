@@ -119,4 +119,5 @@ Future EFX UI should follow the same pattern:
 
 See also:
 
-- `docs/ui-architecture-checklist.md`
+- `docs/feature-map.md`
+- `docs/workflow-timl-in-lmt.md`

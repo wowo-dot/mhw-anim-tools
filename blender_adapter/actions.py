@@ -33,6 +33,8 @@ try:
     from .lmt_track_metadata import raw_duplicate_property_name
     from .lmt_track_metadata import save_lmt_import_track_bindings
     from .lmt_track_metadata import track_display_name
+    from .source_identity import SourceFileIdentity
+    from .source_identity import store_source_file_identity
     from .space import adapt_track_frames_for_target_space
 except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.animation.transforms import canonicalize_quaternion_frames_wxyz
@@ -62,6 +64,8 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from blender_adapter.lmt_track_metadata import raw_duplicate_property_name
     from blender_adapter.lmt_track_metadata import save_lmt_import_track_bindings
     from blender_adapter.lmt_track_metadata import track_display_name
+    from blender_adapter.source_identity import SourceFileIdentity
+    from blender_adapter.source_identity import store_source_file_identity
     from blender_adapter.space import adapt_track_frames_for_target_space
 
 
@@ -314,7 +318,14 @@ def _import_track_as_raw_duplicate(
     return binding, created_fcurves, frames, str(duplicate_target.get("fallback_warning", "") or "")
 
 
-def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, source_path: str) -> ImportActionResult:
+def import_lmt_action_to_armature(
+    lmt,
+    action_index: int,
+    armature_object,
+    *,
+    source_path: str,
+    source_identity: SourceFileIdentity | None = None,
+) -> ImportActionResult:
     result = ImportActionResult()
     if armature_object is None or armature_object.type != "ARMATURE":
         result.add("ERROR", "armature", "Select a target armature before importing an LMT action.")
@@ -363,6 +374,8 @@ def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, so
     blender_action["mhw_anim_tools_source_duplicate_track_identities"] = _format_duplicate_track_identities(
         duplicate_track_identities
     )
+    if source_identity is not None:
+        store_source_file_identity(blender_action, source_identity)
     collision_candidates_by_path: dict[str, list[dict[str, object]]] = {}
     for decoded_track in decoded_action.tracks:
         track_identity = (int(decoded_track.bone_id), int(decoded_track.usage))

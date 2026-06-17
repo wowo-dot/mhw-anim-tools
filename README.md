@@ -3,6 +3,9 @@
 `mhw_anim_tools` is a Blender add-on for Monster Hunter World animation
 workflows built around `.lmt` and `.timl` data in Blender.
 
+The current public release target is Blender `4.5 LTS`. That is the version
+the add-on is supported and tested against for `v1.0.0`.
+
 The repository carries its own core format logic and Blender tooling. Some
 developer tools can optionally compare results against external reference
 copies during validation work, but the add-on does not depend on those copies
@@ -39,11 +42,24 @@ Common first tasks:
 - export the edited source file: `Export > Write Full LMT`
 - check for add-on updates: `Edit > Preferences > Add-ons > MHW Anim Tools`
 
+## Documentation
+
+User-facing docs:
+
+- [Installation](docs/installation.md)
+- [Quickstart](docs/quickstart.md)
+- [Feature Map](docs/feature-map.md)
+- [Basic LMT Workflow](docs/workflow-lmt.md)
+- [TIML In LMT Workflow](docs/workflow-timl-in-lmt.md)
+- [Testing And Caveats](docs/testing-and-caveats.md)
+- [Known Warnings](docs/known-warnings.md)
+- [Credits And Acknowledgements](docs/credits-and-acknowledgements.md)
+
 ## Validation Snapshot
 
 Current release-confidence highlights:
 
-- `python -m unittest discover -s tests` passes with `268 / 268` tests green
+- `python -m unittest discover -s tests` passes with `275 / 275` tests green
 - the full whole-corpus LMT writer-readiness replay currently lands at:
   - `5774 / 5774` files processed
   - `105040 / 105040` actions fully supported
@@ -73,6 +89,9 @@ Current release-confidence highlights:
   engine
 - Free Hyperkinetics credits LyraVeil for edge cases and issues from earlier
   import-only tools
+
+If you want to support ongoing maintenance of the project, there is also a
+[Patreon](https://www.patreon.com/wowowiwa).
 
 ## Supported Today
 
@@ -120,6 +139,10 @@ LMT export currently supports:
 - basis-only exports preserve a nonzero action duration when the reconstructed action range is explicit
 - full-source Blender `.lmt` export from the sidebar
 - source-aware merge export that preserves sibling actions inside the original container
+- source identity guards for imported LMT actions:
+  - imported actions cache source file size and SHA256 at import time
+  - source-backed export blocks if the source file changed or can no longer be
+    matched confidently
 - raw TIML subtree preservation with absolute-offset rebasing during merged export
 - source-backed TIML controller writeback for:
   - unchanged payload preservation
@@ -159,6 +182,8 @@ not broad read/write correctness:
 
 - the main supported export path is still `Write Full LMT` on source-backed
   imported actions
+- importing onto some MHW-style armatures may create a non-deforming
+  `MHW_RootMotion` helper bone so root motion has an explicit anchor in Blender
 - duplicate raw source tracks with the same `bone_id + usage` identity import as
   technical raw custom-property FCurves:
   - on the resolved pose bone when possible
@@ -179,74 +204,11 @@ See also:
 - [Testing And Caveats](docs/testing-and-caveats.md)
 - [Known Warnings](docs/known-warnings.md)
 
-## Layout
+## Repo Layout
 
 - `core/`: binary, diagnostics, and format logic
 - `blender_adapter/`: Blender-facing translation layers
 - `integration/`: MHW_Model_Editor and MhBone discovery helpers
 - `ui/`: Blender panels, operators, and scene properties
 - `tests/`: core tests and fixtures
-- `tools/`: optional comparison/debug scripts
-
-Developer / validation tools:
-
-Smoke scripts:
-
-- `tools/smoke_import_all_actions.py`
-- `tools/smoke_import_selected_action.py`
-- `tools/smoke_import_attached_timl.py`
-- `tools/smoke_analyze_timl_controller.py`
-- `tools/smoke_merge_export_with_timl_edit.py`
-- `tools/smoke_merge_export_with_timl_integer_quantization_block.py`
-- `tools/smoke_merge_export_with_shared_timl_value_edit.py`
-- `tools/smoke_merge_export_with_timl_simple_structural_edit.py`
-- `tools/smoke_merge_export_with_timl_structural_edit.py`
-- `tools/run_timl_shared_payload_suite.py`
-- `tools/run_timl_simple_structural_suite.py`
-- `tools/smoke_sample_export_action.py`
-- `tools/smoke_write_lmt_roundtrip.py`
-
-Corpus scans:
-
-- `tools/scan_lmt_export_safety.py`
-- `tools/scan_lmt_writer_readiness.py`
-- `tools/scan_timl_corpus.py`
-- `tools/scan_embedded_timl_corpus.py`
-
-User docs:
-
-- [Installation](docs/installation.md)
-- [Quickstart](docs/quickstart.md)
-- [Feature Map](docs/feature-map.md)
-- [Basic LMT Workflow](docs/workflow-lmt.md)
-- [TIML In LMT Workflow](docs/workflow-timl-in-lmt.md)
-- [Testing And Caveats](docs/testing-and-caveats.md)
-- [Known Warnings](docs/known-warnings.md)
-- [Credits And Acknowledgements](docs/credits-and-acknowledgements.md)
-
-Developer / release docs:
-
-- [V1 Release Checklist](docs/v1-release-checklist.md)
-- [V1 Validation Matrix](docs/v1-validation-matrix.md)
-- [V1 Release Notes Draft](docs/v1-release-notes-draft.md)
-
-Writer-readiness scan notes:
-
-- use `--state <path>` plus `--resume` for long whole-corpus scans
-- use `--max-files-per-run` or `--max-seconds` to chunk a scan across sessions
-- use `--output <path>` to keep a rolling human-readable summary beside the raw state file
-
-## Optional comparison utilities
-
-Some tools in `tools/` can compare this repository against an external
-reference copy. Use that only for:
-
-- file layout expectations
-- buffer and flag semantics
-- edge-case behavior on known assets
-
-This repository should stay understandable on its own and should not become a
-line-by-line port of another add-on.
-
-Those comparison scripts accept an explicit reference-root path instead of
-assuming one fixed local workspace layout.
+- `tools/`: internal smoke tests, corpus scans, and validation helpers

@@ -12,6 +12,9 @@ from blender_adapter.actions import import_lmt_action_to_armature
 from blender_adapter.armature import MHW_ROOT_MOTION_BONE_NAME
 from blender_adapter.lmt_track_metadata import load_lmt_import_track_bindings
 from blender_adapter.lmt_track_metadata import save_lmt_import_track_bindings
+from blender_adapter.source_identity import SOURCE_FILE_SHA256_KEY
+from blender_adapter.source_identity import SOURCE_FILE_SIZE_KEY
+from blender_adapter.source_identity import SourceFileIdentity
 from core.formats.lmt.model import LmtAction
 from core.formats.lmt.model import LmtActionHeader
 from core.formats.lmt.model import LmtFile
@@ -105,6 +108,61 @@ class _FakeArmature(dict):
 
 
 class LmtActionImportTests(unittest.TestCase):
+    def test_import_stores_source_identity_metadata_when_provided(self):
+        action = LmtAction(
+            header=LmtActionHeader(
+                id=0,
+                fcurve_offset=0,
+                fcurve_count=1,
+                frame_count=10,
+                loop_frame=-1,
+                null0=(0, 0, 0),
+                translation=(0.0, 0.0, 0.0, 0.0),
+                rotation_lerp=(0.0, 0.0, 0.0, 1.0),
+                flags=0,
+                null2=b"\x00\x00",
+                flags2=0,
+                null3=(0, 0, 0, 0, 0),
+                timl_offset=0,
+            ),
+            tracks=(_track(bone_id=0, usage=1),),
+        )
+        lmt = LmtFile(
+            source_name="identity.lmt",
+            file_size=3,
+            header=LmtHeader(signature=b"LMT\x00", version=95, entry_count=1, unknown=b"\x00" * 8),
+            entry_offsets=(32,),
+            actions=(action,),
+        )
+        armature_object = _FakeArmature(bone_names=("MhBone_000",))
+        fake_action = _FakeAction("LMT::identity::000")
+        fake_animation_data = SimpleNamespace(action=None)
+
+        with patch(
+            "blender_adapter.actions.decode_action_tracks",
+            return_value=SimpleNamespace(tracks=(_FakeDecodedTrack(0, bone_id=0, usage=1),)),
+        ):
+            with patch("blender_adapter.actions.ensure_action", return_value=fake_action):
+                with patch(
+                    "blender_adapter.actions.ensure_armature_animation_data",
+                    return_value=fake_animation_data,
+                ):
+                    with patch(
+                        "blender_adapter.actions.create_transform_fcurves",
+                        return_value=[object(), object(), object()],
+                    ):
+                        result = import_lmt_action_to_armature(
+                            lmt,
+                            0,
+                            armature_object,
+                            source_path="identity.lmt",
+                            source_identity=SourceFileIdentity(size=3, sha256="abc123"),
+                        )
+
+        self.assertEqual(result.error_count, 0)
+        self.assertEqual(fake_action[SOURCE_FILE_SIZE_KEY], 3)
+        self.assertEqual(fake_action[SOURCE_FILE_SHA256_KEY], "abc123")
+
     def test_import_binds_action_slot_after_fcurves_create_legacy_slot(self):
         action = LmtAction(
             header=LmtActionHeader(

@@ -16,7 +16,7 @@ It is meant to be read alongside:
 
 Automated coverage:
 
-- `268 / 268` unit tests pass
+- `275 / 275` unit tests pass
 - full LMT writer-readiness replay:
   - `5774 / 5774` extracted `.lmt` files processed
   - `105040 / 105040` actions fully supported in the read-only replay probe
@@ -84,7 +84,18 @@ The main supported export path is:
 That path preserves the source container, sibling actions, TIML payload scope,
 and raw slot metadata most reliably.
 
-## 2. Duplicate raw source tracks are technical channels
+## 2. Source-backed export now expects the same source file
+
+Imported LMT actions now carry source file identity metadata:
+
+- source file size
+- source file SHA256
+
+If the source `.lmt` on disk changes after import, or if the imported action is
+missing that identity metadata, source-backed export should be treated as
+unsafe. Re-inspect and re-import before writing the full file.
+
+## 3. Duplicate raw source tracks are technical channels
 
 Some source actions contain multiple tracks with the same `bone_id + usage`
 identity.
@@ -97,7 +108,7 @@ Those tracks are imported as raw custom-property FCurves:
 They are still editable and source-backed exportable, but they are not ordinary
 pose preview lanes. Treat them as technical/raw channels in the Graph Editor.
 
-## 3. Blender preview is not the same thing as source structure
+## 4. Blender preview is not the same thing as source structure
 
 The add-on is designed to preserve motion intent and source semantics in game,
 not to claim that every edited action remains internally identical to Capcom's
@@ -109,7 +120,7 @@ That distinction matters most when:
 - a source track is represented as a technical/raw channel
 - a result is motion-equivalent but not structurally identical to the source
 
-## 4. Bake procedural rig behavior before export
+## 5. Bake procedural rig behavior before export
 
 Constraints, drivers, retarget setups, and arbitrary helper-rig logic should be
 baked back into ordinary supported FCurves before export.
@@ -121,7 +132,7 @@ The strongest supported motion paths remain:
 - pose-bone `scale`
 - armature object root motion
 
-## 5. TIML is conservative on purpose
+## 6. TIML is conservative on purpose
 
 TIML writeback is intentionally strong where the add-on can preserve meaning
 confidently:
@@ -134,7 +145,16 @@ confidently:
 Advanced-source structural rebuilds are still blocked when the raw layout is
 not safe to rebuild. That blocking is deliberate.
 
-## 6. Standalone TIML has a narrower promise than source-backed LMT
+## 7. Standalone TIML has a narrower promise than source-backed LMT
+
+## 8. Some armatures may gain a helper root-motion bone on import
+
+If an MHW-style armature does not expose a usable explicit root, the importer
+may create a non-deforming `MHW_RootMotion` helper bone and parent rootless
+bones under it.
+
+That is not random cleanup. It is the adapter making Blender's armature graph
+explicit enough to carry root motion sanely.
 
 Standalone `.timl` editing is supported for imported standalone sessions and
 full-file saveback.

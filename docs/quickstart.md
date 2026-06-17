@@ -4,7 +4,7 @@ This is the shortest path to the main v1 workflows.
 
 ## Before you start
 
-- Blender 4.5 or newer
+- Blender 4.5 LTS
 - the add-on installed and enabled
 - Monster Hunter World assets outside this repository
 - for import/edit/export, a target model imported through `MHW_Model_Editor`
@@ -13,6 +13,8 @@ This is the shortest path to the main v1 workflows.
 If you only want to inspect an `.lmt`, no target armature is required.
 If you want to inspect or edit a standalone `.timl`, no target armature is
 required there either.
+
+For `v1.0.0`, Blender 4.5 LTS is the supported and tested target.
 
 ## Learn the two main UI surfaces
 
@@ -74,6 +76,8 @@ This is still the main path for TIML that came from an `.lmt`.
 - Prefer imported actions and TIML controllers that still carry source metadata
 - Prefer `Write Full LMT`
 - Check `Diagnostics` and export analysis before writing
+- If the source `.lmt` changed on disk after import, re-inspect and re-import
+  before exporting
 - Keep final motion and TIML values baked into ordinary FCurves
 - Treat duplicate raw track channels as technical Graph Editor data, not as
   ordinary pose preview controls

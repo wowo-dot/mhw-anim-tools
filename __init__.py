@@ -15,10 +15,10 @@ from .ui import properties
 
 bl_info = {
     "name": "MHW Anim Tools",
-    "description": "Modern Monster Hunter World animation tools for Blender 4.5+",
+    "description": "Monster Hunter World animation tools for Blender 4.5 LTS",
     "category": "Import-Export",
-    "author": "Akif",
-    "version": (0, 1, 0),
+    "author": "wowo",
+    "version": (1, 0, 0),
     "blender": (4, 5, 0),
     "location": "View3D > Sidebar > MHW Anim",
     "doc_url": "https://github.com/wowo-dot/mhw-anim-tools",

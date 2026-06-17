@@ -1,10 +1,10 @@
 # Installation
 
-This add-on targets Blender 4.5+.
+This add-on targets Blender 4.5 LTS.
 
 ## What you need
 
-- Blender 4.5 or newer
+- Blender 4.5 LTS
 - this repository as a zip package or local add-on folder
 - Monster Hunter World assets outside the repository
 
@@ -15,6 +15,10 @@ Recommended for the best armature/binding workflow:
 The add-on can still inspect LMT files without `MHW_Model_Editor`, but the
 main LMT import/edit/export path is most reliable on MHW-style armatures
 imported through that toolchain.
+
+For `v1.0.0`, Blender 4.5 LTS is the supported and tested release target.
+Later Blender versions may work, but they are not the current compatibility
+promise.
 
 ## Install from zip
 

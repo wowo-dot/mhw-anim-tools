@@ -47,8 +47,9 @@ class ImportBatchTests(unittest.TestCase):
     def test_batch_import_aggregates_successful_actions(self):
         lmt = _FakeLmt([0, 1])
 
-        def _import_action(_lmt, action_index, _armature_object, *, source_path: str):
+        def _import_action(_lmt, action_index, _armature_object, *, source_path: str, source_identity=None):
             self.assertEqual(source_path, "sample.lmt")
+            self.assertIsNone(source_identity)
             return _FakeSingleResult(
                 action_name=f"LMT::sample::{action_index:03d}",
                 imported_track_count=2,
@@ -77,8 +78,9 @@ class ImportBatchTests(unittest.TestCase):
     def test_batch_import_continues_after_per_action_failure(self):
         lmt = _FakeLmt([7, 8])
 
-        def _import_action(_lmt, action_index, _armature_object, *, source_path: str):
+        def _import_action(_lmt, action_index, _armature_object, *, source_path: str, source_identity=None):
             del source_path
+            self.assertIsNone(source_identity)
             if action_index == 0:
                 return _FakeSingleResult(
                     diagnostics=(
