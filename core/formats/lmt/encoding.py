@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from ...animation.transforms import wxyz_to_xyzw
 from ...diagnostics.errors import ValidationError
+from .quantized import pack_quantized_fields
 
 
 U16_VECTOR_KEY_STRUCT = struct.Struct("<4H")
@@ -23,15 +24,16 @@ class QuaternionLerpSpec:
     delta_limit: int
     packed_order: tuple[tuple[str, int], ...]
     stored_axes: tuple[str, ...]
+    unit_bytes: int
 
 
 QUATERNION_LERP_SPECS = {
-    7: QuaternionLerpSpec(7, 7, 15, (("w", 7), ("z", 7), ("y", 7), ("x", 7), ("frame", 4)), ("x", "y", "z", "w")),
-    11: QuaternionLerpSpec(11, 14, 15, (("x", 14), ("y", 0), ("z", 0), ("w", 14), ("frame", 4)), ("x", "w")),
-    12: QuaternionLerpSpec(12, 14, 15, (("x", 0), ("y", 14), ("z", 0), ("w", 14), ("frame", 4)), ("y", "w")),
-    13: QuaternionLerpSpec(13, 14, 15, (("x", 0), ("y", 0), ("z", 14), ("w", 14), ("frame", 4)), ("z", "w")),
-    14: QuaternionLerpSpec(14, 11, 15, (("x", 11), ("y", 11), ("z", 11), ("w", 11), ("frame", 4)), ("x", "y", "z", "w")),
-    15: QuaternionLerpSpec(15, 9, 15, (("x", 9), ("y", 9), ("z", 9), ("w", 9), ("frame", 4)), ("x", "y", "z", "w")),
+    7: QuaternionLerpSpec(7, 7, 15, (("w", 7), ("z", 7), ("y", 7), ("x", 7), ("frame", 4)), ("x", "y", "z", "w"), 4),
+    11: QuaternionLerpSpec(11, 14, 15, (("x", 14), ("y", 0), ("z", 0), ("w", 14), ("frame", 4)), ("x", "w"), 4),
+    12: QuaternionLerpSpec(12, 14, 15, (("x", 0), ("y", 14), ("z", 0), ("w", 14), ("frame", 4)), ("y", "w"), 4),
+    13: QuaternionLerpSpec(13, 14, 15, (("x", 0), ("y", 0), ("z", 14), ("w", 14), ("frame", 4)), ("z", "w"), 4),
+    14: QuaternionLerpSpec(14, 11, 15, (("x", 11), ("y", 11), ("z", 11), ("w", 11), ("frame", 4)), ("x", "y", "z", "w"), 2),
+    15: QuaternionLerpSpec(15, 9, 15, (("x", 9), ("y", 9), ("z", 9), ("w", 9), ("frame", 4)), ("x", "y", "z", "w"), 1),
 }
 
 
@@ -39,8 +41,8 @@ def prepare_track_keyframes(track, terminal_frame: int):
     keyframes = [(int(key.frame), tuple(float(component) for component in key.value)) for key in track.keyframes]
     if not keyframes:
         return []
-    if keyframes[0][0] > 1:
-        keyframes.insert(0, (1, tuple(float(component) for component in track.basis_value)))
+    if keyframes[0][0] > 0:
+        keyframes.insert(0, (0, tuple(float(component) for component in track.basis_value)))
 
     prepared = []
     for index, (frame, value) in enumerate(keyframes):
@@ -62,14 +64,14 @@ def coerce_lerp_basis(values) -> tuple[float, float, float, float] | None:
         return None
 
 
-def normalized_unsigned(raw_value: int, bits: int, offset: int = 8, excluded_range: int = 7) -> float:
-    denominator = ((1 << bits) - 1) - excluded_range - offset
-    return (int(raw_value) - offset) / denominator
+def normalized_unsigned(raw_value: int, bits: int) -> float:
+    denominator = (1 << bits) - 1
+    return int(raw_value) / denominator
 
 
-def encode_normalized_unsigned(value: float, bits: int, offset: int = 8, excluded_range: int = 7) -> int:
-    denominator = ((1 << bits) - 1) - excluded_range - offset
-    return round(float(value) * denominator) + offset
+def encode_normalized_unsigned(value: float, bits: int) -> int:
+    denominator = (1 << bits) - 1
+    return round(float(value) * denominator)
 
 
 def _buffer_delta_limit(buffer_type: int) -> int:
@@ -116,19 +118,6 @@ def _quantize_vector_component(
     encoded = encode_normalized_unsigned(normalized, bits)
     decoded = normalized_unsigned(encoded, bits) * float(mult) + float(add)
     return encoded, abs(decoded - float(value))
-
-
-def _pack_bits(fields: list[tuple[int, int]]) -> bytes:
-    value = 0
-    shift = 0
-    total_bits = 0
-    for field_value, bit_count in fields:
-        total_bits += bit_count
-        if bit_count == 0:
-            continue
-        value |= (int(field_value) & ((1 << bit_count) - 1)) << shift
-        shift += bit_count
-    return value.to_bytes(total_bits // 8, "little")
 
 
 def _quantize_quaternion_component(
@@ -342,5 +331,5 @@ def encode_quaternion_lerp_keyframes(
             )
         fields = [(encoded_components.get(name, 0), bit_count) for name, bit_count in spec.packed_order if name != "frame"]
         fields.append((int(delta), 4))
-        chunks.append(_pack_bits(fields))
+        chunks.append(pack_quantized_fields(fields, unit_bytes=spec.unit_bytes))
     return b"".join(chunks)

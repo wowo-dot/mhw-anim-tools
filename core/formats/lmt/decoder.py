@@ -9,6 +9,7 @@ from ...diagnostics.errors import BinaryFormatError
 from .decoded import LmtDecodedAction
 from .decoded import LmtDecodedSample
 from .decoded import LmtDecodedTrack
+from .quantized import unpack_quantized_fields
 from .semantics import get_usage_semantics
 from .semantics import raw_key_count
 
@@ -24,35 +25,22 @@ RECOVERABLE_DECODE_ERRORS = (
 )
 
 
-def _normalized_unsigned(raw_value: int, bits: int, offset: int, excluded_range: int) -> float:
-    denominator = ((1 << bits) - 1) - excluded_range - offset
-    return (raw_value - offset) / denominator
+def _normalized_unsigned(raw_value: int, bits: int) -> float:
+    denominator = (1 << bits) - 1
+    return int(raw_value) / denominator
 
 
 def _signed_fraction(raw_value: int, bits: int) -> float:
-    sign_bit = 1 << (bits - 1)
-    if raw_value & sign_bit:
-        mask = (1 << bits) - 1
-        magnitude = ((raw_value & mask) ^ mask) + 1
-        return -(magnitude) / float(1 << (bits - 1))
-    return raw_value / float((1 << (bits - 1)) - 1)
+    max_value = (1 << bits) - 1
+    half_range = max_value >> 1
+    value = int(raw_value)
+    if value > half_range:
+        value -= max_value
+    return value / float(half_range)
 
 
 def _decode_q14_component(raw_value: int) -> float:
-    return min(1.0, 2.0 * _signed_fraction(raw_value, 14))
-
-
-def _consume_packed_fields(raw_int: int, fields: tuple[tuple[str, int], ...]) -> dict[str, int]:
-    values: dict[str, int] = {}
-    current = raw_int
-    for name, bit_count in fields:
-        if bit_count == 0:
-            values[name] = 0
-            continue
-        mask = (1 << bit_count) - 1
-        values[name] = current & mask
-        current >>= bit_count
-    return values
+    return 2.0 * _signed_fraction(raw_value, 14)
 
 
 def _apply_lerp_xyzw(raw_xyzw: tuple[float, float, float, float], track) -> tuple[float, float, float, float]:
@@ -89,7 +77,7 @@ def _tail_value_for_action(action, track) -> tuple[float, ...] | None:
 
 def _decode_float_vector_keys(track) -> tuple[LmtDecodedSample, ...]:
     samples: list[LmtDecodedSample] = []
-    frame = 1
+    frame = 0
     for offset in range(0, len(track.raw_buffer), FLOAT_VECTOR_KEY_STRUCT.size):
         x, y, z, delta = FLOAT_VECTOR_KEY_STRUCT.unpack_from(track.raw_buffer, offset)
         samples.append(LmtDecodedSample(frame=frame, delta_to_next=delta, value=(x, y, z)))
@@ -99,13 +87,13 @@ def _decode_float_vector_keys(track) -> tuple[LmtDecodedSample, ...]:
 
 def _decode_u16_vector_lerp(track) -> tuple[LmtDecodedSample, ...]:
     samples: list[LmtDecodedSample] = []
-    frame = 1
+    frame = 0
     for offset in range(0, len(track.raw_buffer), U16_VECTOR_KEY_STRUCT.size):
         raw_x, raw_y, raw_z, delta = U16_VECTOR_KEY_STRUCT.unpack_from(track.raw_buffer, offset)
         xyzw = (
-            _normalized_unsigned(raw_x, 16, 8, 7),
-            _normalized_unsigned(raw_y, 16, 8, 7),
-            _normalized_unsigned(raw_z, 16, 8, 7),
+            _normalized_unsigned(raw_x, 16),
+            _normalized_unsigned(raw_y, 16),
+            _normalized_unsigned(raw_z, 16),
             0.0,
         )
         lerped_xyzw = _apply_lerp_xyzw(xyzw, track)
@@ -122,13 +110,13 @@ def _decode_u16_vector_lerp(track) -> tuple[LmtDecodedSample, ...]:
 
 def _decode_u8_vector_lerp(track) -> tuple[LmtDecodedSample, ...]:
     samples: list[LmtDecodedSample] = []
-    frame = 1
+    frame = 0
     for offset in range(0, len(track.raw_buffer), U8_VECTOR_KEY_STRUCT.size):
         raw_x, raw_y, raw_z, delta = U8_VECTOR_KEY_STRUCT.unpack_from(track.raw_buffer, offset)
         xyzw = (
-            _normalized_unsigned(raw_x, 8, 8, 7),
-            _normalized_unsigned(raw_y, 8, 8, 7),
-            _normalized_unsigned(raw_z, 8, 8, 7),
+            _normalized_unsigned(raw_x, 8),
+            _normalized_unsigned(raw_y, 8),
+            _normalized_unsigned(raw_z, 8),
             0.0,
         )
         lerped_xyzw = _apply_lerp_xyzw(xyzw, track)
@@ -145,7 +133,7 @@ def _decode_u8_vector_lerp(track) -> tuple[LmtDecodedSample, ...]:
 
 def _decode_q14_keys(track) -> tuple[LmtDecodedSample, ...]:
     samples: list[LmtDecodedSample] = []
-    frame = 1
+    frame = 0
     fields = (
         ("w", 14),
         ("z", 14),
@@ -154,8 +142,11 @@ def _decode_q14_keys(track) -> tuple[LmtDecodedSample, ...]:
         ("frame", 8),
     )
     for offset in range(0, len(track.raw_buffer), 8):
-        raw_int = int.from_bytes(track.raw_buffer[offset:offset + 8], "little")
-        packed = _consume_packed_fields(raw_int, fields)
+        packed = unpack_quantized_fields(
+            track.raw_buffer[offset:offset + 8],
+            unit_bytes=8,
+            fields=fields,
+        )
         value = (
             _decode_q14_component(packed["w"]),
             _decode_q14_component(packed["x"]),
@@ -167,19 +158,28 @@ def _decode_q14_keys(track) -> tuple[LmtDecodedSample, ...]:
     return tuple(samples)
 
 
-def _decode_quaternion_lerp(track, *, bits: int, packed_order: tuple[tuple[str, int], ...]) -> tuple[LmtDecodedSample, ...]:
+def _decode_quaternion_lerp(
+    track,
+    *,
+    bits: int,
+    packed_order: tuple[tuple[str, int], ...],
+    unit_bytes: int,
+) -> tuple[LmtDecodedSample, ...]:
     samples: list[LmtDecodedSample] = []
-    frame = 1
+    frame = 0
+    stride = sum(bit_count for _name, bit_count in packed_order) // 8
     field_sizes = dict(packed_order)
-    for stride_offset in range(0, len(track.raw_buffer), sum(bit_count for _name, bit_count in packed_order) // 8):
-        stride = sum(bit_count for _name, bit_count in packed_order) // 8
-        raw_int = int.from_bytes(track.raw_buffer[stride_offset:stride_offset + stride], "little")
-        packed = _consume_packed_fields(raw_int, packed_order)
+    for stride_offset in range(0, len(track.raw_buffer), stride):
+        packed = unpack_quantized_fields(
+            track.raw_buffer[stride_offset:stride_offset + stride],
+            unit_bytes=unit_bytes,
+            fields=packed_order,
+        )
         raw_xyzw = (
-            0.0 if field_sizes.get("x", 0) == 0 else _normalized_unsigned(packed.get("x", 0), bits, 8, 7),
-            0.0 if field_sizes.get("y", 0) == 0 else _normalized_unsigned(packed.get("y", 0), bits, 8, 7),
-            0.0 if field_sizes.get("z", 0) == 0 else _normalized_unsigned(packed.get("z", 0), bits, 8, 7),
-            _normalized_unsigned(packed["w"], bits, 8, 7),
+            0.0 if field_sizes.get("x", 0) == 0 else _normalized_unsigned(packed.get("x", 0), bits),
+            0.0 if field_sizes.get("y", 0) == 0 else _normalized_unsigned(packed.get("y", 0), bits),
+            0.0 if field_sizes.get("z", 0) == 0 else _normalized_unsigned(packed.get("z", 0), bits),
+            _normalized_unsigned(packed["w"], bits),
         )
         lerped_xyzw = _apply_lerp_xyzw(raw_xyzw, track)
         samples.append(
@@ -210,36 +210,42 @@ def _decode_supported_track(track) -> tuple[LmtDecodedSample, ...]:
             track,
             bits=7,
             packed_order=(("w", 7), ("z", 7), ("y", 7), ("x", 7), ("frame", 4)),
+            unit_bytes=4,
         )
     if buffer_type == 11:
         return _decode_quaternion_lerp(
             track,
             bits=14,
             packed_order=(("x", 14), ("y", 0), ("z", 0), ("w", 14), ("frame", 4)),
+            unit_bytes=4,
         )
     if buffer_type == 12:
         return _decode_quaternion_lerp(
             track,
             bits=14,
             packed_order=(("x", 0), ("y", 14), ("z", 0), ("w", 14), ("frame", 4)),
+            unit_bytes=4,
         )
     if buffer_type == 13:
         return _decode_quaternion_lerp(
             track,
             bits=14,
             packed_order=(("x", 0), ("y", 0), ("z", 14), ("w", 14), ("frame", 4)),
+            unit_bytes=4,
         )
     if buffer_type == 14:
         return _decode_quaternion_lerp(
             track,
             bits=11,
             packed_order=(("x", 11), ("y", 11), ("z", 11), ("w", 11), ("frame", 4)),
+            unit_bytes=2,
         )
     if buffer_type == 15:
         return _decode_quaternion_lerp(
             track,
             bits=9,
             packed_order=(("x", 9), ("y", 9), ("z", 9), ("w", 9), ("frame", 4)),
+            unit_bytes=1,
         )
     raise BinaryFormatError(
         "Unsupported LMT buffer type",
@@ -270,7 +276,7 @@ def decode_track_samples(action, track, track_index: int, *, strict: bool = Fals
             buffer_type=track.header.buffer_type,
             basis_value=basis_value,
             keyframes=samples,
-            tail_frame=(action.header.frame_count + 1) if tail_value is not None else None,
+            tail_frame=int(action.header.frame_count) if tail_value is not None else None,
             tail_value=tail_value,
         )
     # Non-strict mode should recover from malformed source data, but it should
@@ -286,7 +292,7 @@ def decode_track_samples(action, track, track_index: int, *, strict: bool = Fals
             buffer_type=track.header.buffer_type,
             basis_value=basis_value,
             keyframes=(),
-            tail_frame=(action.header.frame_count + 1) if tail_value is not None else None,
+            tail_frame=int(action.header.frame_count) if tail_value is not None else None,
             tail_value=tail_value,
             decode_error=str(exc),
         )

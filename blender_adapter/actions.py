@@ -12,6 +12,7 @@ try:
     from ..core.formats.lmt.semantics import get_usage_semantics
     from .armature import resolve_track_binding_target
     from .fcurves import build_channel_value_lists
+    from .fcurves import assign_action
     from .fcurves import create_action_fcurves
     from .fcurves import create_transform_fcurves
     from .fcurves import ensure_action
@@ -39,6 +40,7 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.lmt.semantics import get_usage_semantics
     from blender_adapter.armature import resolve_track_binding_target
     from blender_adapter.fcurves import build_channel_value_lists
+    from blender_adapter.fcurves import assign_action
     from blender_adapter.fcurves import create_action_fcurves
     from blender_adapter.fcurves import create_transform_fcurves
     from blender_adapter.fcurves import ensure_action
@@ -93,8 +95,10 @@ class ImportActionResult:
 
 
 def _build_track_frames(decoded_track, usage_info):
-    frames = [(0.0, tuple(decoded_track.basis_value))]
-    frames.extend((float(sample.frame), tuple(sample.value)) for sample in decoded_track.keyframes)
+    if decoded_track.keyframes:
+        frames = [(float(sample.frame), tuple(sample.value)) for sample in decoded_track.keyframes]
+    else:
+        frames = [(0.0, tuple(decoded_track.basis_value))]
     if decoded_track.tail_frame is not None and decoded_track.tail_value is not None:
         frames.append((float(decoded_track.tail_frame), tuple(decoded_track.tail_value)))
     if usage_info.is_quaternion:
@@ -269,7 +273,6 @@ def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, so
     )
 
     animation_data = ensure_armature_animation_data(armature_object)
-    animation_data.action = blender_action
     result.action_name = blender_action.name
     imported_track_bindings: list[dict[str, object]] = []
     if duplicate_track_identities:
@@ -442,6 +445,7 @@ def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, so
         result.frame_end = max(result.frame_end, int(frames[-1][0]) if frames else source_action.header.frame_count)
 
     save_lmt_import_track_bindings(blender_action, imported_track_bindings)
+    assign_action(animation_data, blender_action)
     if result.imported_track_count == 0 and not result.error_count:
         result.add("ERROR", "import", "No supported tracks were imported.")
     return result

@@ -29,6 +29,7 @@ from .encoding import encode_vector_lerp_keyframes
 from .encoding import prepare_track_keyframes
 from .export_plan import plan_reconstructed_action_export
 from .export_plan import resolve_action_frame_count
+from .quantized import pack_quantized_fields
 from .semantics import get_usage_semantics
 
 
@@ -66,19 +67,6 @@ def _encode_q14_component(value: float) -> int:
         magnitude = round(abs(half_value) * ((1 << 13) - 1))
         return magnitude ^ ((1 << 14) - 1)
     return round(half_value * ((1 << 13) - 1))
-
-
-def _pack_bits(fields: list[tuple[int, int]]) -> bytes:
-    value = 0
-    shift = 0
-    total_bits = 0
-    for field_value, bit_count in fields:
-        total_bits += bit_count
-        if bit_count == 0:
-            continue
-        value |= (int(field_value) & ((1 << bit_count) - 1)) << shift
-        shift += bit_count
-    return value.to_bytes(total_bits // 8, "little")
 
 
 def _default_root_translation() -> tuple[float, float, float, float]:
@@ -121,7 +109,7 @@ def _prepare_encoded_keyframes(track, terminal_frame: int, *, max_delta: int | N
 
 
 def _encode_float_vector_track(track, action_frame_count: int) -> bytes:
-    prepared = _prepare_encoded_keyframes(track, action_frame_count + 1)
+    prepared = _prepare_encoded_keyframes(track, action_frame_count)
     return b"".join(
         FLOAT_VECTOR_KEY_STRUCT.pack(
             float(value[0]),
@@ -134,16 +122,17 @@ def _encode_float_vector_track(track, action_frame_count: int) -> bytes:
 
 
 def _encode_q14_track(track, action_frame_count: int) -> bytes:
-    prepared = _prepare_encoded_keyframes(track, action_frame_count + 1, max_delta=255)
+    prepared = _prepare_encoded_keyframes(track, action_frame_count, max_delta=255)
     return b"".join(
-        _pack_bits(
+        pack_quantized_fields(
             [
                 (_encode_q14_component(value[0]), 14),
                 (_encode_q14_component(value[3]), 14),
                 (_encode_q14_component(value[2]), 14),
                 (_encode_q14_component(value[1]), 14),
                 (int(delta), 8),
-            ]
+            ],
+            unit_bytes=8,
         )
         for _frame, value, delta in prepared
     )
@@ -194,7 +183,7 @@ def _encode_track_buffer(track, planned_track, action_frame_count: int) -> bytes
             buffer_type=planned_track.buffer_type,
             lerp_mult=planned_track.lerp_mult,
             lerp_add=planned_track.lerp_add,
-            terminal_frame=action_frame_count + 1,
+            terminal_frame=action_frame_count,
         )
     if planned_track.buffer_type in {7, 11, 12, 13, 14, 15}:
         if planned_track.lerp_mult is None or planned_track.lerp_add is None:
@@ -207,7 +196,7 @@ def _encode_track_buffer(track, planned_track, action_frame_count: int) -> bytes
             buffer_type=planned_track.buffer_type,
             lerp_mult=planned_track.lerp_mult,
             lerp_add=planned_track.lerp_add,
-            terminal_frame=action_frame_count + 1,
+            terminal_frame=action_frame_count,
         )
     if planned_track.buffer_type == 6:
         return _encode_q14_track(track, action_frame_count)

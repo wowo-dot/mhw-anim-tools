@@ -16,8 +16,10 @@ QUATERNION_LERP_BUFFER_TYPES = frozenset({7, 11, 12, 13, 14, 15})
 
 
 def _track_quaternion_values(decoded_track):
-    values = [tuple(float(component) for component in decoded_track.basis_value)]
-    values.extend(tuple(float(component) for component in sample.value) for sample in decoded_track.keyframes)
+    if decoded_track.keyframes:
+        values = [tuple(float(component) for component in sample.value) for sample in decoded_track.keyframes]
+    else:
+        values = [tuple(float(component) for component in decoded_track.basis_value)]
     if decoded_track.tail_value is not None:
         values.append(tuple(float(component) for component in decoded_track.tail_value))
     return tuple(values)

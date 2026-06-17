@@ -35,7 +35,8 @@ class LmtSourcePreservationTests(unittest.TestCase):
                     buffer_type=15,
                     basis_value=(0.99, 0.0, 0.0, 0.1),
                     keyframes=(
-                        LmtDecodedSample(frame=2, delta_to_next=1, value=(0.97, 0.0, 0.0, 0.25)),
+                        LmtDecodedSample(frame=0, delta_to_next=2, value=(0.99, 0.0, 0.0, 0.1)),
+                        LmtDecodedSample(frame=2, delta_to_next=0, value=(0.97, 0.0, 0.0, 0.25)),
                     ),
                 ),
             ),
@@ -70,7 +71,8 @@ class LmtSourcePreservationTests(unittest.TestCase):
                     buffer_type=15,
                     basis_value=(0.99, 0.0, 0.0, 0.1),
                     keyframes=(
-                        LmtDecodedSample(frame=2, delta_to_next=1, value=(0.97, 0.0, 0.0, 0.25)),
+                        LmtDecodedSample(frame=0, delta_to_next=2, value=(0.99, 0.0, 0.0, 0.1)),
+                        LmtDecodedSample(frame=2, delta_to_next=0, value=(0.97, 0.0, 0.0, 0.25)),
                     ),
                 ),
             ),

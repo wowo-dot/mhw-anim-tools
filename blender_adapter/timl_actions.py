@@ -22,6 +22,8 @@ from ..core.formats.timl.reader import read_timl_data_bytes
 from ..core.formats.timl.semantics import format_datatype_hash_label
 from ..core.formats.timl.semantics import format_timeline_parameter_label
 from .fcurves import clear_action_fcurves
+from .fcurves import assign_action
+from .fcurves import clear_action_assignment
 from .fcurves import create_action_fcurves
 from .fcurves import create_scalar_action_fcurve
 from .fcurves import ensure_action
@@ -439,7 +441,6 @@ def seed_eventloop_template_on_controller(
     )
 
     animation_data = ensure_object_animation_data(controller)
-    animation_data.action = blender_action
     blender_action["mhw_anim_tools_import_kind"] = "attached_timl"
     blender_action["mhw_anim_tools_timl_transform_count"] = int(len(transforms))
 
@@ -474,6 +475,7 @@ def seed_eventloop_template_on_controller(
             interpolations=channel_interpolations[0],
         )
 
+    assign_action(animation_data, blender_action)
     save_timl_property_names(controller, property_names)
     save_timl_bindings_raw(controller, bindings)
     controller[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY] = imported_preview_signature_json(())
@@ -537,11 +539,11 @@ def _import_timl_data_entry_to_action(
     _clear_timl_carrier_properties(carrier)
     carrier.parent = parent
     animation_data = ensure_object_animation_data(carrier)
-    animation_data.action = blender_action
     result.action_name = blender_action.name
     result.carrier_name = carrier.name
 
     if not transform_samples:
+        assign_action(animation_data, blender_action)
         save_timl_property_names(carrier, [])
         save_timl_bindings_raw(carrier, [])
         carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY] = imported_preview_signature_json(())
@@ -659,8 +661,7 @@ def _import_timl_data_entry_to_action(
             del carrier[TIML_BINDINGS_KEY]
         if TIML_IMPORTED_PREVIEW_SIGNATURE_KEY in carrier:
             del carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY]
-        if animation_data.action == blender_action:
-            animation_data.action = None
+        clear_action_assignment(animation_data, blender_action)
         return result
 
     if result.imported_transform_count == 0:
@@ -668,6 +669,7 @@ def _import_timl_data_entry_to_action(
         result.add("ERROR", "timl", "No supported TIML transforms were imported.")
         return result
 
+    assign_action(animation_data, blender_action)
     save_timl_property_names(carrier, property_names)
     save_timl_bindings_raw(carrier, bindings)
     carrier[TIML_IMPORTED_PREVIEW_SIGNATURE_KEY] = imported_preview_signature_json(imported_preview_transforms)

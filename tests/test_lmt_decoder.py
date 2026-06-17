@@ -27,9 +27,39 @@ def _pack_bits(fields: list[tuple[int, int]]) -> bytes:
     return value.to_bytes(total_bits // 8, "little")
 
 
-def _encode_unsigned(value: float, bits: int, offset: int = 8, excluded_range: int = 7) -> int:
-    denominator = ((1 << bits) - 1) - excluded_range - offset
-    return round(value * denominator) + offset
+def _pack_quantized_units(fields: list[tuple[int, int]], unit_bits: int) -> bytes:
+    units: list[int] = []
+    remaining_bits = 0
+
+    def ensure_unit():
+        nonlocal remaining_bits
+        if remaining_bits > 0:
+            return
+        units.append(0)
+        remaining_bits = unit_bits
+
+    for field_value, bit_count in fields:
+        if bit_count <= 0:
+            continue
+        raw_value = int(field_value) & ((1 << bit_count) - 1)
+        bits_left = int(bit_count)
+        while bits_left > 0:
+            ensure_unit()
+            chunk_bits = min(bits_left, remaining_bits)
+            shift = bits_left - chunk_bits
+            chunk = (raw_value >> shift) & ((1 << chunk_bits) - 1)
+            used_bits = unit_bits - remaining_bits
+            units[-1] |= chunk << used_bits
+            remaining_bits -= chunk_bits
+            bits_left -= chunk_bits
+
+    unit_bytes = unit_bits // 8
+    return b"".join(int(unit).to_bytes(unit_bytes, "little") for unit in units)
+
+
+def _encode_unsigned(value: float, bits: int) -> int:
+    denominator = (1 << bits) - 1
+    return round(value * denominator)
 
 
 def _encode_q14(value: float) -> int:
@@ -120,7 +150,7 @@ class LmtDecoderTests(unittest.TestCase):
         self.assertEqual(track.basis_value, (0.5, 1.0, 1.5))
         self.assertIsNone(track.tail_value)
         self.assertIsNone(track.tail_frame)
-        self.assertEqual([sample.frame for sample in track.keyframes], [1, 6])
+        self.assertEqual([sample.frame for sample in track.keyframes], [0, 5])
         self.assertEqual(track.keyframes[0].value, (1.25, 2.5, -3.75))
         self.assertEqual(track.keyframes[1].value, (4.0, 5.0, 6.0))
 
@@ -140,13 +170,13 @@ class LmtDecoderTests(unittest.TestCase):
         track = decoded.tracks[0]
         self.assertEqual(track.basis_value, (0.5, 1.0, 1.5))
         self.assertEqual(track.tail_value, (9.0, 8.0, 7.0))
-        self.assertEqual(track.tail_frame, 41)
+        self.assertEqual(track.tail_frame, 40)
         self.assertEqual(track.keyframes, ())
 
     def test_decode_vector_lerp_keyframes(self):
         raw_buffer = struct.pack(
             "<4B4B",
-            8,
+            0,
             _encode_unsigned(0.5, 8),
             _encode_unsigned(1.0, 8),
             3,
@@ -169,11 +199,13 @@ class LmtDecoderTests(unittest.TestCase):
         )
         decoded = decode_action_tracks(lmt.actions[0], strict=True)
         track = decoded.tracks[0]
-        self.assertEqual([sample.frame for sample in track.keyframes], [1, 4])
-        self.assertEqual(track.keyframes[0].value, (-1.0, 12.0, 106.0))
+        self.assertEqual([sample.frame for sample in track.keyframes], [0, 3])
+        self.assertAlmostEqual(track.keyframes[0].value[0], -1.0, places=5)
+        self.assertAlmostEqual(track.keyframes[0].value[1], 12.007843137254902, places=6)
+        self.assertAlmostEqual(track.keyframes[0].value[2], 106.0, places=5)
         self.assertAlmostEqual(track.keyframes[1].value[0], 1.0, places=5)
         self.assertAlmostEqual(track.keyframes[1].value[1], 10.0, places=5)
-        self.assertAlmostEqual(track.keyframes[1].value[2], 101.5, places=5)
+        self.assertAlmostEqual(track.keyframes[1].value[2], 101.50588235294117, places=6)
 
     def test_decode_q14_quaternion_keyframes(self):
         raw_buffer = _pack_bits(
@@ -200,11 +232,11 @@ class LmtDecoderTests(unittest.TestCase):
         self.assertEqual(track.basis_value, (1.0, 0.0, 0.0, 0.0))
         self.assertIsNone(track.tail_value)
         self.assertIsNone(track.tail_frame)
-        self.assertEqual(track.keyframes[0].frame, 1)
-        self.assertAlmostEqual(track.keyframes[0].value[0], 1.0, places=5)
+        self.assertEqual(track.keyframes[0].frame, 0)
+        self.assertAlmostEqual(track.keyframes[0].value[0], 1.0, delta=2e-4)
         self.assertAlmostEqual(track.keyframes[0].value[1], 0.50006, places=4)
         self.assertAlmostEqual(track.keyframes[0].value[2], 0.0, places=5)
-        self.assertAlmostEqual(track.keyframes[0].value[3], -0.25024, places=4)
+        self.assertAlmostEqual(track.keyframes[0].value[3], -0.25003, delta=3e-4)
 
     def test_decode_quaternion_union_lerp_keeps_missing_axes_zero(self):
         raw_buffer = _pack_bits(
@@ -229,13 +261,45 @@ class LmtDecoderTests(unittest.TestCase):
         )
         decoded = decode_action_tracks(lmt.actions[0], strict=True)
         track = decoded.tracks[0]
-        self.assertEqual(track.keyframes[0].frame, 1)
+        self.assertEqual(track.keyframes[0].frame, 0)
         self.assertEqual(track.tail_value, (1.0, 0.0, 0.0, 0.0))
-        self.assertEqual(track.tail_frame, 41)
-        self.assertAlmostEqual(track.keyframes[0].value[0], 1.0, places=5)
-        self.assertAlmostEqual(track.keyframes[0].value[1], 0.5, places=5)
+        self.assertEqual(track.tail_frame, 40)
+        self.assertAlmostEqual(track.keyframes[0].value[0], 1.0, places=4)
+        self.assertAlmostEqual(track.keyframes[0].value[1], 0.5, places=4)
         self.assertAlmostEqual(track.keyframes[0].value[2], 0.0, places=5)
         self.assertAlmostEqual(track.keyframes[0].value[3], 0.0, places=5)
+
+    def test_decode_q9_quaternion_lerp_respects_byte_boundary_order(self):
+        raw_buffer = _pack_quantized_units(
+            [
+                (_encode_unsigned(393.0 / 511.0, 9), 9),
+                (_encode_unsigned(96.0 / 511.0, 9), 9),
+                (_encode_unsigned(301.0 / 511.0, 9), 9),
+                (_encode_unsigned(150.0 / 511.0, 9), 9),
+                (1, 4),
+            ],
+            8,
+        )
+        lmt = read_lmt_bytes(
+            build_lmt_with_track(
+                buffer_type=15,
+                usage=0,
+                basis=(0.0, 0.0, 0.0, 1.0),
+                raw_buffer=raw_buffer,
+                lerp_mult=(1.0, 1.0, 1.0, 1.0),
+                lerp_add=(0.0, 0.0, 0.0, 0.0),
+            ),
+            source_name="q9-byte-boundary.lmt",
+        )
+
+        decoded = decode_action_tracks(lmt.actions[0], strict=True)
+        track = decoded.tracks[0]
+
+        self.assertEqual(track.keyframes[0].frame, 0)
+        self.assertAlmostEqual(track.keyframes[0].value[0], 150.0 / 511.0, places=6)
+        self.assertAlmostEqual(track.keyframes[0].value[1], 393.0 / 511.0, places=6)
+        self.assertAlmostEqual(track.keyframes[0].value[2], 96.0 / 511.0, places=6)
+        self.assertAlmostEqual(track.keyframes[0].value[3], 301.0 / 511.0, places=6)
 
     def test_non_strict_decode_records_error_for_bad_stride(self):
         raw_buffer = b"\x00" * 7

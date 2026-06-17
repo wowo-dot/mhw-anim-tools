@@ -31,6 +31,7 @@ from ..blender_adapter.timl_authoring import timl_binding_identity
 from ..blender_adapter.timl_authoring import timl_binding_source_identity
 from ..blender_adapter.timl_authoring import timl_header_state_from_controller
 from ..blender_adapter.fcurves import create_action_fcurves
+from ..blender_adapter.fcurves import bind_action_slot
 from ..blender_adapter.fcurves import create_scalar_action_fcurve
 from ..blender_adapter.timl_metadata import TIML_BINDINGS_KEY
 from ..blender_adapter.timl_metadata import TIML_SOURCE_KIND_ATTACHED_LMT
@@ -128,6 +129,13 @@ def _format_hex_u32(value: int) -> str:
 def _controller_action(controller):
     animation_data = getattr(controller, "animation_data", None)
     return getattr(animation_data, "action", None) if animation_data is not None else None
+
+
+def _ensure_controller_action_slot_binding(controller, action=None) -> None:
+    animation_data = getattr(controller, "animation_data", None)
+    if animation_data is None:
+        return
+    bind_action_slot(animation_data, action)
 
 
 def _save_timl_bindings_with_preview_groups(controller, bindings) -> None:
@@ -616,6 +624,7 @@ def _materialize_binding_from_source_transform(
             del controller[str(binding["property_name"])]
         return None, "The selected TIML controller has no editable action for preview-curve creation."
     _create_preview_curves_from_source_transform(action, binding, source_transform)
+    _ensure_controller_action_slot_binding(controller, action)
     _set_action_transform_count(controller, len(load_timl_bindings_raw(controller)))
     clear_deleted_timl_identity(
         controller,
@@ -1275,6 +1284,7 @@ class MHWANIMTOOLS_OT_edit_timl_transform(bpy.types.Operator):
                 frame=0.0,
                 preview_value=preview_value,
             )
+            _ensure_controller_action_slot_binding(controller, action)
             _retag_controller_preview_groups(controller)
 
         _refresh_timl_controller_after_edit(context, controller)
@@ -1348,6 +1358,7 @@ class MHWANIMTOOLS_OT_add_timl_type(bpy.types.Operator):
         action = _controller_action(controller)
         if action is not None:
             create_binding_preview_fcurves(action, binding, frame=0.0, preview_value=preview_value)
+            _ensure_controller_action_slot_binding(controller, action)
             _set_action_transform_count(controller, len(load_timl_bindings_raw(controller)))
         _refresh_timl_controller_after_edit(context, controller)
         _select_workspace_identity(scene_props, property_name=str(binding["property_name"]), type_index=int(self.type_index))
@@ -1512,6 +1523,7 @@ class MHWANIMTOOLS_OT_duplicate_timl_type(bpy.types.Operator):
                     target_property_name=str(new_binding["property_name"]),
                 )
         if action is not None:
+            _ensure_controller_action_slot_binding(controller, action)
             _set_action_transform_count(controller, len(load_timl_bindings_raw(controller)))
             _retag_controller_preview_groups(controller)
         _refresh_timl_controller_after_edit(context, controller)
@@ -1660,6 +1672,7 @@ class MHWANIMTOOLS_OT_add_timl_transform(bpy.types.Operator):
         action = _controller_action(controller)
         if action is not None:
             create_binding_preview_fcurves(action, binding, frame=0.0, preview_value=preview_value)
+            _ensure_controller_action_slot_binding(controller, action)
             _set_action_transform_count(controller, len(load_timl_bindings_raw(controller)))
         _refresh_timl_controller_after_edit(context, controller)
         _select_workspace_identity(scene_props, property_name=str(binding["property_name"]), type_index=int(self.type_index))
@@ -1737,6 +1750,7 @@ class MHWANIMTOOLS_OT_duplicate_timl_transform(bpy.types.Operator):
                 source_property_name=str(binding["property_name"]),
                 target_property_name=str(new_binding["property_name"]),
             )
+            _ensure_controller_action_slot_binding(controller, action)
             _set_action_transform_count(controller, len(load_timl_bindings_raw(controller)))
             _retag_controller_preview_groups(controller)
         _refresh_timl_controller_after_edit(context, controller)
@@ -1862,6 +1876,7 @@ class MHWANIMTOOLS_OT_clone_timl_transform_from_existing(bpy.types.Operator):
                     target_fcurve.update()
                 if not copied_curve:
                     create_binding_preview_fcurves(target_action, new_binding, frame=0.0, preview_value=preview_value)
+                _ensure_controller_action_slot_binding(target_controller, target_action)
             _set_action_transform_count(target_controller, len(load_timl_bindings_raw(target_controller)))
             _retag_controller_preview_groups(target_controller)
         _refresh_timl_controller_after_edit(context, target_controller)

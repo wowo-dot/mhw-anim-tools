@@ -91,8 +91,8 @@ class LmtWriterTests(unittest.TestCase):
                     usage=1,
                     basis_value=(0.5, 1.0, 1.5),
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=1, value=(1.25, 2.5, -3.75)),
-                        LmtReconstructedKeyframe(frame=6, value=(4.0, 5.0, 6.0)),
+                        LmtReconstructedKeyframe(frame=0, value=(1.25, 2.5, -3.75)),
+                        LmtReconstructedKeyframe(frame=5, value=(4.0, 5.0, 6.0)),
                     ),
                 ),
             ),
@@ -104,11 +104,11 @@ class LmtWriterTests(unittest.TestCase):
         track = decoded.tracks[0]
 
         self.assertEqual(track.basis_value, (0.5, 1.0, 1.5))
-        self.assertEqual([sample.frame for sample in track.keyframes], [1, 6])
+        self.assertEqual([sample.frame for sample in track.keyframes], [0, 5])
         self.assertEqual(track.keyframes[0].value, (1.25, 2.5, -3.75))
         self.assertEqual(track.keyframes[1].value, (4.0, 5.0, 6.0))
 
-    def test_write_injects_frame_one_hold_for_delayed_local_key(self):
+    def test_write_injects_frame_zero_hold_for_delayed_local_key(self):
         source = LmtReconstructedAction(
             action_name="DelayedKey",
             frame_start=0,
@@ -130,7 +130,7 @@ class LmtWriterTests(unittest.TestCase):
         decoded = decode_action_tracks(lmt.actions[0], strict=True)
         track = decoded.tracks[0]
 
-        self.assertEqual([sample.frame for sample in track.keyframes], [1, 2])
+        self.assertEqual([sample.frame for sample in track.keyframes], [0, 2])
         self.assertEqual(track.keyframes[0].value, (0.5, 1.0, 1.5))
         self.assertEqual(track.keyframes[1].value, (4.0, 5.0, 6.0))
 
@@ -146,7 +146,7 @@ class LmtWriterTests(unittest.TestCase):
                     usage=0,
                     basis_value=(1.0, 0.0, 0.0, 0.0),
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=1, value=keyed_rotation),
+                        LmtReconstructedKeyframe(frame=0, value=keyed_rotation),
                     ),
                 ),
             ),
@@ -157,7 +157,7 @@ class LmtWriterTests(unittest.TestCase):
         decoded = decode_action_tracks(lmt.actions[0], strict=True)
         track = decoded.tracks[0]
 
-        self.assertEqual(track.keyframes[0].frame, 1)
+        self.assertEqual(track.keyframes[0].frame, 0)
         self.assertAlmostEqual(track.keyframes[0].value[0], keyed_rotation[0], delta=1e-4)
         self.assertAlmostEqual(track.keyframes[0].value[1], keyed_rotation[1], delta=1e-4)
         self.assertAlmostEqual(track.keyframes[0].value[2], 0.0, delta=1e-4)
@@ -175,7 +175,7 @@ class LmtWriterTests(unittest.TestCase):
                     usage=0,
                     basis_value=(1.0, 0.0, 0.0, 0.0),
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=1, value=keyed_rotation),
+                        LmtReconstructedKeyframe(frame=0, value=keyed_rotation),
                     ),
                 ),
             ),
@@ -261,6 +261,8 @@ class LmtWriterTests(unittest.TestCase):
         self.assertEqual(decoded.tracks[1].basis_value, (1.0, 0.0, 0.0))
 
     def test_write_source_u8_vector_lerp_roundtrips(self):
+        first_value = (-1.0, 12.007843137254902, 106.0)
+        second_value = (1.0, 10.0, 101.50588235294117)
         source = LmtReconstructedAction(
             action_name="VectorLerp8",
             frame_start=0,
@@ -271,8 +273,8 @@ class LmtWriterTests(unittest.TestCase):
                     usage=1,
                     basis_value=(0.0, 0.0, 0.0),
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=1, value=(-1.0, 12.0, 106.0)),
-                        LmtReconstructedKeyframe(frame=4, value=(1.0, 10.0, 101.5)),
+                        LmtReconstructedKeyframe(frame=0, value=first_value),
+                        LmtReconstructedKeyframe(frame=3, value=second_value),
                     ),
                 ),
             ),
@@ -293,16 +295,17 @@ class LmtWriterTests(unittest.TestCase):
         track = decoded.tracks[0]
 
         self.assertEqual(track.buffer_type, 5)
-        self.assertEqual(track.keyframes[0].frame, 1)
-        self.assertEqual(track.keyframes[1].frame, 4)
-        self.assertAlmostEqual(track.keyframes[0].value[0], -1.0, delta=1e-4)
-        self.assertAlmostEqual(track.keyframes[0].value[1], 12.0, delta=1e-4)
-        self.assertAlmostEqual(track.keyframes[0].value[2], 106.0, delta=1e-4)
-        self.assertAlmostEqual(track.keyframes[1].value[0], 1.0, delta=1e-4)
-        self.assertAlmostEqual(track.keyframes[1].value[1], 10.0, delta=1e-4)
-        self.assertAlmostEqual(track.keyframes[1].value[2], 101.5, delta=1e-4)
+        self.assertEqual(track.keyframes[0].frame, 0)
+        self.assertEqual(track.keyframes[1].frame, 3)
+        self.assertAlmostEqual(track.keyframes[0].value[0], first_value[0], delta=1e-4)
+        self.assertAlmostEqual(track.keyframes[0].value[1], first_value[1], delta=1e-4)
+        self.assertAlmostEqual(track.keyframes[0].value[2], first_value[2], delta=1e-4)
+        self.assertAlmostEqual(track.keyframes[1].value[0], second_value[0], delta=1e-4)
+        self.assertAlmostEqual(track.keyframes[1].value[1], second_value[1], delta=1e-4)
+        self.assertAlmostEqual(track.keyframes[1].value[2], second_value[2], delta=1e-4)
 
     def test_write_source_u8_vector_lerp_promotes_to_u16(self):
+        first_value = (-1.0, 12.007843137254902, 106.0)
         source = LmtReconstructedAction(
             action_name="VectorLerpPromote",
             frame_start=0,
@@ -311,9 +314,9 @@ class LmtWriterTests(unittest.TestCase):
                 LmtReconstructedTrack(
                     bone_id=3,
                     usage=1,
-                    basis_value=(-1.0, 12.0, 106.0),
+                    basis_value=first_value,
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=300, value=(-1.0, 12.0, 106.0)),
+                        LmtReconstructedKeyframe(frame=300, value=first_value),
                     ),
                 ),
             ),
@@ -334,14 +337,14 @@ class LmtWriterTests(unittest.TestCase):
         track = decoded.tracks[0]
 
         self.assertEqual(track.buffer_type, 4)
-        self.assertEqual(track.keyframes[0].frame, 1)
+        self.assertEqual(track.keyframes[0].frame, 0)
         self.assertEqual(track.keyframes[1].frame, 300)
-        self.assertAlmostEqual(track.keyframes[0].value[0], -1.0, delta=1e-4)
-        self.assertAlmostEqual(track.keyframes[0].value[1], 12.0, delta=1e-4)
-        self.assertAlmostEqual(track.keyframes[0].value[2], 106.0, delta=1e-4)
-        self.assertAlmostEqual(track.keyframes[1].value[0], -1.0, delta=1e-4)
-        self.assertAlmostEqual(track.keyframes[1].value[1], 12.0, delta=1e-4)
-        self.assertAlmostEqual(track.keyframes[1].value[2], 106.0, delta=1e-4)
+        self.assertAlmostEqual(track.keyframes[0].value[0], first_value[0], delta=1e-4)
+        self.assertAlmostEqual(track.keyframes[0].value[1], first_value[1], delta=1e-4)
+        self.assertAlmostEqual(track.keyframes[0].value[2], first_value[2], delta=1e-4)
+        self.assertAlmostEqual(track.keyframes[1].value[0], first_value[0], delta=1e-4)
+        self.assertAlmostEqual(track.keyframes[1].value[1], first_value[1], delta=1e-4)
+        self.assertAlmostEqual(track.keyframes[1].value[2], first_value[2], delta=1e-4)
 
     def test_write_source_q7_quaternion_lerp_roundtrips(self):
         source = LmtReconstructedAction(
@@ -354,7 +357,7 @@ class LmtWriterTests(unittest.TestCase):
                     usage=0,
                     basis_value=(1.0, 0.0, 0.0, 0.0),
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=1, value=(0.0, 1.0, 0.0, 0.0)),
+                        LmtReconstructedKeyframe(frame=0, value=(0.0, 1.0, 0.0, 0.0)),
                     ),
                 ),
             ),
@@ -375,7 +378,7 @@ class LmtWriterTests(unittest.TestCase):
         track = decoded.tracks[0]
 
         self.assertEqual(track.buffer_type, 7)
-        self.assertEqual(track.keyframes[0].frame, 1)
+        self.assertEqual(track.keyframes[0].frame, 0)
         self.assertAlmostEqual(track.keyframes[0].value[0], 0.0, delta=1e-4)
         self.assertAlmostEqual(track.keyframes[0].value[1], 1.0, delta=1e-4)
         self.assertAlmostEqual(track.keyframes[0].value[2], 0.0, delta=1e-4)
@@ -392,7 +395,7 @@ class LmtWriterTests(unittest.TestCase):
                     usage=0,
                     basis_value=(1.0, 0.0, 0.0, 0.0),
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=1, value=(0.0, 1.0, 0.0, 0.0)),
+                        LmtReconstructedKeyframe(frame=0, value=(0.0, 1.0, 0.0, 0.0)),
                     ),
                 ),
             ),
@@ -413,7 +416,7 @@ class LmtWriterTests(unittest.TestCase):
         track = decoded.tracks[0]
 
         self.assertEqual(track.buffer_type, 11)
-        self.assertEqual(track.keyframes[0].frame, 1)
+        self.assertEqual(track.keyframes[0].frame, 0)
         self.assertAlmostEqual(track.keyframes[0].value[0], 0.0, delta=1e-4)
         self.assertAlmostEqual(track.keyframes[0].value[1], 1.0, delta=1e-4)
         self.assertAlmostEqual(track.keyframes[0].value[2], 0.0, delta=1e-4)
@@ -430,7 +433,7 @@ class LmtWriterTests(unittest.TestCase):
                     usage=0,
                     basis_value=(1.0, 0.0, 0.0, 0.0),
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=1, value=(0.70710678, 0.70710678, 0.0, 0.0)),
+                        LmtReconstructedKeyframe(frame=0, value=(0.70710678, 0.70710678, 0.0, 0.0)),
                     ),
                 ),
             ),
@@ -451,7 +454,7 @@ class LmtWriterTests(unittest.TestCase):
         track = decoded.tracks[0]
 
         self.assertEqual(track.buffer_type, 14)
-        self.assertEqual(track.keyframes[0].frame, 1)
+        self.assertEqual(track.keyframes[0].frame, 0)
         self.assertAlmostEqual(track.keyframes[0].value[0], 0.70710678, delta=5e-4)
         self.assertAlmostEqual(track.keyframes[0].value[1], 0.70710678, delta=5e-4)
         self.assertAlmostEqual(track.keyframes[0].value[2], 0.0, delta=1e-4)

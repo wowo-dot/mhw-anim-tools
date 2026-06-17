@@ -60,6 +60,12 @@ class _FakeAction(dict):
     def __init__(self, name: str):
         super().__init__()
         self.name = name
+        self.slots = []
+
+
+class _FakeSlot:
+    def __init__(self, handle: int):
+        self.handle = handle
 
 
 class _FakeBone:
@@ -90,6 +96,69 @@ class _FakeArmature(dict):
 
 
 class LmtActionImportTests(unittest.TestCase):
+    def test_import_binds_action_slot_after_fcurves_create_legacy_slot(self):
+        action = LmtAction(
+            header=LmtActionHeader(
+                id=0,
+                fcurve_offset=0,
+                fcurve_count=1,
+                frame_count=10,
+                loop_frame=-1,
+                null0=(0, 0, 0),
+                translation=(0.0, 0.0, 0.0, 0.0),
+                rotation_lerp=(0.0, 0.0, 0.0, 1.0),
+                flags=0,
+                null2=b"\x00\x00",
+                flags2=0,
+                null3=(0, 0, 0, 0, 0),
+                timl_offset=0,
+            ),
+            tracks=(_track(bone_id=0, usage=3),),
+        )
+        lmt = LmtFile(
+            source_name="slot_bind.lmt",
+            file_size=0,
+            header=LmtHeader(signature=b"LMT\x00", version=95, entry_count=1, unknown=b"\x00" * 8),
+            entry_offsets=(32,),
+            actions=(action,),
+        )
+        armature_object = _FakeArmature(bone_names=("MhBone_000",))
+        fake_action = _FakeAction("LMT::slot_bind::000")
+        fake_animation_data = SimpleNamespace(action=None, action_slot=None, action_slot_handle=0)
+
+        def _create_fcurves(_action, **_kwargs):
+            fake_action.slots = [_FakeSlot(777)]
+            return [object(), object(), object()]
+
+        with patch(
+            "blender_adapter.actions.decode_action_tracks",
+            return_value=SimpleNamespace(tracks=(_FakeDecodedTrack(0, bone_id=0, usage=3),)),
+        ):
+            with patch("blender_adapter.actions.ensure_action", return_value=fake_action):
+                with patch(
+                    "blender_adapter.actions.ensure_armature_animation_data",
+                    return_value=fake_animation_data,
+                ):
+                    with patch(
+                        "blender_adapter.actions.create_transform_fcurves",
+                        side_effect=_create_fcurves,
+                    ):
+                        with patch(
+                            "blender_adapter.actions.create_action_fcurves",
+                            side_effect=_create_fcurves,
+                        ):
+                            result = import_lmt_action_to_armature(
+                                lmt,
+                                0,
+                                armature_object,
+                                source_path="slot_bind.lmt",
+                            )
+
+        self.assertEqual(result.error_count, 0)
+        self.assertIs(fake_animation_data.action, fake_action)
+        self.assertIs(fake_animation_data.action_slot, fake_action.slots[0])
+        self.assertEqual(fake_animation_data.action_slot_handle, 777)
+
     def test_import_warns_when_source_action_has_duplicate_raw_track_identities(self):
         action = LmtAction(
             header=LmtActionHeader(

@@ -121,8 +121,8 @@ class LmtMergeWriterTests(unittest.TestCase):
                     usage=1,
                     basis_value=(0.5, 1.0, 1.5),
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=1, value=(1.25, 2.5, -3.75)),
-                        LmtReconstructedKeyframe(frame=6, value=(4.0, 5.0, 6.0)),
+                        LmtReconstructedKeyframe(frame=0, value=(1.25, 2.5, -3.75)),
+                        LmtReconstructedKeyframe(frame=5, value=(4.0, 5.0, 6.0)),
                     ),
                 ),
             ),
@@ -138,7 +138,7 @@ class LmtMergeWriterTests(unittest.TestCase):
                     basis_value=(0.0, 0.0, 0.0),
                     keyframes=(
                         LmtReconstructedKeyframe(frame=0, value=(0.0, 1.0, 2.0)),
-                        LmtReconstructedKeyframe(frame=12, value=(3.0, 4.0, 5.0)),
+                        LmtReconstructedKeyframe(frame=11, value=(3.0, 4.0, 5.0)),
                     ),
                 ),
             ),
@@ -159,8 +159,8 @@ class LmtMergeWriterTests(unittest.TestCase):
         self.assertEqual(tuple(action.id for action in merged_lmt.actions), (0, 1))
         self.assertEqual(len(merged_lmt.actions[0].tracks), 1)
         self.assertEqual(len(merged_lmt.actions[1].tracks), 1)
-        self.assertEqual([sample.frame for sample in decoded0.tracks[0].keyframes], [1, 6])
-        self.assertEqual([sample.frame for sample in decoded1.tracks[0].keyframes], [1, 13])
+        self.assertEqual([sample.frame for sample in decoded0.tracks[0].keyframes], [0, 5])
+        self.assertEqual([sample.frame for sample in decoded1.tracks[0].keyframes], [0, 11])
         self.assertEqual(decoded1.tracks[0].keyframes[-1].value, (3.0, 4.0, 5.0))
         self.assertEqual(merged_lmt.actions[0].header.timl_offset, merged_lmt.actions[1].header.timl_offset)
 
@@ -177,8 +177,8 @@ class LmtMergeWriterTests(unittest.TestCase):
                     usage=1,
                     basis_value=(0.5, 1.0, 1.5),
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=1, value=(1.25, 2.5, -3.75)),
-                        LmtReconstructedKeyframe(frame=6, value=(4.0, 5.0, 6.0)),
+                        LmtReconstructedKeyframe(frame=0, value=(1.25, 2.5, -3.75)),
+                        LmtReconstructedKeyframe(frame=5, value=(4.0, 5.0, 6.0)),
                     ),
                 ),
             ),
@@ -203,7 +203,7 @@ class LmtMergeWriterTests(unittest.TestCase):
         self.assertEqual(merged_lmt.actions[0].header.null2, b"\xAA\xBB")
         self.assertEqual(merged_lmt.actions[0].header.null3, (5, 6, 7, 8, 9))
         self.assertEqual(len(merged_lmt.actions[0].tracks), 1)
-        self.assertEqual([sample.frame for sample in decoded.tracks[0].keyframes], [1, 6])
+        self.assertEqual([sample.frame for sample in decoded.tracks[0].keyframes], [0, 5])
         self.assertEqual(len(merged_lmt.actions[1].tracks), 0)
         self.assertEqual(merged_lmt.actions[1].header.flags, 17)
 
@@ -264,7 +264,7 @@ class LmtMergeWriterTests(unittest.TestCase):
                     usage=1,
                     basis_value=(0.5, 1.0, 1.5),
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=1, value=(1.25, 2.5, -3.75)),
+                        LmtReconstructedKeyframe(frame=0, value=(1.25, 2.5, -3.75)),
                     ),
                 ),
             ),

@@ -231,8 +231,8 @@ class LmtReconstructionTests(unittest.TestCase):
                     buffer_type=5,
                     basis_value=(0.0, 0.0, 0.0),
                     keyframes=(
-                        LmtDecodedSample(frame=1, delta_to_next=2, value=(1.0, 0.0, 0.0)),
-                        LmtDecodedSample(frame=3, delta_to_next=38, value=(2.0, 0.0, 0.0)),
+                        LmtDecodedSample(frame=0, delta_to_next=2, value=(1.0, 0.0, 0.0)),
+                        LmtDecodedSample(frame=2, delta_to_next=38, value=(2.0, 0.0, 0.0)),
                     ),
                 ),
                 LmtDecodedTrack(
@@ -242,7 +242,7 @@ class LmtReconstructionTests(unittest.TestCase):
                     buffer_type=3,
                     basis_value=(0.0, 0.0, 0.0),
                     keyframes=(),
-                    tail_frame=41,
+                    tail_frame=40,
                     tail_value=(3.0, 0.0, 0.0),
                 ),
             ),
@@ -254,9 +254,9 @@ class LmtReconstructionTests(unittest.TestCase):
         self.assertEqual(reconstructed.frame_start, 0)
         self.assertEqual(reconstructed.frame_end, 40)
         self.assertEqual(reconstructed.track_count, 2)
-        self.assertEqual([key.frame for key in reconstructed.tracks[0].keyframes], [1, 3])
+        self.assertEqual([key.frame for key in reconstructed.tracks[0].keyframes], [0, 2])
         self.assertEqual(reconstructed.tracks[0].keyframes[1].value, (2.0, 0.0, 0.0))
-        self.assertEqual(reconstructed.tracks[1].tail_frame, 41)
+        self.assertEqual(reconstructed.tracks[1].tail_frame, 40)
         self.assertEqual(reconstructed.tracks[1].tail_value, (3.0, 0.0, 0.0))
 
 

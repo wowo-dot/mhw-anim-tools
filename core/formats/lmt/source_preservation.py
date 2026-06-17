@@ -27,8 +27,10 @@ def _supported_decoded_tracks(decoded_action):
 
 def _decoded_explicit_frames(decoded_track):
     usage = get_usage_semantics(decoded_track.usage)
-    frames = [(0.0, tuple(float(component) for component in decoded_track.basis_value))]
-    frames.extend((float(sample.frame), tuple(float(component) for component in sample.value)) for sample in decoded_track.keyframes)
+    if decoded_track.keyframes:
+        frames = [(float(sample.frame), tuple(float(component) for component in sample.value)) for sample in decoded_track.keyframes]
+    else:
+        frames = [(0.0, tuple(float(component) for component in decoded_track.basis_value))]
     if decoded_track.tail_frame is not None and decoded_track.tail_value is not None:
         frames.append((float(decoded_track.tail_frame), tuple(float(component) for component in decoded_track.tail_value)))
     if usage.is_quaternion:

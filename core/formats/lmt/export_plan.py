@@ -187,7 +187,7 @@ def _resolve_vector_lerp_preference(
         buffer_type=preferred_buffer_type,
         lerp_mult=lerp_mult,
         lerp_add=lerp_add,
-        terminal_frame=action_frame_count + 1,
+        terminal_frame=action_frame_count,
         tolerance=tolerance,
     )
     if fit:
@@ -205,7 +205,7 @@ def _resolve_vector_lerp_preference(
             buffer_type=4,
             lerp_mult=lerp_mult,
             lerp_add=lerp_add,
-            terminal_frame=action_frame_count + 1,
+            terminal_frame=action_frame_count,
             tolerance=tolerance,
         )
         if fit_16:
@@ -282,7 +282,7 @@ def _resolve_quaternion_lerp_preference(
             buffer_type=candidate_type,
             lerp_mult=lerp_mult,
             lerp_add=lerp_add,
-            terminal_frame=action_frame_count + 1,
+            terminal_frame=action_frame_count,
             tolerance=tolerance,
         )
         if fit:
@@ -329,8 +329,8 @@ def _resolve_quaternion_lerp_preference(
 
 def _build_track_notes(track, usage_info) -> list[str]:
     notes: list[str] = []
-    if track.keyframes and track.keyframes[0].frame > 1:
-        notes.append("Writer must inject a leading hold key at frame 1.")
+    if track.keyframes and track.keyframes[0].frame > 0:
+        notes.append("Writer must inject a leading basis key at frame 0.")
     if usage_info.scope == "root" and usage_info.transform != "scale" and track.tail_frame is not None:
         notes.append("Tail value must be written to the action header.")
     return notes
@@ -338,17 +338,12 @@ def _build_track_notes(track, usage_info) -> list[str]:
 
 def resolve_action_frame_count(reconstructed_action) -> int:
     """Match writer duration semantics during analyze/export planning."""
-    frame_count = 0
-    has_explicit_duration = False
+    frame_count = max(0, int(getattr(reconstructed_action, "frame_end", 0) or 0))
     for track in reconstructed_action.tracks:
         if track.keyframes:
-            has_explicit_duration = True
             frame_count = max(frame_count, max(int(key.frame) for key in track.keyframes))
         if track.tail_frame is not None:
-            has_explicit_duration = True
-            frame_count = max(frame_count, int(track.tail_frame) - 1)
-    if not has_explicit_duration:
-        frame_count = max(frame_count, int(reconstructed_action.frame_end))
+            frame_count = max(frame_count, int(track.tail_frame))
     return frame_count
 
 
@@ -356,8 +351,8 @@ def _max_encoded_delta(track, terminal_frame: int) -> int:
     frames = [int(key.frame) for key in track.keyframes]
     if not frames:
         return 0
-    if frames[0] > 1:
-        frames.insert(0, 1)
+    if frames[0] > 0:
+        frames.insert(0, 0)
     max_delta = 0
     for index, frame in enumerate(frames):
         next_frame = frames[index + 1] if index + 1 < len(frames) else int(terminal_frame)
@@ -548,7 +543,7 @@ def plan_reconstructed_action_export(
                 else:
                     diagnostics.extend(quaternion_diagnostics)
         if supported and not preserve_source_raw and buffer_type == 6:
-            required_delta = _max_encoded_delta(track, action_frame_count + 1)
+            required_delta = _max_encoded_delta(track, action_frame_count)
             if required_delta > 255:
                 supported = False
                 diagnostics.append(
@@ -568,7 +563,7 @@ def plan_reconstructed_action_export(
                 buffer_label=buffer_info.label if buffer_info is not None else "Unsupported",
                 keyframe_count=len(track.keyframes),
                 tail_in_action_header=bool(track.tail_frame is not None and track.tail_value is not None),
-                inject_leading_basis_keyframe=bool(track.keyframes and track.keyframes[0].frame > 1),
+                inject_leading_basis_keyframe=bool(track.keyframes and track.keyframes[0].frame > 0),
                 supported=supported and buffer_type is not None,
                 preserve_source_raw=preserve_source_raw,
                 notes=tuple(notes),

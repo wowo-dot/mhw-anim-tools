@@ -50,7 +50,7 @@ class LmtExportPlanTests(unittest.TestCase):
 
         self.assertEqual(plan.tracks[0].buffer_type, 3)
         self.assertTrue(plan.tracks[0].inject_leading_basis_keyframe)
-        self.assertIn("Writer must inject a leading hold key at frame 1.", plan.tracks[0].notes)
+        self.assertIn("Writer must inject a leading basis key at frame 0.", plan.tracks[0].notes)
 
     def test_basis_only_quaternion_track_uses_basis_quaternion_buffer(self):
         action = LmtReconstructedAction(
@@ -212,6 +212,8 @@ class LmtExportPlanTests(unittest.TestCase):
         self.assertIn("255-frame limit", plan.diagnostics[0].message)
 
     def test_source_u8_vector_lerp_is_preserved_when_values_fit(self):
+        first_value = (-1.0, 12.007843137254902, 106.0)
+        second_value = (1.0, 10.0, 101.50588235294117)
         action = LmtReconstructedAction(
             action_name="SourceVectorLerp",
             frame_start=0,
@@ -222,8 +224,8 @@ class LmtExportPlanTests(unittest.TestCase):
                     usage=1,
                     basis_value=(0.0, 0.0, 0.0),
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=1, value=(-1.0, 12.0, 106.0)),
-                        LmtReconstructedKeyframe(frame=4, value=(1.0, 10.0, 101.5)),
+                        LmtReconstructedKeyframe(frame=0, value=first_value),
+                        LmtReconstructedKeyframe(frame=3, value=second_value),
                     ),
                 ),
             ),
@@ -247,6 +249,7 @@ class LmtExportPlanTests(unittest.TestCase):
         self.assertEqual(plan.tracks[0].lerp_add, (-1.0, 10.0, 100.0, 0.0))
 
     def test_source_u8_vector_lerp_promotes_to_u16_when_delta_overflows(self):
+        first_value = (-1.0, 12.007843137254902, 106.0)
         action = LmtReconstructedAction(
             action_name="PromoteVectorLerp",
             frame_start=0,
@@ -255,9 +258,9 @@ class LmtExportPlanTests(unittest.TestCase):
                 LmtReconstructedTrack(
                     bone_id=3,
                     usage=1,
-                    basis_value=(-1.0, 12.0, 106.0),
+                    basis_value=first_value,
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=300, value=(-1.0, 12.0, 106.0)),
+                        LmtReconstructedKeyframe(frame=300, value=first_value),
                     ),
                 ),
             ),
@@ -456,7 +459,7 @@ class LmtExportPlanTests(unittest.TestCase):
                     usage=0,
                     basis_value=(1.0, 0.0, 0.0, 0.0),
                     keyframes=(
-                        LmtReconstructedKeyframe(frame=1, value=(0.993962, -0.035516, -0.000105, 0.002003)),
+                        LmtReconstructedKeyframe(frame=0, value=(0.993962, -0.035516, 0.002003, -0.000105)),
                     ),
                 ),
             ),
