@@ -11,11 +11,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 try:
+    from ..core.animation.transforms import transform_blender_pose_basis_root_quaternion_to_mhw_wxyz
     from ..core.animation.transforms import transform_blender_pose_basis_quaternion_to_mhw_wxyz
     from ..core.animation.transforms import transform_blender_pose_basis_scale_to_mhw
+    from ..core.animation.transforms import transform_blender_pose_delta_root_translation_to_mhw
     from ..core.animation.transforms import transform_blender_object_quaternion_to_mhw_wxyz
     from ..core.animation.transforms import transform_blender_object_translation_to_mhw
     from ..core.animation.transforms import transform_blender_pose_translation_delta_to_mhw
+    from ..core.animation.transforms import transform_mhw_root_quaternion_to_pose_basis_wxyz
+    from ..core.animation.transforms import transform_mhw_root_translation_to_pose_delta
     from ..core.animation.transforms import transform_mhw_pose_quaternion_to_basis_wxyz
     from ..core.animation.transforms import transform_mhw_pose_scale_to_basis
     from ..core.animation.transforms import transform_mhw_object_quaternion_wxyz
@@ -23,11 +27,15 @@ try:
     from ..core.animation.transforms import transform_mhw_pose_translation_to_delta
     from ..integration.mhw_bones import is_mhbone_name
 except ImportError:  # pragma: no cover - test runner imports from addon root
+    from core.animation.transforms import transform_blender_pose_basis_root_quaternion_to_mhw_wxyz
     from core.animation.transforms import transform_blender_pose_basis_quaternion_to_mhw_wxyz
     from core.animation.transforms import transform_blender_pose_basis_scale_to_mhw
+    from core.animation.transforms import transform_blender_pose_delta_root_translation_to_mhw
     from core.animation.transforms import transform_blender_object_quaternion_to_mhw_wxyz
     from core.animation.transforms import transform_blender_object_translation_to_mhw
     from core.animation.transforms import transform_blender_pose_translation_delta_to_mhw
+    from core.animation.transforms import transform_mhw_root_quaternion_to_pose_basis_wxyz
+    from core.animation.transforms import transform_mhw_root_translation_to_pose_delta
     from core.animation.transforms import transform_mhw_pose_quaternion_to_basis_wxyz
     from core.animation.transforms import transform_mhw_pose_scale_to_basis
     from core.animation.transforms import transform_mhw_object_quaternion_wxyz
@@ -111,20 +119,35 @@ def adapt_track_frames_for_target_space(armature_object, target, usage_info, fra
         if rest_transform is None:
             return frames
         baseline, rest_rotation, rest_scale = rest_transform
+        use_root_helper_space = str(getattr(usage_info, "scope", "") or "") == "root"
         for timing, value in frames:
             converted = tuple(float(component) for component in value)
             if usage_info.transform == "translation":
-                converted = transform_mhw_pose_translation_to_delta(
-                    converted,
-                    baseline,
-                    rest_rotation,
-                    rest_scale,
-                )
+                if use_root_helper_space:
+                    converted = transform_mhw_root_translation_to_pose_delta(
+                        converted,
+                        baseline,
+                        rest_rotation,
+                        rest_scale,
+                    )
+                else:
+                    converted = transform_mhw_pose_translation_to_delta(
+                        converted,
+                        baseline,
+                        rest_rotation,
+                        rest_scale,
+                    )
             elif usage_info.transform == "rotation" and usage_info.is_quaternion:
-                converted = transform_mhw_pose_quaternion_to_basis_wxyz(
-                    converted,
-                    rest_rotation,
-                )
+                if use_root_helper_space:
+                    converted = transform_mhw_root_quaternion_to_pose_basis_wxyz(
+                        converted,
+                        rest_rotation,
+                    )
+                else:
+                    converted = transform_mhw_pose_quaternion_to_basis_wxyz(
+                        converted,
+                        rest_rotation,
+                    )
             elif usage_info.transform == "scale":
                 converted = transform_mhw_pose_scale_to_basis(
                     converted,
@@ -156,20 +179,35 @@ def adapt_track_frames_for_export_space(armature_object, target, usage_info, fra
         if rest_transform is None:
             return frames
         baseline, rest_rotation, rest_scale = rest_transform
+        use_root_helper_space = str(getattr(usage_info, "scope", "") or "") == "root"
         for timing, value in frames:
             converted = tuple(float(component) for component in value)
             if usage_info.transform == "translation":
-                converted = transform_blender_pose_translation_delta_to_mhw(
-                    converted,
-                    baseline,
-                    rest_rotation,
-                    rest_scale,
-                )
+                if use_root_helper_space:
+                    converted = transform_blender_pose_delta_root_translation_to_mhw(
+                        converted,
+                        baseline,
+                        rest_rotation,
+                        rest_scale,
+                    )
+                else:
+                    converted = transform_blender_pose_translation_delta_to_mhw(
+                        converted,
+                        baseline,
+                        rest_rotation,
+                        rest_scale,
+                    )
             elif usage_info.transform == "rotation" and usage_info.is_quaternion:
-                converted = transform_blender_pose_basis_quaternion_to_mhw_wxyz(
-                    converted,
-                    rest_rotation,
-                )
+                if use_root_helper_space:
+                    converted = transform_blender_pose_basis_root_quaternion_to_mhw_wxyz(
+                        converted,
+                        rest_rotation,
+                    )
+                else:
+                    converted = transform_blender_pose_basis_quaternion_to_mhw_wxyz(
+                        converted,
+                        rest_rotation,
+                    )
             elif usage_info.transform == "scale":
                 converted = transform_blender_pose_basis_scale_to_mhw(
                     converted,

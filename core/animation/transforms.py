@@ -185,6 +185,36 @@ def transform_blender_pose_translation_delta_to_mhw(
     return scale_vector_xyz(absolute, inverse_scale)
 
 
+def transform_mhw_root_translation_to_pose_delta(
+    values: tuple[float, float, float],
+    rest_local_translation: tuple[float, float, float],
+    rest_local_rotation_wxyz: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0),
+    rest_local_scale_xyz: tuple[float, float, float] = (1.0, 1.0, 1.0),
+) -> tuple[float, float, float]:
+    world_translation = transform_mhw_object_translation(values)
+    local_offset = subtract_vector_xyz(world_translation, rest_local_translation)
+    unrotated = rotate_vector_by_quaternion_wxyz(
+        local_offset,
+        quaternion_inverse_wxyz(normalize_quaternion_wxyz(rest_local_rotation_wxyz)),
+    )
+    return divide_vector_xyz(unrotated, rest_local_scale_xyz)
+
+
+def transform_blender_pose_delta_root_translation_to_mhw(
+    values: tuple[float, float, float],
+    rest_local_translation: tuple[float, float, float],
+    rest_local_rotation_wxyz: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0),
+    rest_local_scale_xyz: tuple[float, float, float] = (1.0, 1.0, 1.0),
+) -> tuple[float, float, float]:
+    scaled_delta = multiply_vector_xyz(values, rest_local_scale_xyz)
+    rotated = rotate_vector_by_quaternion_wxyz(
+        scaled_delta,
+        normalize_quaternion_wxyz(rest_local_rotation_wxyz),
+    )
+    world_translation = add_vector_xyz(rotated, rest_local_translation)
+    return transform_blender_object_translation_to_mhw(world_translation)
+
+
 def transform_mhw_pose_quaternion_to_basis_wxyz(
     values: tuple[float, float, float, float],
     rest_local_rotation_wxyz: tuple[float, float, float, float],
@@ -203,6 +233,37 @@ def transform_blender_pose_basis_quaternion_to_mhw_wxyz(
     rest_rotation = normalize_quaternion_wxyz(rest_local_rotation_wxyz)
     transformed = quaternion_multiply_wxyz(rest_rotation, basis)
     return normalize_quaternion_wxyz(transformed)
+
+
+def transform_mhw_root_quaternion_to_pose_basis_wxyz(
+    values: tuple[float, float, float, float],
+    rest_local_rotation_wxyz: tuple[float, float, float, float],
+) -> tuple[float, float, float, float]:
+    current = normalize_quaternion_wxyz(values)
+    desired_rotation = quaternion_multiply_wxyz(
+        MHW_OBJECT_ROTATION_WXYZ,
+        quaternion_inverse_wxyz(current),
+    )
+    return transform_mhw_pose_quaternion_to_basis_wxyz(
+        desired_rotation,
+        rest_local_rotation_wxyz,
+    )
+
+
+def transform_blender_pose_basis_root_quaternion_to_mhw_wxyz(
+    values: tuple[float, float, float, float],
+    rest_local_rotation_wxyz: tuple[float, float, float, float],
+) -> tuple[float, float, float, float]:
+    desired_rotation = transform_blender_pose_basis_quaternion_to_mhw_wxyz(
+        values,
+        rest_local_rotation_wxyz,
+    )
+    return normalize_quaternion_wxyz(
+        quaternion_multiply_wxyz(
+            quaternion_inverse_wxyz(desired_rotation),
+            MHW_OBJECT_ROTATION_WXYZ,
+        )
+    )
 
 
 def transform_mhw_pose_scale_to_basis(

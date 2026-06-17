@@ -6,10 +6,14 @@ from core.animation.transforms import canonicalize_quaternion_frames_wxyz
 from core.animation.transforms import nlerp_quaternion_wxyz
 from core.animation.transforms import quaternion_multiply_wxyz
 from core.animation.transforms import transform_blender_pose_basis_quaternion_to_mhw_wxyz
+from core.animation.transforms import transform_blender_pose_basis_root_quaternion_to_mhw_wxyz
 from core.animation.transforms import transform_blender_pose_basis_scale_to_mhw
+from core.animation.transforms import transform_blender_pose_delta_root_translation_to_mhw
 from core.animation.transforms import transform_blender_object_quaternion_to_mhw_wxyz
 from core.animation.transforms import transform_blender_object_translation_to_mhw
 from core.animation.transforms import transform_blender_pose_translation_delta_to_mhw
+from core.animation.transforms import transform_mhw_root_quaternion_to_pose_basis_wxyz
+from core.animation.transforms import transform_mhw_root_translation_to_pose_delta
 from core.animation.transforms import transform_mhw_pose_quaternion_to_basis_wxyz
 from core.animation.transforms import transform_mhw_pose_scale_to_basis
 from core.animation.transforms import transform_mhw_object_quaternion_wxyz
@@ -116,6 +120,30 @@ class TransformHelpersTests(unittest.TestCase):
         self.assertAlmostEqual(mhw[1], 100.0, places=6)
         self.assertAlmostEqual(mhw[2], 0.0, places=6)
 
+    def test_transform_mhw_root_translation_to_pose_delta_respects_helper_rest_rotation(self):
+        rest_rotation = (0.7071067811865476, 0.7071067811865475, 0.0, 0.0)
+        delta = transform_mhw_root_translation_to_pose_delta(
+            (0.0, 100.0, 0.0),
+            (0.0, 0.0, 0.0),
+            rest_rotation,
+            (1.0, 1.0, 1.0),
+        )
+        self.assertAlmostEqual(delta[0], 0.0, places=6)
+        self.assertAlmostEqual(delta[1], 1.0, places=6)
+        self.assertAlmostEqual(delta[2], 0.0, places=6)
+
+    def test_transform_blender_pose_delta_root_translation_to_mhw_is_inverse(self):
+        rest_rotation = (0.7071067811865476, 0.7071067811865475, 0.0, 0.0)
+        mhw = transform_blender_pose_delta_root_translation_to_mhw(
+            (0.0, 1.0, 0.0),
+            (0.0, 0.0, 0.0),
+            rest_rotation,
+            (1.0, 1.0, 1.0),
+        )
+        self.assertAlmostEqual(mhw[0], 0.0, places=6)
+        self.assertAlmostEqual(mhw[1], 100.0, places=6)
+        self.assertAlmostEqual(mhw[2], 0.0, places=6)
+
     def test_transform_mhw_pose_quaternion_to_basis_uses_rest_rotation(self):
         rest_rotation = (0.7071067811865476, 0.0, 0.0, 0.7071067811865475)
         basis_rotation = (0.7071067811865476, 0.7071067811865475, 0.0, 0.0)
@@ -141,6 +169,33 @@ class TransformHelpersTests(unittest.TestCase):
         self.assertAlmostEqual(transformed[1], expected[1], places=6)
         self.assertAlmostEqual(transformed[2], expected[2], places=6)
         self.assertAlmostEqual(transformed[3], expected[3], places=6)
+
+    def test_transform_mhw_root_quaternion_to_pose_basis_preserves_helper_rest_identity_case(self):
+        rest_rotation = (0.7071067811865476, 0.7071067811865475, 0.0, 0.0)
+        converted = transform_mhw_root_quaternion_to_pose_basis_wxyz(
+            (1.0, 0.0, 0.0, 0.0),
+            rest_rotation,
+        )
+        self.assertAlmostEqual(converted[0], 1.0, places=6)
+        self.assertAlmostEqual(converted[1], 0.0, places=6)
+        self.assertAlmostEqual(converted[2], 0.0, places=6)
+        self.assertAlmostEqual(converted[3], 0.0, places=6)
+
+    def test_transform_blender_pose_basis_root_quaternion_to_mhw_is_inverse(self):
+        rest_rotation = (0.7071067811865476, 0.7071067811865475, 0.0, 0.0)
+        basis_rotation = (0.9238795325, 0.0, 0.3826834324, 0.0)
+        transformed = transform_blender_pose_basis_root_quaternion_to_mhw_wxyz(
+            basis_rotation,
+            rest_rotation,
+        )
+        roundtrip = transform_mhw_root_quaternion_to_pose_basis_wxyz(
+            transformed,
+            rest_rotation,
+        )
+        self.assertAlmostEqual(roundtrip[0], basis_rotation[0], places=6)
+        self.assertAlmostEqual(roundtrip[1], basis_rotation[1], places=6)
+        self.assertAlmostEqual(roundtrip[2], basis_rotation[2], places=6)
+        self.assertAlmostEqual(roundtrip[3], basis_rotation[3], places=6)
 
     def test_transform_mhw_pose_scale_to_basis_divides_rest_scale(self):
         converted = transform_mhw_pose_scale_to_basis(

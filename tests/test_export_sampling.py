@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 
+from blender_adapter.armature import MHW_ROOT_MOTION_BONE_NAME
 from blender_adapter.export_sampling import sample_action_for_lmt_export
 from blender_adapter.lmt_track_metadata import save_lmt_import_track_bindings
 
@@ -95,6 +96,31 @@ class ExportSamplingTests(unittest.TestCase):
         self.assertIn((0, 0), tracks)
         self.assertEqual(tracks[(-1, 4)].frames[1].value, (1.0, 2.0, 3.0))
         self.assertEqual(tracks[(0, 0)].frames[0].value, (1.0, 0.0, 0.0, 0.0))
+
+    def test_samples_synthetic_mhw_root_helper_as_root_track(self):
+        helper = FakeBone(MHW_ROOT_MOTION_BONE_NAME)
+        local = FakeBone("MhBone_000", parent=helper)
+        armature = FakeArmatureObject([helper, local])
+        action = FakeAction(
+            "HelperRootAction",
+            [
+                FakeFCurve(f'pose.bones["{MHW_ROOT_MOTION_BONE_NAME}"].location', 0, {0: 0.0, 1: 1.0}),
+                FakeFCurve(f'pose.bones["{MHW_ROOT_MOTION_BONE_NAME}"].location', 1, {0: 0.0, 1: 2.0}),
+                FakeFCurve(f'pose.bones["{MHW_ROOT_MOTION_BONE_NAME}"].location', 2, {0: 0.0, 1: 3.0}),
+                FakeFCurve('pose.bones["MhBone_000"].rotation_quaternion', 0, {0: 1.0, 1: 1.0}),
+                FakeFCurve('pose.bones["MhBone_000"].rotation_quaternion', 1, {0: 0.0, 1: 0.0}),
+                FakeFCurve('pose.bones["MhBone_000"].rotation_quaternion', 2, {0: 0.0, 1: 0.0}),
+                FakeFCurve('pose.bones["MhBone_000"].rotation_quaternion', 3, {0: 0.0, 1: 0.1}),
+            ],
+            frame_range=(0.0, 1.0),
+        )
+
+        result = sample_action_for_lmt_export(action, armature)
+
+        self.assertEqual(result.sampled_track_count, 2)
+        tracks = {(track.bone_id, track.usage): track for track in result.sampled_tracks}
+        self.assertIn((-1, 4), tracks)
+        self.assertIn((0, 0), tracks)
 
     def test_incomplete_channels_report_warning(self):
         root = FakeBone("Root")

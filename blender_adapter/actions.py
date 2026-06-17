@@ -10,6 +10,7 @@ try:
     from ..core.formats.lmt.decoder import decode_action_tracks
     from ..core.formats.lmt.export_context import find_duplicate_track_identities
     from ..core.formats.lmt.semantics import get_usage_semantics
+    from .armature import ensure_mhw_root_motion_bone
     from .armature import resolve_track_binding_target
     from .fcurves import build_channel_value_lists
     from .fcurves import assign_action
@@ -38,6 +39,7 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.lmt.decoder import decode_action_tracks
     from core.formats.lmt.export_context import find_duplicate_track_identities
     from core.formats.lmt.semantics import get_usage_semantics
+    from blender_adapter.armature import ensure_mhw_root_motion_bone
     from blender_adapter.armature import resolve_track_binding_target
     from blender_adapter.fcurves import build_channel_value_lists
     from blender_adapter.fcurves import assign_action
@@ -323,6 +325,22 @@ def import_lmt_action_to_armature(lmt, action_index: int, armature_object, *, so
 
     source_action = lmt.actions[action_index]
     decoded_action = decode_action_tracks(source_action, strict=False)
+    root_helper = ensure_mhw_root_motion_bone(armature_object)
+    if root_helper.error:
+        result.add(
+            "WARNING",
+            "armature",
+            (
+                "Could not prepare the synthetic MHW root-motion helper bone for this armature: "
+                f"{root_helper.error}"
+            ),
+        )
+    elif root_helper.created and root_helper.name:
+        result.add(
+            "INFO",
+            "armature",
+            f"Created synthetic root-motion helper bone '{root_helper.name}' for MHW import.",
+        )
     duplicate_track_identities = find_duplicate_track_identities(source_action)
     duplicate_identity_counts = {
         (int(bone_id), int(usage)): int(count)

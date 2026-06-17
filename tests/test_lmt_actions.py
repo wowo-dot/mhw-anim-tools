@@ -9,6 +9,7 @@ from unittest.mock import patch
 sys.modules.setdefault("bpy", MagicMock())
 
 from blender_adapter.actions import import_lmt_action_to_armature
+from blender_adapter.armature import MHW_ROOT_MOTION_BONE_NAME
 from blender_adapter.lmt_track_metadata import load_lmt_import_track_bindings
 from blender_adapter.lmt_track_metadata import save_lmt_import_track_bindings
 from core.formats.lmt.model import LmtAction
@@ -130,7 +131,7 @@ class LmtActionImportTests(unittest.TestCase):
             entry_offsets=(32,),
             actions=(action,),
         )
-        armature_object = _FakeArmature(bone_names=("MhBone_000",))
+        armature_object = _FakeArmature(bone_names=(MHW_ROOT_MOTION_BONE_NAME, "MhBone_000"))
         fake_action = _FakeAction("LMT::slot_bind::000")
         fake_animation_data = SimpleNamespace(action=None, action_slot=None, action_slot_handle=0)
 
@@ -388,7 +389,7 @@ class LmtActionImportTests(unittest.TestCase):
         self.assertIn(bindings[0]["property_name"], armature_object.pose.bones["MhBone_000"])
         self.assertTrue(any("stale raw duplicate-slot" in diagnostic.message for diagnostic in result.diagnostics))
 
-    def test_import_routes_local_root_collision_into_raw_slot_and_keeps_root_visible(self):
+    def test_import_binds_root_tracks_to_synthetic_helper_when_present(self):
         action = LmtAction(
             header=LmtActionHeader(
                 id=9,
@@ -417,18 +418,13 @@ class LmtActionImportTests(unittest.TestCase):
             entry_offsets=(32,),
             actions=(action,),
         )
-        armature_object = _FakeArmature(bone_names=("MhBone_000",))
+        armature_object = _FakeArmature(bone_names=(MHW_ROOT_MOTION_BONE_NAME, "MhBone_000"))
         fake_action = _FakeAction("LMT::collision::009")
         fake_animation_data = SimpleNamespace(action=None, action_slot=None, action_slot_handle=0)
         transform_calls = []
-        raw_calls = []
 
         def _create_transform(_action, *, bone_name: str, data_path_suffix: str, channel_values):
             transform_calls.append((bone_name, data_path_suffix, len(channel_values)))
-            return [object() for _ in channel_values]
-
-        def _create_action(_action, *, data_path: str, action_group: str, channel_values):
-            raw_calls.append((data_path, action_group, len(channel_values)))
             return [object() for _ in channel_values]
 
         with patch(
@@ -463,7 +459,7 @@ class LmtActionImportTests(unittest.TestCase):
                     ):
                         with patch(
                             "blender_adapter.actions.create_action_fcurves",
-                            side_effect=_create_action,
+                            return_value=[object(), object(), object(), object()],
                         ):
                             result = import_lmt_action_to_armature(
                                 lmt,
@@ -473,19 +469,23 @@ class LmtActionImportTests(unittest.TestCase):
                             )
 
         self.assertEqual(result.error_count, 0)
-        self.assertEqual(transform_calls, [("MhBone_000", "rotation_quaternion", 4)])
-        self.assertEqual(len(raw_calls), 1)
-        self.assertTrue(raw_calls[0][0].startswith('pose.bones["MhBone_000"]["lmt_raw_collision_a009_t00_b0_u0"]'))
+        self.assertEqual(
+            sorted(transform_calls),
+            sorted(
+                [
+                    (MHW_ROOT_MOTION_BONE_NAME, "rotation_quaternion", 4),
+                    ("MhBone_000", "rotation_quaternion", 4),
+                ]
+            ),
+        )
         bindings = load_lmt_import_track_bindings(fake_action)
         self.assertEqual(len(bindings), 2)
         by_track = {int(binding["track_index"]): binding for binding in bindings}
         self.assertEqual(by_track[1]["import_mode"], "armature")
-        self.assertEqual(by_track[1]["source_name"], "MhBone_000")
-        self.assertEqual(by_track[0]["import_mode"], "raw_duplicate")
-        self.assertEqual(by_track[0]["owner_kind"], "bone")
-        self.assertEqual(by_track[0]["owner_name"], "MhBone_000")
-        self.assertIn(by_track[0]["property_name"], armature_object.pose.bones["MhBone_000"])
-        self.assertTrue(any("collides with visible" in diagnostic.message for diagnostic in result.diagnostics))
+        self.assertEqual(by_track[1]["source_name"], MHW_ROOT_MOTION_BONE_NAME)
+        self.assertEqual(by_track[0]["import_mode"], "armature")
+        self.assertEqual(by_track[0]["source_name"], "MhBone_000")
+        self.assertFalse(any("collides with visible" in diagnostic.message for diagnostic in result.diagnostics))
 
 
 if __name__ == "__main__":
