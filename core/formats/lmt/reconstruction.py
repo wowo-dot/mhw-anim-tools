@@ -6,6 +6,8 @@ from ...animation.transforms import canonicalize_quaternion_frames_wxyz
 from ...animation.transforms import flip_quaternion_wxyz
 from ...animation.transforms import nlerp_quaternion_wxyz
 from ...animation.transforms import quaternion_dot_wxyz
+from ...animation.transforms import quaternion_norm_squared_wxyz
+from ...animation.transforms import QUATERNION_EPSILON
 from .reconstructed import LmtReconstructedAction
 from .reconstructed import LmtReconstructedKeyframe
 from .reconstructed import LmtReconstructedTrack
@@ -13,6 +15,7 @@ from .semantics import get_usage_semantics
 
 
 DEFAULT_RECONSTRUCTION_TOLERANCE = 1e-4
+RAW_SOURCE_QUATERNION_TOLERANCE = 1e-3
 
 
 def _normalized_frames(frames) -> list[tuple[int, tuple[float, ...]]]:
@@ -272,6 +275,25 @@ def _reconstruct_source_raw_quaternion_track(track) -> LmtReconstructedTrack | N
     )
 
 
+def _raw_quaternion_frames_are_source_sensitive(
+    track,
+    *,
+    tolerance: float = RAW_SOURCE_QUATERNION_TOLERANCE,
+) -> bool:
+    raw_frames = getattr(track, "raw_frames", ())
+    if not raw_frames:
+        return False
+    lower_bound = (1.0 - float(tolerance)) ** 2
+    upper_bound = (1.0 + float(tolerance)) ** 2
+    for sample in raw_frames:
+        norm_squared = quaternion_norm_squared_wxyz(tuple(float(component) for component in sample.value))
+        if norm_squared <= QUATERNION_EPSILON:
+            continue
+        if norm_squared < lower_bound or norm_squared > upper_bound:
+            return True
+    return False
+
+
 def reconstruct_sampled_action(
     *,
     action_name: str,
@@ -286,7 +308,10 @@ def reconstruct_sampled_action(
     for track in sampled_tracks:
         identity = (int(track.bone_id), int(track.usage))
         preserve_raw_quaternion_values = bool(getattr(track, "preserve_raw_quaternion_values", False))
-        if preserve_raw_quaternion_values or identity in raw_quaternion_source_identities:
+        raw_source_sensitive = preserve_raw_quaternion_values or (
+            identity in raw_quaternion_source_identities and _raw_quaternion_frames_are_source_sensitive(track)
+        )
+        if raw_source_sensitive:
             raw_track = _reconstruct_source_raw_quaternion_track(track)
             if raw_track is not None:
                 reconstructed_tracks.append(raw_track)

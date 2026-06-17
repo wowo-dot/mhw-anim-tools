@@ -184,8 +184,14 @@ def main():
             raise SystemExit("LMT export analysis should succeed even when TIML controller edits exist.")
         if "CANCELLED" not in analyze_timl_result:
             raise SystemExit("TIML controller export analysis should be blocked until TIML writing exists.")
-        if not any("ignores edited TIML controller curves" in item["message"] for item in lmt_diagnostics):
-            raise SystemExit("Expected LMT export analysis to warn that TIML controller edits are ignored.")
+        if not any(
+            (
+                "preserve the original embedded TIML payload" in item["message"]
+                or "include edited TIML transform data" in item["message"]
+            )
+            for item in lmt_diagnostics
+        ):
+            raise SystemExit("Expected LMT export analysis to report the matching TIML writeback/export behavior.")
         if not any("not implemented yet" in item["message"] for item in timl_diagnostics):
             raise SystemExit("Expected TIML export analysis to block unsupported TIML write-back.")
     finally:

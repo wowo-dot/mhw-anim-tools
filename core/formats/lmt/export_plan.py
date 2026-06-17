@@ -531,7 +531,7 @@ def plan_reconstructed_action_export(
                     tolerance=quaternion_lerp_tolerance,
                 )
                 notes.extend(quaternion_notes)
-                if raw_quaternion_source and buffer_type == 6:
+                if raw_quaternion_source and buffer_type == 6 and not _has_normalized_quaternion_values(track, quaternion_tolerance):
                     supported = False
                     diagnostics.append(
                         LmtExportPlanDiagnostic(

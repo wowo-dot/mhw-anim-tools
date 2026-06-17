@@ -218,6 +218,39 @@ class LmtReconstructionTests(unittest.TestCase):
         self.assertEqual(track.keyframes[0].value, (1.02, 0.01, 0.0, 0.0))
         self.assertEqual(track.keyframes[1].value, (0.97, 0.05, 0.0, 0.0))
 
+    def test_reconstruct_sampled_action_uses_normalized_visible_quaternion_frames_when_raw_magnitudes_are_gone(self):
+        reconstructed = reconstruct_sampled_action(
+            action_name="NormalizedVisibleQuatSource",
+            frame_start=0,
+            frame_end=4,
+            raw_quaternion_source_identities={(8, 0)},
+            sampled_tracks=[
+                FakeSampledTrack(
+                    bone_id=8,
+                    usage=0,
+                    frames=[
+                        FakeSampleFrame(0, (1.0, 0.0, 0.0, 0.0)),
+                        FakeSampleFrame(1, (0.99, 0.01, 0.0, 0.0)),
+                        FakeSampleFrame(4, (0.95, 0.05, 0.0, 0.0)),
+                    ],
+                    raw_frames=[
+                        FakeSampleFrame(0, (1.0, 0.0, 0.0, 0.0)),
+                        FakeSampleFrame(1, (0.999949, 0.0101, 0.0, 0.0)),
+                        FakeSampleFrame(2, (0.999804, 0.019799, 0.0, 0.0)),
+                        FakeSampleFrame(3, (0.999541, 0.030299, 0.0, 0.0)),
+                        FakeSampleFrame(4, (0.998618, 0.052559, 0.0, 0.0)),
+                    ],
+                    authored_frames=(0, 1, 4),
+                ),
+            ],
+        )
+
+        track = reconstructed.tracks[0]
+        self.assertAlmostEqual(track.basis_value[0], 1.0, places=6)
+        self.assertEqual([key.frame for key in track.keyframes], [1, 4])
+        self.assertAlmostEqual(track.keyframes[-1].value[0], 0.95, places=6)
+        self.assertFalse(track.preserve_raw_quaternion_values)
+
     def test_reconstruct_decoded_action_preserves_sparse_source_semantics(self):
         decoded = LmtDecodedAction(
             action_id=12,

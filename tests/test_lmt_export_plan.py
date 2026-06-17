@@ -524,6 +524,39 @@ class LmtExportPlanTests(unittest.TestCase):
         self.assertFalse(plan.tracks[0].supported)
         self.assertIn("refusing normalized q14 fallback", plan.diagnostics[0].message.lower())
 
+    def test_raw_sensitive_normalized_quaternion_track_can_fall_back_to_q14(self):
+        action = LmtReconstructedAction(
+            action_name="RawSourceQuatNormalizedFallback",
+            frame_start=0,
+            frame_end=8,
+            tracks=(
+                LmtReconstructedTrack(
+                    bone_id=3,
+                    usage=0,
+                    basis_value=(1.0, 0.0, 0.0, 0.0),
+                    keyframes=(
+                        LmtReconstructedKeyframe(frame=1, value=(0.99995, 0.01, 0.0, 0.0)),
+                    ),
+                ),
+            ),
+        )
+
+        plan = plan_reconstructed_action_export(
+            action,
+            track_metadata_by_identity={
+                (3, 0): {
+                    "buffer_type": 7,
+                    "lerp_mult": (1.0, 1.0, 1.0, 1.0),
+                    "lerp_add": (0.0, 0.0, 0.0, 0.0),
+                }
+            },
+            raw_quaternion_source_identities={(3, 0)},
+        )
+
+        self.assertEqual(plan.error_count, 0)
+        self.assertTrue(plan.tracks[0].supported)
+        self.assertIn(plan.tracks[0].buffer_type, {6, 7, 11, 12, 13, 14, 15})
+
 
 if __name__ == "__main__":
     unittest.main()
