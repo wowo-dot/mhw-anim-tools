@@ -7,8 +7,8 @@ This is the shortest path to the main v1 workflows.
 - Blender 4.5 LTS
 - the add-on installed and enabled
 - Monster Hunter World assets outside this repository
-- for import/edit/export, a target model imported through `MHW_Model_Editor`
-  is strongly recommended
+- for the main armature import/edit/export workflow, a target model imported
+  through `Blender MHW Model Editor` is required
 
 If you only want to inspect an `.lmt`, no target armature is required.
 If you want to inspect or edit a standalone `.timl`, no target armature is
@@ -37,7 +37,7 @@ This path is safe even without a target armature.
 
 ## Fastest way to import, edit, and export an action
 
-1. Import the target model through `MHW_Model_Editor`
+1. Import the target model through `Blender MHW Model Editor`
 2. In `Workspace`, choose the target armature or use `Use Active` /
    `Auto Detect`
 3. In `LMT Inspector`, click `Inspect LMT`

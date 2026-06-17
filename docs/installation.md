@@ -8,12 +8,12 @@ This add-on targets Blender 4.5 LTS.
 - this repository as a zip package or local add-on folder
 - Monster Hunter World assets outside the repository
 
-Recommended for the best armature/binding workflow:
+Required for the main armature import/edit/export workflow:
 
-- `MHW_Model_Editor` enabled in the same Blender install
+- `Blender MHW Model Editor` enabled in the same Blender install
 
-The add-on can still inspect LMT files without `MHW_Model_Editor`, but the
-main LMT import/edit/export path is most reliable on MHW-style armatures
+The add-on can still inspect LMT files without `Blender MHW Model Editor`, but
+the main supported LMT import/edit/export path depends on MHW-style armatures
 imported through that toolchain.
 
 For `v1.0.0`, Blender 4.5 LTS is the supported and tested release target.
@@ -45,7 +45,7 @@ After enabling the add-on:
 
 1. Open the `MHW Anim Tools` sidebar panel
 2. Confirm `Inspect LMT` is visible
-3. If you also use `MHW_Model_Editor`, import a known `.mod3` target and make
+3. If you also use `Blender MHW Model Editor`, import a known `.mod3` target and make
    sure the target armature picker sees it
 
 ## Read next

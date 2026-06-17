@@ -12,8 +12,8 @@ Main UI location:
 2. In the `MHW Anim Tools` sidebar, choose the target armature
 3. Use `Use Active` or `Auto Detect` if needed
 
-Best results come from MHW-style armatures imported through
-`MHW_Model_Editor`.
+The main supported armature workflow uses MHW-style armatures imported through
+`Blender MHW Model Editor`.
 
 ## 2. Inspect the source LMT
 

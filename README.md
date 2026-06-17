@@ -70,6 +70,7 @@ Current release-confidence highlights:
 - Lukas Cone, [MT Framework tools](https://lukascone.wordpress.com/2017/06/18/mt-framework-tools/)
 - Stracker, [MHW-LMT-Loader](https://github.com/Strackeror/MHW-LMT-Loader)
 - Silvris, [TIMLJSON](https://github.com/Silvris/TIMLJSON)
+- korone, [Blender MHW Model Editor](https://www.nexusmods.com/monsterhunterworld/mods/8390)
 - MHW modding community ([Discord](https://discord.gg/gJwMdhK))
 - [Monster Hunter World Modding Wiki](https://github.com/Ezekial711/MonsterHunterWorldModding/wiki)
 - Daenius <3
@@ -85,8 +86,10 @@ If you want to support ongoing maintenance of the project, there is also a
 Main supported workflows:
 
 - inspect `.lmt` files, browse entries/tracks, and read diagnostics
-- import one action or all actions from a source `.lmt`
-- edit supported LMT motion channels and write the full source `.lmt` back
+- import one action or all actions from a source `.lmt` on armatures imported
+  through `Blender MHW Model Editor`
+- edit supported LMT motion channels and write the full source `.lmt` back on
+  that same armature path
 - import attached TIML into controller actions, edit it in the TIML Workspace,
   and write those edits back during source-backed LMT export
 - inspect standalone `.timl` files, import selected entries into the same TIML
@@ -98,7 +101,7 @@ LMT import currently supports:
 - supported decoded rotation / translation / scale tracks only
 - MhBone / BoneFunction track binding plus root-track fallback
 - object-level root-motion binding on MHW-style armatures that do not expose an explicit `Root` bone
-- `MHW_Model_Editor` pose-space adaptation for MOD3-imported `MhBone_*`
+- `Blender MHW Model Editor` pose-space adaptation for MOD3-imported `MhBone_*`
   armatures:
   local translation samples are converted from game-unit rest positions into
   Blender pose deltas, while root object motion is converted through the MOD3
@@ -108,12 +111,15 @@ LMT import currently supports:
 - selected-action binding preview against the chosen target armature
 - synthetic and live MOD3 smoke coverage for the importer path
 
+The main supported armature workflow depends on models imported through
+`Blender MHW Model Editor`.
+
 LMT export currently supports:
 
 - selected Blender Action sampling for rotation / translation / scale tracks only
 - root-track recovery from either an explicit `Root` pose bone or armature-object motion
 - MhBone / BoneFunction local track recovery from supported action paths
-- inverse `MHW_Model_Editor` space adaptation for MOD3-imported `MhBone_*`
+- inverse `Blender MHW Model Editor` space adaptation for MOD3-imported `MhBone_*`
   armatures
 - sparse reconstruction back into LMT-style basis / key / root-tail semantics
 - conservative export planning that chooses candidate buffer families per track and reports unsupported shapes before binary writing
@@ -195,7 +201,7 @@ See also:
 
 - `core/`: binary, diagnostics, and format logic
 - `blender_adapter/`: Blender-facing translation layers
-- `integration/`: MHW_Model_Editor and MhBone discovery helpers
+- `integration/`: Blender MHW Model Editor and MhBone discovery helpers
 - `ui/`: Blender panels, operators, and scene properties
 - `tests/`: core tests and fixtures
 - `tools/`: internal smoke tests, corpus scans, and validation helpers

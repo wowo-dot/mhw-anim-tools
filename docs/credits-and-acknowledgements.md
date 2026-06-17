@@ -8,13 +8,14 @@ workflows in Blender.
 - Lukas Cone, [MT Framework tools](https://lukascone.wordpress.com/2017/06/18/mt-framework-tools/)
 - Stracker, [MHW-LMT-Loader](https://github.com/Strackeror/MHW-LMT-Loader)
 - Silvris, [TIMLJSON](https://github.com/Silvris/TIMLJSON)
+- korone, [Blender MHW Model Editor](https://www.nexusmods.com/monsterhunterworld/mods/8390)
 - MHW modding community ([Discord](https://discord.gg/gJwMdhK))
 - [Monster Hunter World Modding Wiki](https://github.com/Ezekial711/MonsterHunterWorldModding/wiki)
 - Daenius <3
 
 ## Thanks
 
-- the `MHW_Model_Editor` toolchain and its maintainers, whose armature/import
+- the `Blender MHW Model Editor` toolchain and its maintainers, whose armature/import
   conventions make the Blender-side workflow much more usable
 - Blender and the Blender Foundation for the host application and Python API
 - everyone who provided real assets, failure cases, and workflow feedback while

@@ -20,7 +20,7 @@ Notes:
 
 - `LMT Inspector` works without a target armature
 - import/export workflows are best on MHW-style armatures imported through
-  `MHW_Model_Editor`
+  `Blender MHW Model Editor`
 - `Write Full LMT` is the main supported export path
 
 ## TIML Workspace
