@@ -21,7 +21,7 @@ Use it to track:
 Observed on `2026-06-17`:
 
 - `python -m compileall -q .` passed
-- `python -m unittest discover -s tests -v` passed with `244/244` tests green
+- `python -m unittest discover -s tests -v` passed with `265/265` tests green
 - Blender 4.5 register smoke passed
 - full-source export is now explicit in the main export workflow
 - baseline live-asset smokes passed:
@@ -29,6 +29,10 @@ Observed on `2026-06-17`:
   - attached TIML controller import
   - source-backed merge export
   - writer/read-decode roundtrip
+- additional live-asset LMT smoke passes now include:
+  - `stm730_084_00` sampled export readiness with q14 fallback warnings instead of a hard failure
+  - `em080_00` source-backed merge export / reimport
+  - `em013_03` source-backed merge export / reimport
 - real-asset shared TIML suite passed `4/4` selected cases:
   - `npc018_09_st`
   - `npc016_09`
@@ -64,6 +68,10 @@ Observed on `2026-06-17`:
   - remaining unsupported families are a narrow quaternion edge-case set:
     - non-normalized root-rotation planning in parts of the `em037` corpus
     - raw source-aware quaternion lerp fits that still refuse the current q14 fallback in a handful of actions
+- targeted rechecks during the release-candidate sweep confirmed:
+  - `em037_09` still reproduces the root-rotation normalization planning edge case
+  - `em100_05` still reproduces the raw quaternion lerp-basis edge case
+  - checked copies of `evm067_00`, `otomo000_00`, and `wp_one000` passed the narrow writer-readiness probe
 
 Useful note:
 
@@ -97,10 +105,10 @@ paths used for the final smoke runs and keep the release notes generic.
 | LMT import | Selected action import into MHW-style armature | `stm730_084_00` plus embedded TIML suite examples | `tools/smoke_import_selected_action.py`, live TIML suite imports, importer unit coverage | Playback/pose sanity across a broader asset spread | `Partial` |
 | LMT import | Import all actions from one source LMT | synthetic multi-action source | `tools/smoke_import_all_actions.py` | one real multi-action user workflow pass in Blender | `Partial` |
 | LMT import | MOD3/MhBone armature binding and pose-space adaptation | `stm730_084_00` | live MOD3 smoke coverage through importer/export tools | confirm on a second and third armature family | `Partial` |
-| LMT export | Analyze export readiness from selected Blender action | synthetic + live imported actions | export-prep unit tests, `tools/smoke_sample_export_action.py`, `tools/smoke_timl_export_readiness.py` | user-facing workflow sanity in Blender UI | `Automated` |
+| LMT export | Analyze export readiness from selected Blender action | synthetic + live imported actions | export-prep unit tests, `tools/smoke_sample_export_action.py`, `tools/smoke_timl_export_readiness.py`, live `stm730_084_00` sampled-export smoke | user-facing workflow sanity in Blender UI | `Automated` |
 | LMT export | Standalone export safety blocking | synthetic source contexts | `tests/test_lmt_export_context.py`, export workflow tests | none beyond normal regression checking | `Automated` |
 | LMT export | Source-backed merge export with sibling preservation | synthetic shared-container source + live assets | `tests/test_lmt_merge_writer.py`, `tools/smoke_merge_export_selected_action.py`, live TIML merge smokes | broader real-asset export/reimport spread | `Partial` |
-| LMT export | Writer/read-decode roundtrip for supported track families | synthetic actions and imported actions | writer unit tests, `tools/smoke_write_lmt_roundtrip.py` | confirm semantics on more edited real assets | `Partial` |
+| LMT export | Writer/read-decode roundtrip for supported track families | synthetic actions and imported actions | writer unit tests, `tools/smoke_write_lmt_roundtrip.py`, live `stm730_084_00` writer roundtrip smoke | confirm semantics on more edited real assets | `Partial` |
 | TIML import | Attached TIML controller import | `stm730_084_00` plus embedded TIML corpus examples | `tools/smoke_import_attached_timl.py`, TIML reader/validation tests | spot-check controller organization in Blender | `Automated` |
 | TIML analysis | Controller analysis and writeback classification | imported controller actions | `tools/smoke_analyze_timl_controller.py`, `tests/test_timl_writeback_plan.py`, `tests/test_timl_ui_labels.py` | none beyond normal UI sanity | `Automated` |
 | TIML writeback | Preserve raw unchanged payloads | synthetic embedded payloads + live source-backed export | `tests/test_lmt_merge_writer.py`, `tests/test_timl_writeback.py` | spot-check a no-edit export on a live asset | `Partial` |
@@ -118,6 +126,9 @@ current blockers are mostly validation and workflow confidence:
 1. broader real-asset export/reimport coverage across multiple asset families
 2. manual Blender playback checks for root motion and quaternion-heavy actions
 3. one clean fresh-install test from a packaged zip
+4. a release decision on whether the remaining confirmed quaternion-edge corpus
+   cases (`em037` family plus at least one `em100_05` action) are documented
+   exceptions or a v1 blocker
 4. final release-note polish and public packaging cleanup
 
 ## Suggested release-candidate run order

@@ -73,3 +73,9 @@ hard blocker." The current warning is simpler:
 
 - duplicate source tracks are now a technical Graph Editor path
 - the remaining release-risk family is a much smaller quaternion edge-case set
+
+One useful recent sanity note:
+
+- the baseline live sampled-export / writer-roundtrip path for `stm730_084_00`
+  no longer hard-fails after import; the current behavior is a warning-backed
+  fallback to `q14` quaternion keys on the affected visible Blender lanes
