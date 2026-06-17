@@ -67,7 +67,18 @@ Current release-confidence highlights:
 
 ## Credits
 
-Project lineage and acknowledgements are collected in
+- Lukas Cone, author of MT Framework tools
+- AsteriskAmpersand, author of Free Hyperkinetics
+- Free Hyperkinetics credits Stracker and PredatorCZ for background format
+  work, including datatype research
+- Free Hyperkinetics credits Silvris for TIML work used as the basis of its
+  TIMLWorks engine
+- Free Hyperkinetics credits DMQW ICE for EFX work used in its TIMLWorks
+  engine
+- Free Hyperkinetics credits LyraVeil for edge cases and issues from earlier
+  import-only tools
+
+More project notes and acknowledgements are collected in
 [Credits And Acknowledgements](docs/credits-and-acknowledgements.md).
 
 ## Supported Today
