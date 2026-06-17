@@ -22,6 +22,7 @@ If you are new to the add-on, use these first:
 - [TIML In LMT Workflow](docs/workflow-timl-in-lmt.md)
 - [Testing And Caveats](docs/testing-and-caveats.md)
 - [Known Warnings](docs/known-warnings.md)
+- [Credits And Acknowledgements](docs/credits-and-acknowledgements.md)
 
 Main UI locations in Blender:
 
@@ -41,19 +42,6 @@ Common first tasks:
 - save a standalone TIML session: `Export > Export TIML`
 - export the edited source file: `Export > Write Full LMT`
 - check for add-on updates: `Edit > Preferences > Add-ons > MHW Anim Tools`
-
-## Documentation
-
-User-facing docs:
-
-- [Installation](docs/installation.md)
-- [Quickstart](docs/quickstart.md)
-- [Feature Map](docs/feature-map.md)
-- [Basic LMT Workflow](docs/workflow-lmt.md)
-- [TIML In LMT Workflow](docs/workflow-timl-in-lmt.md)
-- [Testing And Caveats](docs/testing-and-caveats.md)
-- [Known Warnings](docs/known-warnings.md)
-- [Credits And Acknowledgements](docs/credits-and-acknowledgements.md)
 
 ## Validation Snapshot
 
@@ -79,19 +67,8 @@ Current release-confidence highlights:
 
 ## Credits
 
-- Lukas Cone, author of MT Framework tools
-- AsteriskAmpersand, author of Free Hyperkinetics
-- Free Hyperkinetics credits Stracker and PredatorCZ for background format
-  work, including datatype research
-- Free Hyperkinetics credits Silvris for TIML work used as the basis of its
-  TIMLWorks engine
-- Free Hyperkinetics credits DMQW ICE for EFX work used in its TIMLWorks
-  engine
-- Free Hyperkinetics credits LyraVeil for edge cases and issues from earlier
-  import-only tools
-
-If you want to support ongoing maintenance of the project, there is also a
-[Patreon](https://www.patreon.com/wowowiwa).
+Project lineage and acknowledgements are collected in
+[Credits And Acknowledgements](docs/credits-and-acknowledgements.md).
 
 ## Supported Today
 
@@ -177,8 +154,8 @@ Current limits:
 
 ## Main Caveats
 
-The current `v1` caveats are mostly about representation and workflow surface,
-not broad read/write correctness:
+The current release caveats are mostly about representation and workflow
+surface, not broad read/write correctness:
 
 - the main supported export path is still `Write Full LMT` on source-backed
   imported actions
