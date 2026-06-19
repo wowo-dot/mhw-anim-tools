@@ -252,13 +252,68 @@ def _standalone_metadata_from_context(
     )
 
 
+def _standalone_metadata_result(
+    fallback_context: LmtSourceActionExportContext | None,
+    report: Report,
+    *,
+    imported_source_identity: SourceFileIdentity | None = None,
+) -> tuple[ExportSourceMetadata, Report]:
+    return _standalone_metadata_from_context(
+        fallback_context,
+        report=report,
+        imported_source_identity=imported_source_identity,
+    ), report
+
+
+def _resolved_action_entry_id(action, *, default: int = 0) -> tuple[int, bool]:
+    raw_value = _safe_action_get(action, "mhw_anim_tools_entry_id", default)
+    try:
+        return int(raw_value), True
+    except (TypeError, ValueError):
+        return int(default), False
+
+
+def _load_source_container(
+    source_path: str,
+    *,
+    source_cache: dict[str, tuple[bytes, object]] | None = None,
+) -> tuple[bytes, object]:
+    cached_source = source_cache.get(source_path) if source_cache is not None else None
+    if cached_source is not None:
+        return cached_source
+    source_bytes = Path(source_path).read_bytes()
+    lmt = read_lmt_bytes(source_bytes, source_name=source_path)
+    if source_cache is not None:
+        source_cache[source_path] = (source_bytes, lmt)
+    return source_bytes, lmt
+
+
+def _validate_duplicate_track_bindings(action, source_context: LmtSourceActionExportContext, report: Report) -> None:
+    if not source_context.duplicate_track_identities:
+        return
+    import_track_bindings = load_lmt_import_track_bindings(action)
+    if bindings_cover_duplicate_identities(import_track_bindings, source_context.duplicate_track_identities):
+        return
+    duplicate_labels = ", ".join(
+        f"bone_id={bone_id}, usage={usage}, count={count}"
+        for bone_id, usage, count in source_context.duplicate_track_identities
+    )
+    report.add_error(
+        "lmt.export.track_identity",
+        (
+            "Source action contains duplicate raw track identities, but this imported Blender action does not "
+            f"carry the required per-track raw-slot bindings yet: {duplicate_labels}. Re-import the action "
+            "to refresh its raw duplicate-slot bindings."
+        ),
+    )
+
+
 def resolve_source_action_export_metadata(
     scene_props,
     action,
     *,
     source_cache: dict[str, tuple[bytes, object]] | None = None,
 ) -> tuple[ExportSourceMetadata, Report]:
-    metadata = _default_export_metadata()
     report = Report()
     source_path = ""
     entry_id = 0
@@ -266,10 +321,9 @@ def resolve_source_action_export_metadata(
     imported_source_identity = load_source_file_identity(action) if action is not None else None
     source_required = _imported_lmt_action_requires_source(action)
     if action is not None:
-        source_path = str(action.get("mhw_anim_tools_source_lmt", ""))
-        try:
-            entry_id = int(action.get("mhw_anim_tools_entry_id", 0))
-        except (TypeError, ValueError):
+        source_path = _safe_action_source_lmt(action)
+        entry_id, valid_entry_metadata = _resolved_action_entry_id(action, default=0)
+        if not valid_entry_metadata:
             if source_required:
                 report.add_error(
                     "lmt.export.source_entry",
@@ -278,16 +332,15 @@ def resolve_source_action_export_metadata(
                         "Re-inspect and re-import before exporting."
                     ),
                 )
-                return _standalone_metadata_from_context(
+                return _standalone_metadata_result(
                     fallback_context,
-                    report=report,
                     imported_source_identity=imported_source_identity,
-                ), report
+                    report=report,
+                )
             report.add_warning(
                 "lmt.export.source_entry",
                 f"Action '{action.name}' has invalid source entry metadata; exporting with entry 0 defaults.",
             )
-            entry_id = 0
     if not source_required and not source_path and scene_props.last_lmt_path:
         source_path = scene_props.last_lmt_path
         if scene_props.lmt_entries and 0 <= scene_props.selected_entry_index < len(scene_props.lmt_entries):
@@ -299,21 +352,21 @@ def resolve_source_action_export_metadata(
                 "lmt.export.source_path",
                 "Imported LMT action is missing its source path metadata. Re-inspect and re-import before exporting.",
             )
-            return _standalone_metadata_from_context(
+            return _standalone_metadata_result(
                 fallback_context,
-                report=report,
                 imported_source_identity=imported_source_identity,
-            ), report
+                report=report,
+            )
         if fallback_context is not None:
             report.add_warning(
                 "lmt.export.source_path",
                 "Source LMT path is unavailable; exporting with cached container metadata and default track metadata.",
             )
-        return _standalone_metadata_from_context(
+        return _standalone_metadata_result(
             fallback_context,
-            report=report,
             imported_source_identity=imported_source_identity,
-        ), report
+            report=report,
+        )
 
     if source_required and imported_source_identity is None:
         report.add_error(
@@ -325,34 +378,30 @@ def resolve_source_action_export_metadata(
         )
 
     try:
-        cached_source = source_cache.get(source_path) if source_cache is not None else None
-        if cached_source is None:
-            source_bytes = Path(source_path).read_bytes()
-            lmt = read_lmt_bytes(source_bytes, source_name=source_path)
-            if source_cache is not None:
-                source_cache[source_path] = (source_bytes, lmt)
-        else:
-            source_bytes, lmt = cached_source
+        source_bytes, lmt = _load_source_container(
+            source_path,
+            source_cache=source_cache,
+        )
     except (OSError, ValueError, TypeError, BinaryFormatError) as exc:
         if source_required:
             report.add_error(
                 "lmt.export.source_read",
                 f"Could not read the imported source LMT '{source_path}'. Re-inspect and re-import before exporting ({exc}).",
             )
-            return _standalone_metadata_from_context(
+            return _standalone_metadata_result(
                 fallback_context,
-                report=report,
                 imported_source_identity=imported_source_identity,
-            ), report
+                report=report,
+            )
         report.add_warning(
             "lmt.export.source_read",
             f"Could not reuse source LMT metadata from '{source_path}'; exporting with defaults instead ({exc}).",
         )
-        return _standalone_metadata_from_context(
+        return _standalone_metadata_result(
             fallback_context,
-            report=report,
             imported_source_identity=imported_source_identity,
-        ), report
+            report=report,
+        )
 
     resolved_source_identity = source_file_identity_from_bytes(source_bytes)
     if imported_source_identity is not None and resolved_source_identity != imported_source_identity:
@@ -369,20 +418,20 @@ def resolve_source_action_export_metadata(
                 "lmt.export.source_entry",
                 f"Could not find imported source entry {entry_id} in '{source_path}'. Re-inspect and re-import before exporting.",
             )
-            return _standalone_metadata_from_context(
+            return _standalone_metadata_result(
                 fallback_context,
-                report=report,
                 imported_source_identity=imported_source_identity,
-            ), report
+                report=report,
+            )
         report.add_warning(
             "lmt.export.source_entry",
             f"Could not find source LMT entry {entry_id} in '{source_path}'; exporting with default metadata.",
         )
-        return _standalone_metadata_from_context(
+        return _standalone_metadata_result(
             fallback_context,
-            report=report,
             imported_source_identity=imported_source_identity,
-        ), report
+            report=report,
+        )
 
     metadata = ExportSourceMetadata(
         version=source_context.version,
@@ -400,21 +449,7 @@ def resolve_source_action_export_metadata(
         resolved_source_identity=resolved_source_identity,
         export_mode="merge",
     )
-    if source_context.duplicate_track_identities:
-        import_track_bindings = load_lmt_import_track_bindings(action)
-        if not bindings_cover_duplicate_identities(import_track_bindings, source_context.duplicate_track_identities):
-            duplicate_labels = ", ".join(
-                f"bone_id={bone_id}, usage={usage}, count={count}"
-                for bone_id, usage, count in source_context.duplicate_track_identities
-            )
-            report.add_error(
-                "lmt.export.track_identity",
-                (
-                    "Source action contains duplicate raw track identities, but this imported Blender action does not "
-                    f"carry the required per-track raw-slot bindings yet: {duplicate_labels}. Re-import the action "
-                    "to refresh its raw duplicate-slot bindings."
-                ),
-            )
+    _validate_duplicate_track_bindings(action, source_context, report)
     return metadata, report
 
 

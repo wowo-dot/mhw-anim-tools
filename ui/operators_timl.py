@@ -260,6 +260,89 @@ def _timl_workspace_name() -> str:
     return "TIML"
 
 
+def _workspace_pointer(workspace) -> int:
+    pointer_getter = getattr(workspace, "as_pointer", None)
+    if not callable(pointer_getter):
+        return 0
+    try:
+        return int(pointer_getter())
+    except (TypeError, ValueError, RuntimeError):
+        return 0
+
+
+def _is_new_workspace_candidate(workspace, *, existing_workspace_ids: set[int], existing_workspace_names: set[str]) -> bool:
+    if workspace is None:
+        return False
+    pointer = _workspace_pointer(workspace)
+    if pointer and pointer not in existing_workspace_ids:
+        return True
+    name = str(getattr(workspace, "name", "") or "")
+    return bool(name) and name not in existing_workspace_names
+
+
+def _duplicated_workspace(window, *, existing_workspace_ids: set[int], existing_workspace_names: set[str]):
+    active_workspace = getattr(window, "workspace", None)
+    if _is_new_workspace_candidate(
+        active_workspace,
+        existing_workspace_ids=existing_workspace_ids,
+        existing_workspace_names=existing_workspace_names,
+    ):
+        return active_workspace
+
+    return next(
+        (
+            workspace_item
+            for workspace_item in bpy.data.workspaces
+            if _is_new_workspace_candidate(
+                workspace_item,
+                existing_workspace_ids=existing_workspace_ids,
+                existing_workspace_names=existing_workspace_names,
+            )
+        ),
+        None,
+    )
+
+
+def _schedule_timl_workspace_configuration(window, workspace, scene=None, controller_name: str = "") -> None:
+    state = {"attempts_remaining": 12}
+
+    def _configure_once():
+        try:
+            if window is None or workspace is None:
+                return None
+
+            if getattr(window, "workspace", None) != workspace:
+                window.workspace = workspace
+                state["attempts_remaining"] -= 1
+                return 0.05 if state["attempts_remaining"] > 0 else None
+
+            screen = getattr(window, "screen", None)
+            configured = _configure_timl_screen(screen)
+            configured = _configure_timl_workspace(workspace, window=window) or configured
+            graph_ready = bool(_graph_editor_areas(screen)) if screen is not None else False
+            action_ready = _configure_timl_action_editor(screen)
+
+            if not (configured and graph_ready and action_ready):
+                state["attempts_remaining"] -= 1
+                return 0.05 if state["attempts_remaining"] > 0 else None
+
+            if scene is not None and controller_name:
+                scene_props = getattr(scene, "mhw_anim_tools", None)
+                if (
+                    scene_props is not None
+                    and str(scene_props.last_timl_analysis_controller_name or "") != str(controller_name)
+                ):
+                    try:
+                        bpy.ops.mhw_anim_tools.analyze_timl_controller()
+                    except RuntimeError:
+                        pass
+            return None
+        except ReferenceError:
+            return None
+
+    bpy.app.timers.register(_configure_once, first_interval=0.05)
+
+
 def _largest_area(screen, *, excluding: set[str] | None = None):
     excluding = excluding or set()
     candidates = [
@@ -309,11 +392,6 @@ def _configure_timl_action_editor(screen):
         for space in getattr(area, "spaces", ()):
             if getattr(space, "type", "") != "DOPESHEET_EDITOR":
                 continue
-            if hasattr(space, "ui_mode"):
-                try:
-                    space.ui_mode = "ACTION"
-                except TypeError:
-                    pass
             if hasattr(space, "mode"):
                 try:
                     space.mode = "ACTION"
@@ -322,8 +400,7 @@ def _configure_timl_action_editor(screen):
     return bool(areas)
 
 
-def _configure_timl_workspace(window):
-    screen = getattr(window, "screen", None)
+def _configure_timl_screen(screen):
     if screen is None:
         return False
     if not _graph_editor_areas(screen):
@@ -345,33 +422,48 @@ def _configure_timl_workspace(window):
     return bool(_graph_editor_areas(screen))
 
 
-def _ensure_timl_workspace(context):
+def _configure_timl_workspace(workspace, window=None):
+    configured = False
+    screens = tuple(getattr(workspace, "screens", ())) if workspace is not None else ()
+    if not screens and window is not None:
+        fallback_screen = getattr(window, "screen", None)
+        screens = (fallback_screen,) if fallback_screen is not None else ()
+    for screen in screens:
+        configured = _configure_timl_screen(screen) or configured
+    return configured
+
+
+def _ensure_timl_workspace(context, *, controller_name: str = ""):
     window = getattr(context, "window", None)
     if window is None:
         return False, "No active Blender window is available."
 
     workspace = bpy.data.workspaces.get(_timl_workspace_name())
     if workspace is None:
-        existing_workspace_ids = {workspace_item.as_pointer() for workspace_item in bpy.data.workspaces}
+        existing_workspace_ids = {_workspace_pointer(workspace_item) for workspace_item in bpy.data.workspaces}
+        existing_workspace_names = {
+            str(getattr(workspace_item, "name", "") or "")
+            for workspace_item in bpy.data.workspaces
+        }
         try:
             bpy.ops.workspace.duplicate()
         except RuntimeError as exc:
             return False, f"Could not create a TIML workspace: {exc}"
-        workspace = next(
-            (
-                workspace_item
-                for workspace_item in bpy.data.workspaces
-                if workspace_item.as_pointer() not in existing_workspace_ids
-            ),
-            None,
+        workspace = _duplicated_workspace(
+            window,
+            existing_workspace_ids=existing_workspace_ids,
+            existing_workspace_names=existing_workspace_names,
         )
         if workspace is None:
             return False, "TIML workspace duplication succeeded, but the new workspace could not be identified."
         workspace.name = _timl_workspace_name()
     window.workspace = workspace
-    configured = _configure_timl_workspace(window)
-    if not configured:
-        return False, "TIML workspace opened, but no Graph Editor area could be prepared."
+    _schedule_timl_workspace_configuration(
+        window,
+        workspace,
+        scene=getattr(context, "scene", None),
+        controller_name=controller_name,
+    )
     return True, ""
 
 
@@ -944,17 +1036,13 @@ class MHWANIMTOOLS_OT_open_timl_workspace(bpy.types.Operator):
         if controller is not None:
             scene_props.timl_controller = controller
             _set_active_controller(context, controller)
-        success, message = _ensure_timl_workspace(context)
+        target_controller_name = controller.name if controller is not None else ""
+        success, message = _ensure_timl_workspace(context, controller_name=target_controller_name)
         if not success:
             scene_props.last_status = message
             add_diagnostic(scene_props, "WARNING", "timl.workspace", message)
             self.report({"WARNING"}, message)
             return {"CANCELLED"}
-        if controller is not None and scene_props.last_timl_analysis_controller_name != controller.name:
-            try:
-                bpy.ops.mhw_anim_tools.analyze_timl_controller()
-            except RuntimeError:
-                pass
         controller_name = scene_props.timl_controller.name if scene_props.timl_controller is not None else "none"
         scene_props.last_status = f"Opened TIML workspace for controller {controller_name}."
         self.report({"INFO"}, scene_props.last_status)

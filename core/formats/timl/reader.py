@@ -67,39 +67,35 @@ def _read_entry_offsets(reader: BinaryReader, header: TimlHeader) -> tuple[int, 
 
 
 def _read_keyframe(reader: BinaryReader, offset: int, data_type: int) -> TimlKeyframe:
-    if data_type == 0:
-        value, control_left, control_right, frame_timing, interpolation, easing = reader.read_struct_at(
-            offset,
-            SIGNED_KEYFRAME_STRUCT,
-        )
-    elif data_type == 1:
-        value, control_left, control_right, frame_timing, interpolation, easing = reader.read_struct_at(
-            offset,
-            UNSIGNED_KEYFRAME_STRUCT,
-        )
-    elif data_type == 2:
-        value, control_left, control_right, frame_timing, interpolation, easing = reader.read_struct_at(
-            offset,
-            FLOAT_KEYFRAME_STRUCT,
-        )
-    elif data_type == 3:
-        red, green, blue, alpha, control_left, control_right, frame_timing, interpolation, easing = reader.read_struct_at(
-            offset,
-            COLOR_KEYFRAME_STRUCT,
-        )
-        value = (red, green, blue, alpha)
-    elif data_type == 4:
-        value, control_left, control_right, frame_timing, interpolation, easing = reader.read_struct_at(
-            offset,
-            UNSIGNED_KEYFRAME_STRUCT,
-        )
-    else:
-        raise BinaryFormatError(
-            "Unsupported TIML keyframe data type",
-            source_name=reader.source_name,
-            offset=offset,
-            data_type=data_type,
-        )
+    match int(data_type):
+        case 0:
+            value, control_left, control_right, frame_timing, interpolation, easing = reader.read_struct_at(
+                offset,
+                SIGNED_KEYFRAME_STRUCT,
+            )
+        case 1 | 4:
+            value, control_left, control_right, frame_timing, interpolation, easing = reader.read_struct_at(
+                offset,
+                UNSIGNED_KEYFRAME_STRUCT,
+            )
+        case 2:
+            value, control_left, control_right, frame_timing, interpolation, easing = reader.read_struct_at(
+                offset,
+                FLOAT_KEYFRAME_STRUCT,
+            )
+        case 3:
+            red, green, blue, alpha, control_left, control_right, frame_timing, interpolation, easing = reader.read_struct_at(
+                offset,
+                COLOR_KEYFRAME_STRUCT,
+            )
+            value = (red, green, blue, alpha)
+        case _:
+            raise BinaryFormatError(
+                "Unsupported TIML keyframe data type",
+                source_name=reader.source_name,
+                offset=offset,
+                data_type=data_type,
+            )
     return TimlKeyframe(
         data_type=data_type,
         value=value,

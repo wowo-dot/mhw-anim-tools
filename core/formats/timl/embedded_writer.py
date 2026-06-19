@@ -74,8 +74,233 @@ def _source_preview_interpolation_name(code: int) -> str:
     return "LINEAR"
 
 
+def _unsupported_data_type_error(data_type: int, *, source_label: str) -> ValidationError:
+    semantics = get_data_type_semantics(data_type)
+    return ValidationError(
+        f"{source_label} uses unsupported TIML data type {data_type} ({semantics.name})."
+    )
+
+
+def _single_component(
+    value,
+    *,
+    source_label: str,
+    value_label: str,
+) -> float:
+    components = tuple(float(component) for component in value)
+    if len(components) != 1:
+        raise ValidationError(f"{source_label} {value_label} must have exactly 1 component.")
+    return float(components[0])
+
+
+def _color_components(
+    value,
+    *,
+    source_label: str,
+    value_label: str,
+) -> tuple[int, int, int, int]:
+    components = tuple(float(component) for component in value)
+    if len(components) != 4:
+        raise ValidationError(f"{source_label} {value_label} must have exactly 4 components.")
+    return (
+        _coerce_rgba8_component(components[0], source=f"{source_label} r"),
+        _coerce_rgba8_component(components[1], source=f"{source_label} g"),
+        _coerce_rgba8_component(components[2], source=f"{source_label} b"),
+        _coerce_rgba8_component(components[3], source=f"{source_label} a"),
+    )
+
+
+def _pack_signed_keyframe(
+    value: float,
+    *,
+    control_left,
+    control_right,
+    frame: float,
+    interpolation: int,
+    easing: int,
+    source_label: str,
+) -> bytes:
+    return SIGNED_KEYFRAME_STRUCT.pack(
+        _coerce_int32(value, source=f"{source_label} value"),
+        _coerce_int32(control_left, source=f"{source_label} control_left"),
+        _coerce_int32(control_right, source=f"{source_label} control_right"),
+        frame,
+        interpolation,
+        easing,
+    )
+
+
+def _pack_unsigned_keyframe(
+    value: float,
+    *,
+    control_left,
+    control_right,
+    frame: float,
+    interpolation: int,
+    easing: int,
+    source_label: str,
+) -> bytes:
+    return UNSIGNED_KEYFRAME_STRUCT.pack(
+        _coerce_uint32(value, source=f"{source_label} value"),
+        _coerce_uint32(control_left, source=f"{source_label} control_left"),
+        _coerce_uint32(control_right, source=f"{source_label} control_right"),
+        frame,
+        interpolation,
+        easing,
+    )
+
+
+def _pack_float_keyframe(
+    value: float,
+    *,
+    control_left: float,
+    control_right: float,
+    frame: float,
+    interpolation: int,
+    easing: int,
+) -> bytes:
+    return FLOAT_KEYFRAME_STRUCT.pack(
+        float(value),
+        float(control_left),
+        float(control_right),
+        frame,
+        interpolation,
+        easing,
+    )
+
+
+def _pack_color_keyframe(
+    value: tuple[int, int, int, int],
+    *,
+    control_left: float,
+    control_right: float,
+    frame: float,
+    interpolation: int,
+    easing: int,
+) -> bytes:
+    return COLOR_KEYFRAME_STRUCT.pack(
+        int(value[0]),
+        int(value[1]),
+        int(value[2]),
+        int(value[3]),
+        float(control_left),
+        float(control_right),
+        frame,
+        interpolation,
+        easing,
+    )
+
+
+def _pack_component_keyframe_bytes(
+    *,
+    data_type: int,
+    value,
+    control_left,
+    control_right,
+    frame: float,
+    interpolation: int,
+    easing: int,
+    source_label: str,
+) -> bytes:
+    match int(data_type):
+        case 0:
+            return _pack_signed_keyframe(
+                _single_component(value, source_label=source_label, value_label="signed integer keys"),
+                control_left=control_left,
+                control_right=control_right,
+                frame=frame,
+                interpolation=interpolation,
+                easing=easing,
+                source_label=source_label,
+            )
+        case 1 | 4:
+            return _pack_unsigned_keyframe(
+                _single_component(value, source_label=source_label, value_label="unsigned/bool keys"),
+                control_left=control_left,
+                control_right=control_right,
+                frame=frame,
+                interpolation=interpolation,
+                easing=easing,
+                source_label=source_label,
+            )
+        case 2:
+            return _pack_float_keyframe(
+                _single_component(value, source_label=source_label, value_label="float keys"),
+                control_left=control_left,
+                control_right=control_right,
+                frame=frame,
+                interpolation=interpolation,
+                easing=easing,
+            )
+        case 3:
+            return _pack_color_keyframe(
+                _color_components(value, source_label=source_label, value_label="color keys"),
+                control_left=control_left,
+                control_right=control_right,
+                frame=frame,
+                interpolation=interpolation,
+                easing=easing,
+            )
+        case _:
+            raise _unsupported_data_type_error(int(data_type), source_label=source_label)
+
+
+def _pack_source_keyframe(keyframe, *, data_type: int, source_label: str) -> bytes:
+    frame = float(keyframe.frame_timing)
+    interpolation = int(keyframe.interpolation)
+    easing = int(keyframe.easing)
+    match int(data_type):
+        case 0:
+            return _pack_signed_keyframe(
+                keyframe.value,
+                control_left=keyframe.control_left,
+                control_right=keyframe.control_right,
+                frame=frame,
+                interpolation=interpolation,
+                easing=easing,
+                source_label=source_label,
+            )
+        case 1 | 4:
+            return _pack_unsigned_keyframe(
+                keyframe.value,
+                control_left=keyframe.control_left,
+                control_right=keyframe.control_right,
+                frame=frame,
+                interpolation=interpolation,
+                easing=easing,
+                source_label=source_label,
+            )
+        case 2:
+            return _pack_float_keyframe(
+                float(keyframe.value),
+                control_left=keyframe.control_left,
+                control_right=keyframe.control_right,
+                frame=frame,
+                interpolation=interpolation,
+                easing=easing,
+            )
+        case 3:
+            value = tuple(int(component) for component in keyframe.value)
+            if len(value) != 4:
+                raise ValidationError(f"{source_label} color source key must have exactly 4 components.")
+            return _pack_color_keyframe(
+                (
+                    _coerce_rgba8_component(value[0], source=f"{source_label} r"),
+                    _coerce_rgba8_component(value[1], source=f"{source_label} g"),
+                    _coerce_rgba8_component(value[2], source=f"{source_label} b"),
+                    _coerce_rgba8_component(value[3], source=f"{source_label} a"),
+                ),
+                control_left=keyframe.control_left,
+                control_right=keyframe.control_right,
+                frame=frame,
+                interpolation=interpolation,
+                easing=easing,
+            )
+        case _:
+            raise _unsupported_data_type_error(int(data_type), source_label=source_label)
+
+
 def _keyframe_bytes(sampled_transform, *, source_label: str) -> bytes:
-    semantics = get_data_type_semantics(sampled_transform.data_type)
     chunks: list[bytes] = []
     previous_frame = None
     for key_index, keyframe in enumerate(sampled_transform.keyframes):
@@ -86,70 +311,17 @@ def _keyframe_bytes(sampled_transform, *, source_label: str) -> bytes:
             raise ValidationError(f"{source_label} keyframe timings must be strictly increasing.")
         previous_frame = frame
         interpolation = _interpolation_code(keyframe.interpolation, source=f"{source_label} keyframe {key_index}")
-        easing = 0
-        value = tuple(float(component) for component in keyframe.value)
-
-        if sampled_transform.data_type == 0:
-            if len(value) != 1:
-                raise ValidationError(f"{source_label} signed integer keys must have exactly 1 component.")
-            chunks.append(
-                SIGNED_KEYFRAME_STRUCT.pack(
-                    _coerce_int32(value[0], source=f"{source_label} value"),
-                    0,
-                    0,
-                    frame,
-                    interpolation,
-                    easing,
-                )
+        chunks.append(
+            _pack_component_keyframe_bytes(
+                data_type=int(sampled_transform.data_type),
+                value=keyframe.value,
+                control_left=0,
+                control_right=0,
+                frame=frame,
+                interpolation=interpolation,
+                easing=0,
+                source_label=source_label,
             )
-            continue
-        if sampled_transform.data_type in {1, 4}:
-            if len(value) != 1:
-                raise ValidationError(f"{source_label} unsigned/bool keys must have exactly 1 component.")
-            chunks.append(
-                UNSIGNED_KEYFRAME_STRUCT.pack(
-                    _coerce_uint32(value[0], source=f"{source_label} value"),
-                    0,
-                    0,
-                    frame,
-                    interpolation,
-                    easing,
-                )
-            )
-            continue
-        if sampled_transform.data_type == 2:
-            if len(value) != 1:
-                raise ValidationError(f"{source_label} float keys must have exactly 1 component.")
-            chunks.append(
-                FLOAT_KEYFRAME_STRUCT.pack(
-                    float(value[0]),
-                    0.0,
-                    0.0,
-                    frame,
-                    interpolation,
-                    easing,
-                )
-            )
-            continue
-        if sampled_transform.data_type == 3:
-            if len(value) != 4:
-                raise ValidationError(f"{source_label} color keys must have exactly 4 components.")
-            chunks.append(
-                COLOR_KEYFRAME_STRUCT.pack(
-                    _coerce_rgba8_component(value[0], source=f"{source_label} r"),
-                    _coerce_rgba8_component(value[1], source=f"{source_label} g"),
-                    _coerce_rgba8_component(value[2], source=f"{source_label} b"),
-                    _coerce_rgba8_component(value[3], source=f"{source_label} a"),
-                    0.0,
-                    0.0,
-                    frame,
-                    interpolation,
-                    easing,
-                )
-            )
-            continue
-        raise ValidationError(
-            f"{source_label} uses unsupported TIML data type {sampled_transform.data_type} ({semantics.name})."
         )
     return b"".join(chunks)
 
@@ -368,143 +540,30 @@ def _source_value_patched_keyframe_bytes(source_transform, sampled_transform, *,
         raise ValidationError(f"{source_label} cannot preserve source semantics because the preview keyframe structure changed.")
     chunks: list[bytes] = []
     for source_keyframe, sampled_keyframe in zip(source_transform.keyframes, sampled_transform.keyframes):
-        frame = float(source_keyframe.frame_timing)
-        interpolation = int(source_keyframe.interpolation)
-        easing = int(source_keyframe.easing)
-        value = tuple(float(component) for component in sampled_keyframe.value)
-
-        if source_transform.data_type == 0:
-            if len(value) != 1:
-                raise ValidationError(f"{source_label} signed integer keys must have exactly 1 component.")
-            chunks.append(
-                SIGNED_KEYFRAME_STRUCT.pack(
-                    _coerce_int32(value[0], source=f"{source_label} value"),
-                    _coerce_int32(source_keyframe.control_left, source=f"{source_label} control_left"),
-                    _coerce_int32(source_keyframe.control_right, source=f"{source_label} control_right"),
-                    frame,
-                    interpolation,
-                    easing,
-                )
+        chunks.append(
+            _pack_component_keyframe_bytes(
+                data_type=int(source_transform.data_type),
+                value=sampled_keyframe.value,
+                control_left=source_keyframe.control_left,
+                control_right=source_keyframe.control_right,
+                frame=float(source_keyframe.frame_timing),
+                interpolation=int(source_keyframe.interpolation),
+                easing=int(source_keyframe.easing),
+                source_label=source_label,
             )
-            continue
-        if source_transform.data_type in {1, 4}:
-            if len(value) != 1:
-                raise ValidationError(f"{source_label} unsigned/bool keys must have exactly 1 component.")
-            chunks.append(
-                UNSIGNED_KEYFRAME_STRUCT.pack(
-                    _coerce_uint32(value[0], source=f"{source_label} value"),
-                    _coerce_uint32(source_keyframe.control_left, source=f"{source_label} control_left"),
-                    _coerce_uint32(source_keyframe.control_right, source=f"{source_label} control_right"),
-                    frame,
-                    interpolation,
-                    easing,
-                )
-            )
-            continue
-        if source_transform.data_type == 2:
-            if len(value) != 1:
-                raise ValidationError(f"{source_label} float keys must have exactly 1 component.")
-            chunks.append(
-                FLOAT_KEYFRAME_STRUCT.pack(
-                    float(value[0]),
-                    float(source_keyframe.control_left),
-                    float(source_keyframe.control_right),
-                    frame,
-                    interpolation,
-                    easing,
-                )
-            )
-            continue
-        if source_transform.data_type == 3:
-            if len(value) != 4:
-                raise ValidationError(f"{source_label} color keys must have exactly 4 components.")
-            chunks.append(
-                COLOR_KEYFRAME_STRUCT.pack(
-                    _coerce_rgba8_component(value[0], source=f"{source_label} r"),
-                    _coerce_rgba8_component(value[1], source=f"{source_label} g"),
-                    _coerce_rgba8_component(value[2], source=f"{source_label} b"),
-                    _coerce_rgba8_component(value[3], source=f"{source_label} a"),
-                    float(source_keyframe.control_left),
-                    float(source_keyframe.control_right),
-                    frame,
-                    interpolation,
-                    easing,
-                )
-            )
-            continue
-        semantics = get_data_type_semantics(source_transform.data_type)
-        raise ValidationError(
-            f"{source_label} uses unsupported TIML data type {source_transform.data_type} ({semantics.name})."
         )
     return b"".join(chunks)
 
 
 def _source_keyframe_bytes(source_transform, *, source_label: str) -> bytes:
-    semantics = get_data_type_semantics(source_transform.data_type)
-    chunks: list[bytes] = []
-    for keyframe in source_transform.keyframes:
-        frame = float(keyframe.frame_timing)
-        interpolation = int(keyframe.interpolation)
-        easing = int(keyframe.easing)
-
-        if source_transform.data_type == 0:
-            chunks.append(
-                SIGNED_KEYFRAME_STRUCT.pack(
-                    _coerce_int32(keyframe.value, source=f"{source_label} value"),
-                    _coerce_int32(keyframe.control_left, source=f"{source_label} control_left"),
-                    _coerce_int32(keyframe.control_right, source=f"{source_label} control_right"),
-                    frame,
-                    interpolation,
-                    easing,
-                )
-            )
-            continue
-        if source_transform.data_type in {1, 4}:
-            chunks.append(
-                UNSIGNED_KEYFRAME_STRUCT.pack(
-                    _coerce_uint32(keyframe.value, source=f"{source_label} value"),
-                    _coerce_uint32(keyframe.control_left, source=f"{source_label} control_left"),
-                    _coerce_uint32(keyframe.control_right, source=f"{source_label} control_right"),
-                    frame,
-                    interpolation,
-                    easing,
-                )
-            )
-            continue
-        if source_transform.data_type == 2:
-            chunks.append(
-                FLOAT_KEYFRAME_STRUCT.pack(
-                    float(keyframe.value),
-                    float(keyframe.control_left),
-                    float(keyframe.control_right),
-                    frame,
-                    interpolation,
-                    easing,
-                )
-            )
-            continue
-        if source_transform.data_type == 3:
-            value = tuple(int(component) for component in keyframe.value)
-            if len(value) != 4:
-                raise ValidationError(f"{source_label} color source key must have exactly 4 components.")
-            chunks.append(
-                COLOR_KEYFRAME_STRUCT.pack(
-                    _coerce_rgba8_component(value[0], source=f"{source_label} r"),
-                    _coerce_rgba8_component(value[1], source=f"{source_label} g"),
-                    _coerce_rgba8_component(value[2], source=f"{source_label} b"),
-                    _coerce_rgba8_component(value[3], source=f"{source_label} a"),
-                    float(keyframe.control_left),
-                    float(keyframe.control_right),
-                    frame,
-                    interpolation,
-                    easing,
-                )
-            )
-            continue
-        raise ValidationError(
-            f"{source_label} uses unsupported TIML data type {source_transform.data_type} ({semantics.name})."
+    return b"".join(
+        _pack_source_keyframe(
+            keyframe,
+            data_type=int(source_transform.data_type),
+            source_label=source_label,
         )
-    return b"".join(chunks)
+        for keyframe in source_transform.keyframes
+    )
 
 
 def _source_identity_map(source_entry) -> dict[tuple[int, int], tuple[object, object]]:

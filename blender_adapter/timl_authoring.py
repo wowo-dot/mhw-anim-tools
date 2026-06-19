@@ -37,14 +37,6 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
 
 
 _SLUG = re.compile(r"[^0-9A-Za-z_]+")
-HEADER_KEYS = (
-    TIML_HEADER_DATA_INDEX_A_KEY,
-    TIML_HEADER_DATA_INDEX_B_KEY,
-    TIML_HEADER_ANIMATION_LENGTH_KEY,
-    TIML_HEADER_LOOP_START_POINT_KEY,
-    TIML_HEADER_LOOP_CONTROL_KEY,
-    TIML_HEADER_LABEL_HASH_KEY,
-)
 DEFAULT_COMPONENT_LABELS = {
     3: ("r", "g", "b", "a"),
 }
@@ -103,17 +95,82 @@ def default_preview_value_for_data_type(data_type: int) -> tuple[float, ...]:
     return tuple(0.0 for _index in range(int(semantics.value_dimension)))
 
 
-def load_timl_property_names(controller_object) -> list[str]:
-    raw_value = controller_object.get(TIML_PROPERTY_LIST_KEY, "") if controller_object is not None else ""
+def _decode_json_list(raw_value) -> list[object]:
     if not isinstance(raw_value, str) or not raw_value:
         return []
     try:
         decoded = json.loads(raw_value)
     except json.JSONDecodeError:
         return []
-    if not isinstance(decoded, list):
-        return []
-    return [str(item) for item in decoded if str(item)]
+    return decoded if isinstance(decoded, list) else []
+
+
+def _normalized_binding_dict(entry: dict[str, object]) -> dict[str, object] | None:
+    property_name = str(entry.get("property_name", "") or "")
+    if not property_name:
+        return None
+    data_type = int(entry.get("data_type", 0) or 0)
+    return {
+        "property_name": property_name,
+        "type_index": int(entry.get("type_index", 0) or 0),
+        "transform_index": int(entry.get("transform_index", 0) or 0),
+        "source_type_index": (
+            int(entry.get("source_type_index", 0))
+            if entry.get("source_type_index", None) is not None
+            else None
+        ),
+        "source_transform_index": (
+            int(entry.get("source_transform_index", 0))
+            if entry.get("source_transform_index", None) is not None
+            else None
+        ),
+        "timeline_parameter_hash": int(entry.get("timeline_parameter_hash", 0) or 0),
+        "datatype_hash": int(entry.get("datatype_hash", 0) or 0),
+        "data_type": data_type,
+        "data_type_name": str(entry.get("data_type_name", "") or timl_data_type_name(data_type)),
+        "component_labels": list(entry.get("component_labels", ()) or _default_component_labels_for_data_type(data_type)),
+        "normalized_color": bool(entry.get("normalized_color", int(data_type) == 3)),
+    }
+
+
+def _serialized_binding_dict(binding: dict[str, object]) -> dict[str, object]:
+    data_type = int(binding.get("data_type", 0) or 0)
+    return {
+        "property_name": str(binding.get("property_name", "") or ""),
+        "type_index": int(binding.get("type_index", 0) or 0),
+        "transform_index": int(binding.get("transform_index", 0) or 0),
+        "source_type_index": (
+            None
+            if binding.get("source_type_index", None) is None
+            else int(binding.get("source_type_index", 0) or 0)
+        ),
+        "source_transform_index": (
+            None
+            if binding.get("source_transform_index", None) is None
+            else int(binding.get("source_transform_index", 0) or 0)
+        ),
+        "timeline_parameter_hash": int(binding.get("timeline_parameter_hash", 0) or 0),
+        "datatype_hash": int(binding.get("datatype_hash", 0) or 0),
+        "data_type": data_type,
+        "data_type_name": str(binding.get("data_type_name", "") or timl_data_type_name(data_type)),
+        "component_labels": list(binding.get("component_labels", ()) or _default_component_labels_for_data_type(data_type)),
+        "normalized_color": bool(binding.get("normalized_color", int(data_type) == 3)),
+    }
+
+
+def _binding_meta_values(binding: dict[str, object]) -> dict[str, int]:
+    return {
+        "type_index": int(binding["type_index"]),
+        "transform_index": int(binding["transform_index"]),
+        "timeline_hash": _u32_to_blender_int(int(binding["timeline_parameter_hash"])),
+        "datatype_hash": _u32_to_blender_int(int(binding["datatype_hash"])),
+        "data_type": int(binding["data_type"]),
+    }
+
+
+def load_timl_property_names(controller_object) -> list[str]:
+    raw_value = controller_object.get(TIML_PROPERTY_LIST_KEY, "") if controller_object is not None else ""
+    return [str(item) for item in _decode_json_list(raw_value) if str(item)]
 
 
 def save_timl_property_names(controller_object, property_names) -> None:
@@ -125,60 +182,20 @@ def save_timl_property_names(controller_object, property_names) -> None:
 
 def load_timl_bindings_raw(controller_object) -> list[dict[str, object]]:
     raw_value = controller_object.get(TIML_BINDINGS_KEY, "") if controller_object is not None else ""
-    if not isinstance(raw_value, str) or not raw_value:
-        return []
-    try:
-        decoded = json.loads(raw_value)
-    except json.JSONDecodeError:
-        return []
-    if not isinstance(decoded, list):
-        return []
     bindings: list[dict[str, object]] = []
-    for entry in decoded:
+    for entry in _decode_json_list(raw_value):
         if not isinstance(entry, dict):
             continue
-        property_name = str(entry.get("property_name", "") or "")
-        if not property_name:
-            continue
-        data_type = int(entry.get("data_type", 0) or 0)
-        bindings.append(
-            {
-                "property_name": property_name,
-                "type_index": int(entry.get("type_index", 0) or 0),
-                "transform_index": int(entry.get("transform_index", 0) or 0),
-                "source_type_index": (
-                    int(entry.get("source_type_index", 0))
-                    if entry.get("source_type_index", None) is not None
-                    else None
-                ),
-                "source_transform_index": (
-                    int(entry.get("source_transform_index", 0))
-                    if entry.get("source_transform_index", None) is not None
-                    else None
-                ),
-                "timeline_parameter_hash": int(entry.get("timeline_parameter_hash", 0) or 0),
-                "datatype_hash": int(entry.get("datatype_hash", 0) or 0),
-                "data_type": data_type,
-                "data_type_name": str(entry.get("data_type_name", "") or timl_data_type_name(data_type)),
-                "component_labels": list(entry.get("component_labels", ()) or _default_component_labels_for_data_type(data_type)),
-                "normalized_color": bool(entry.get("normalized_color", int(data_type) == 3)),
-            }
-        )
+        normalized = _normalized_binding_dict(entry)
+        if normalized is not None:
+            bindings.append(normalized)
     return bindings
 
 
 def load_deleted_timl_identities(controller_object) -> tuple[tuple[int, int], ...]:
     raw_value = controller_object.get(TIML_DELETED_BINDINGS_KEY, "") if controller_object is not None else ""
-    if not isinstance(raw_value, str) or not raw_value:
-        return ()
-    try:
-        decoded = json.loads(raw_value)
-    except json.JSONDecodeError:
-        return ()
-    if not isinstance(decoded, list):
-        return ()
     identities: set[tuple[int, int]] = set()
-    for entry in decoded:
+    for entry in _decode_json_list(raw_value):
         if isinstance(entry, dict):
             type_index = int(entry.get("type_index", 0) or 0)
             transform_index = int(entry.get("transform_index", 0) or 0)
@@ -245,32 +262,7 @@ def clear_deleted_timl_identity(controller_object, *, type_index: int, transform
 
 
 def save_timl_bindings_raw(controller_object, bindings: list[dict[str, object]]) -> None:
-    encoded = []
-    for binding in bindings:
-        data_type = int(binding.get("data_type", 0) or 0)
-        encoded.append(
-            {
-                "property_name": str(binding.get("property_name", "") or ""),
-                "type_index": int(binding.get("type_index", 0) or 0),
-                "transform_index": int(binding.get("transform_index", 0) or 0),
-                "source_type_index": (
-                    None
-                    if binding.get("source_type_index", None) is None
-                    else int(binding.get("source_type_index", 0) or 0)
-                ),
-                "source_transform_index": (
-                    None
-                    if binding.get("source_transform_index", None) is None
-                    else int(binding.get("source_transform_index", 0) or 0)
-                ),
-                "timeline_parameter_hash": int(binding.get("timeline_parameter_hash", 0) or 0),
-                "datatype_hash": int(binding.get("datatype_hash", 0) or 0),
-                "data_type": data_type,
-                "data_type_name": str(binding.get("data_type_name", "") or timl_data_type_name(data_type)),
-                "component_labels": list(binding.get("component_labels", ()) or _default_component_labels_for_data_type(data_type)),
-                "normalized_color": bool(binding.get("normalized_color", int(data_type) == 3)),
-            }
-        )
+    encoded = [_serialized_binding_dict(binding) for binding in bindings]
     controller_object[TIML_BINDINGS_KEY] = json.dumps(encoded, separators=(",", ":"))
     sync_timl_binding_meta_props_from_bindings(controller_object)
 
@@ -280,14 +272,7 @@ def sync_timl_binding_meta_props_from_bindings(controller_object) -> None:
     expected_keys: set[str] = set()
     for binding in bindings:
         property_name = str(binding["property_name"])
-        values = {
-            "type_index": int(binding["type_index"]),
-            "transform_index": int(binding["transform_index"]),
-            "timeline_hash": _u32_to_blender_int(int(binding["timeline_parameter_hash"])),
-            "datatype_hash": _u32_to_blender_int(int(binding["datatype_hash"])),
-            "data_type": int(binding["data_type"]),
-        }
-        for field_name, value in values.items():
+        for field_name, value in _binding_meta_values(binding).items():
             prop_key = _binding_meta_key(property_name, field_name)
             controller_object[prop_key] = value
             expected_keys.add(prop_key)

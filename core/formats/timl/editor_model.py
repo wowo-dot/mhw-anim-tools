@@ -130,14 +130,15 @@ def build_timl_editor_block_views(
             str(transform.edit_policy_label or "Unknown")
             for transform in block_transforms
         )
+        ordered_transforms = sorted(block_transforms, key=lambda item: int(item.transform_index))
         transform_labels = tuple(
             f"Type {int(transform.type_index):02d} / Transform {int(transform.transform_index):02d} - "
             f"{str(transform.datatype_label or transform.data_type_name or '?')}"
-            for transform in sorted(block_transforms, key=lambda item: int(item.transform_index))
+            for transform in ordered_transforms
         )
         property_names = tuple(
             str(transform.property_name or "")
-            for transform in sorted(block_transforms, key=lambda item: int(item.transform_index))
+            for transform in ordered_transforms
             if str(transform.property_name or "")
         )
         blocks.append(

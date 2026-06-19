@@ -27,6 +27,9 @@ class QuaternionLerpSpec:
     unit_bytes: int
 
 
+# Supported quaternion union-lerp buffer families from MHW LMTs. Each entry
+# captures how that family stores quaternion axes so export can preserve or
+# promote source track layouts without changing the intended runtime encoding.
 QUATERNION_LERP_SPECS = {
     7: QuaternionLerpSpec(7, 7, 15, (("w", 7), ("z", 7), ("y", 7), ("x", 7), ("frame", 4)), ("x", "y", "z", "w"), 4),
     11: QuaternionLerpSpec(11, 14, 15, (("x", 14), ("y", 0), ("z", 0), ("w", 14), ("frame", 4)), ("x", "w"), 4),
@@ -83,15 +86,17 @@ def _buffer_delta_limit(buffer_type: int) -> int:
 
 
 def quaternion_lerp_promotion_candidates(buffer_type: int) -> tuple[int, ...]:
-    if buffer_type == 7:
-        return (7, 15, 14)
-    if buffer_type == 15:
-        return (15, 14)
-    if buffer_type == 14:
-        return (14,)
-    if buffer_type in {11, 12, 13}:
-        return (buffer_type, 14)
-    raise ValidationError(f"Unsupported quaternion lerp buffer type {buffer_type}.")
+    match int(buffer_type):
+        case 7:
+            return (7, 15, 14)
+        case 15:
+            return (15, 14)
+        case 14:
+            return (14,)
+        case 11 | 12 | 13:
+            return (int(buffer_type), 14)
+        case _:
+            raise ValidationError(f"Unsupported quaternion lerp buffer type {buffer_type}.")
 
 
 def _quantize_vector_component(
