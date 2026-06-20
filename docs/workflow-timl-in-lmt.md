@@ -15,6 +15,10 @@ Main UI locations:
 
 This creates a TIML controller object/action in Blender for that source entry.
 
+Added LMT slots also seed a blank attached TIML controller. That means a new
+entry can move straight into the same TIML Workspace flow instead of getting
+stuck as a no-TIML placeholder.
+
 ## 2. Open the TIML workspace
 
 Use `Open TIML Workspace` from the sidebar session header.

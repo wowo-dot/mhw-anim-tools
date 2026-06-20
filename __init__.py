@@ -18,7 +18,7 @@ bl_info = {
     "description": "Monster Hunter World animation tools for Blender 4.5 LTS",
     "category": "Import-Export",
     "author": "wowo",
-    "version": (1, 0, 0),
+    "version": (1, 0, 1),
     "blender": (4, 5, 0),
     "location": "View3D > Sidebar > MHW Anim",
     "doc_url": "https://github.com/wowo-dot/mhw-anim-tools",

@@ -4,7 +4,7 @@
 workflows built around `.lmt` and `.timl` data in Blender.
 
 The current public release target is Blender `4.5 LTS`. That is the version
-the add-on is supported and tested against for `v1.0.0`.
+the add-on is supported and tested against for `v1.0.1`.
 
 The repository carries its own core format logic and Blender tooling. Some
 developer tools can optionally compare results against external reference
@@ -47,7 +47,7 @@ Common first tasks:
 
 Current release-confidence highlights:
 
-- `python -m unittest discover -s tests` passes with `275 / 275` tests green
+- `python -m unittest discover -s tests` passes with `292 / 292` tests green
 - the full whole-corpus LMT writer-readiness replay currently lands at:
   - `5774 / 5774` files processed
   - `105040 / 105040` actions fully supported
@@ -64,6 +64,10 @@ Current release-confidence highlights:
   - `em037_09` action `048`
   - `em080_00`
   - `em013_03`
+- additional Blender 4.5 LTS live smokes in the current release pass:
+  - `em013_03` entry `020` selected-action import
+  - `em013_03` entry `020` source-backed full merge export / reimport
+  - `em013_03` entry `020` attached TIML import
 
 ## Credits
 
@@ -88,6 +92,9 @@ Main supported workflows:
 - inspect `.lmt` files, browse entries/tracks, and read diagnostics
 - import one action or all actions from a source `.lmt` on armatures imported
   through `Blender MHW Model Editor`
+- add or delete source-backed LMT entry slots, then materialize those
+  structural changes through `Write Full LMT`
+- add or remove raw LMT tracks inside imported actions without leaving Blender
 - edit supported LMT motion channels and write the full source `.lmt` back on
   that same armature path
 - import attached TIML into controller actions, edit it in the TIML Workspace,
@@ -107,7 +114,9 @@ LMT import currently supports:
   Blender pose deltas, while root object motion is converted through the MOD3
   import basis
 - Blender Action / FCurve creation with linear keys
-- diagnostics for skipped, unsupported, or unresolved tracks
+- missing-bone import fallback that keeps otherwise supported tracks as raw
+  editable channels instead of dropping them
+- diagnostics for unsupported tracks plus unresolved/raw fallback cases
 - selected-action binding preview against the chosen target armature
 - synthetic and live MOD3 smoke coverage for the importer path
 
@@ -131,12 +140,15 @@ LMT export currently supports:
 - q14 writer safety that rejects frame deltas above 255 instead of wrapping them silently
 - basis-only exports preserve a nonzero action duration when the reconstructed action range is explicit
 - full-source Blender `.lmt` export from the sidebar
+- slot-aware full-source export that can preserve holes, append added entries,
+  and write deleted source entries back as holes
 - source-aware merge export that preserves sibling actions inside the original container
 - source identity guards for imported LMT actions:
   - imported actions cache source file size and SHA256 at import time
   - source-backed export blocks if the source file changed or can no longer be
     matched confidently
 - raw TIML subtree preservation with absolute-offset rebasing during merged export
+- blank attached TIML seeding for newly added LMT entry slots
 - source-backed TIML controller writeback for:
   - unchanged payload preservation
   - value-only edits that preserve advanced source semantics
@@ -181,6 +193,8 @@ surface, not broad read/write correctness:
   technical raw custom-property FCurves:
   - on the resolved pose bone when possible
   - on the armature object when Blender cannot attach them to a real pose bone
+- missing-bone-supported source tracks use that same raw technical fallback
+  path instead of being silently skipped
 - those duplicate/raw channels remain editable and exportable, but they do not
   behave like ordinary viewport pose controls
 - Blender is the main editing shell, so the add-on aims to preserve motion

@@ -16,7 +16,7 @@ It is meant to be read alongside:
 
 Automated coverage:
 
-- `275 / 275` unit tests pass
+- `292 / 292` unit tests pass
 - full LMT writer-readiness replay:
   - `5774 / 5774` extracted `.lmt` files processed
   - `105040 / 105040` actions fully supported in the read-only replay probe

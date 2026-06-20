@@ -11,7 +11,7 @@ Location: `3D View > Sidebar > MHW Anim`
 | --- | --- | --- |
 | `Session Browser` | See current session status and jump to the TIML workspace | `Open TIML Workspace` |
 | `Workspace` | Choose the target armature used for import/export | `Target Armature`, `Use Active`, `Auto Detect`, `Refresh Workspace` |
-| `LMT Inspector` | Load an `.lmt`, browse entries, inspect tracks, import actions, import attached TIML | `Inspect LMT`, `Import Selected`, `Import All`, `Import TIML`, `Focus TIML` |
+| `LMT Inspector` | Load an `.lmt`, browse slots/tracks, edit source-backed structure, import actions, import attached TIML | `Inspect LMT`, `Add Entry`, `Delete Entry`, `Import Selected`, `Import All`, `Import TIML`, `Focus TIML` |
 | `TIML Inspector` | Inspect and summarize a standalone `.timl` session | `Inspect TIML` |
 | `Diagnostics` | Read current session warnings and errors | diagnostic list |
 | `Export` | Analyze and write back edited actions or save standalone TIML sessions | `Export Action`, `Analyze Export Action`, `Write Full LMT`, `Export TIML` |
@@ -22,6 +22,7 @@ Notes:
 - import/export workflows are best on MHW-style armatures imported through
   `Blender MHW Model Editor`
 - `Write Full LMT` is the main supported export path
+- added/deleted LMT slots are session edits until `Write Full LMT`
 
 ## TIML Workspace
 
@@ -80,6 +81,7 @@ Notes:
 | inspect an `.lmt` | `3D View > MHW Anim > LMT Inspector` |
 | inspect a standalone TIML | `3D View > MHW Anim > TIML Inspector > Inspect TIML` |
 | choose the armature used for import/export | `3D View > MHW Anim > Workspace` |
+| add or delete an LMT entry slot | `LMT Inspector > entry list controls` |
 | import one action | `LMT Inspector > Import Selected` |
 | import all actions from one source file | `LMT Inspector > Import All` |
 | import attached TIML for one entry | `LMT Inspector > Import TIML` |

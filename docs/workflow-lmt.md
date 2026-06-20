@@ -28,6 +28,7 @@ The inspector shows:
 - track counts
 - root translation/rotation summary
 - whether the entry has attached TIML
+- real slot state, including source holes, added slots, and deleted-for-export slots
 
 Open the selected `Entry` and `Tracks` foldouts when you want the per-entry or
 per-track details.
@@ -46,6 +47,13 @@ Imported actions keep source metadata such as:
 - source TIML offset when present
 
 That metadata is what makes source-backed export and full-source export work.
+
+Added blank slots are also valid here:
+
+- `Add Entry` appends a new slot id at the end of the current session
+- the new slot starts as a blank entry with a blank attached TIML controller
+- importing that slot creates an empty Blender action that you can start
+  authoring from
 
 ## 4. Edit in Blender
 
@@ -71,6 +79,13 @@ properties:
 Those slots are still technical/raw channels. They round-trip through export,
 but they do not pretend to be one ordinary transform lane.
 
+The same raw path is also used when a supported source track targets a bone
+that does not exist on the selected armature:
+
+- the track imports as an editable raw fallback channel
+- the missing bone id stays visible in the action-group/display labeling
+- the track remains exportable because it keeps source identity metadata
+
 ## 5. Analyze before writing
 
 In the `Export` section:
@@ -89,19 +104,31 @@ This gives you:
 Use `Write Full LMT`.
 
 That writes the full source container using every imported Blender action from
-that same source file.
+that same source file, plus any current slot edits from the inspected LMT
+session.
+
+Structural slot outcomes supported there:
+
+- preserve an unchanged source slot
+- replace an existing source slot from its imported Blender action
+- delete a source slot back into a hole
+- append a newly added slot beyond the original source entry count
 
 ## What is safe today
 
 - source-backed export of supported edited LMT actions
 - preserving untouched sibling actions in the same source LMT
 - preserving source container metadata in merge mode
+- preserving or intentionally changing source slot structure through
+  `Add Entry` / `Delete Entry`
 
 ## What still needs care
 
 - unsupported FCurve paths are skipped
 - duplicate raw track-identity source actions import as technical raw
   pose-bone/armature channels, not normal pose preview channels
+- missing-bone fallback tracks are also technical raw channels, not ordinary
+  pose controls
 - export confidence is strongest on the supported rotation/translation/scale
   path, not on arbitrary Blender rig logic
 - source-backed `Write Full LMT` remains the main supported export path

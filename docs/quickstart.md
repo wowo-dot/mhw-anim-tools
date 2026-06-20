@@ -14,7 +14,7 @@ If you only want to inspect an `.lmt`, no target armature is required.
 If you want to inspect or edit a standalone `.timl`, no target armature is
 required there either.
 
-For `v1.0.0`, Blender 4.5 LTS is the supported and tested target.
+For `v1.0.1`, Blender 4.5 LTS is the supported and tested target.
 
 ## Learn the two main UI surfaces
 
@@ -45,6 +45,14 @@ This path is safe even without a target armature.
 5. Edit the imported Blender action
 6. In `Export`, click `Analyze Export Action`
 7. Use `Write Full LMT`
+
+If you need to change file structure instead of just editing one imported
+action:
+
+- use `Add Entry` / `Delete Entry` directly under the LMT entry list
+- import an added blank slot to create its matching Blender action
+- use `Write Full LMT` to materialize those slot changes back into the source
+  file
 
 ## Fastest way to edit embedded TIML
 
@@ -81,6 +89,8 @@ This is still the main path for TIML that came from an `.lmt`.
 - Keep final motion and TIML values baked into ordinary FCurves
 - Treat duplicate raw track channels as technical Graph Editor data, not as
   ordinary pose preview controls
+- Treat missing-bone fallback tracks the same way: editable and exportable, but
+  not a normal viewport pose lane
 
 ## Main caveat to remember
 

@@ -16,7 +16,7 @@ The add-on can still inspect LMT files without `Blender MHW Model Editor`, but
 the main supported LMT import/edit/export path depends on MHW-style armatures
 imported through that toolchain.
 
-For `v1.0.0`, Blender 4.5 LTS is the supported and tested release target.
+For `v1.0.1`, Blender 4.5 LTS is the supported and tested release target.
 Later Blender versions may work, but they are not the current compatibility
 promise.
 
