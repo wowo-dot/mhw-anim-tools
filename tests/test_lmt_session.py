@@ -119,6 +119,71 @@ def build_lmt_with_embedded_timl() -> bytes:
     return header + entry_offsets + header_padding + action + track + bytes(payload)
 
 
+def build_lmt_with_hole() -> bytes:
+    header = HEADER_STRUCT.pack(b"LMT\x00", 95, 3, b"\x00" * 8)
+    action0_offset = 48
+    action = ACTION_STRUCT.pack(
+        0,
+        1,
+        40,
+        -1,
+        0,
+        0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0,
+        b"\x00\x00",
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    )
+    track0 = TRACK_STRUCT.pack(
+        0,
+        0,
+        0,
+        205,
+        3,
+        1.0,
+        0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0,
+    )
+    action1_offset = action0_offset + len(action) + len(track0)
+    entry_offsets = struct.pack("<QQQ", action0_offset, 0, action1_offset)
+    padding = b"\x00" * (action0_offset - (len(header) + len(entry_offsets)))
+    track1 = TRACK_STRUCT.pack(
+        0,
+        1,
+        0,
+        205,
+        4,
+        1.0,
+        0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0,
+    )
+    return header + entry_offsets + padding + action + track0 + action + track1
+
+
 class LmtSemanticsTests(unittest.TestCase):
     def test_usage_semantics_for_root_translation(self):
         usage = get_usage_semantics(4)
@@ -172,6 +237,21 @@ class LmtSessionSummaryTests(unittest.TestCase):
         self.assertEqual(timl_transforms[0]["timeline_parameter_label"], "0x000004D2")
         self.assertEqual(timl_transforms[0]["datatype_label"], "0x0000162E")
         self.assertEqual(action_summary["timl_parse_error"], "")
+
+    def test_build_file_summary_surfaces_source_holes_as_empty_slots(self):
+        source_bytes = build_lmt_with_hole()
+        lmt = read_lmt_bytes(source_bytes, source_name="synthetic_hole.lmt")
+
+        summary = build_file_summary(lmt)
+
+        self.assertEqual(len(summary), 3)
+        self.assertEqual(summary[0]["entry_state"], "source")
+        self.assertEqual(summary[1]["entry_id"], 1)
+        self.assertEqual(summary[1]["entry_state"], "source_hole")
+        self.assertFalse(summary[1]["has_source_action"])
+        self.assertEqual(summary[1]["track_count"], 0)
+        self.assertEqual(summary[2]["entry_id"], 2)
+        self.assertEqual(summary[2]["entry_state"], "source")
 
 
 if __name__ == "__main__":

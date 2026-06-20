@@ -347,7 +347,21 @@ def build_embedded_timl_data_payload_from_sampled(
     """
 
     if not sampled_transforms:
-        raise ValidationError("Cannot build an embedded TIML payload from zero sampled transforms.")
+        payload_size = _align(DATA_STRUCT.size, 16)
+        payload = bytearray(payload_size)
+        DATA_STRUCT.pack_into(
+            payload,
+            0,
+            0,
+            0,
+            int(data_index_a),
+            int(data_index_b),
+            float(animation_length),
+            float(loop_start_point),
+            int(loop_control),
+            int(label_hash) & 0xFFFFFFFF,
+        )
+        return bytes(payload), ()
 
     grouped: dict[int, dict[str, object]] = {}
     seen_identities: set[tuple[int, int]] = set()

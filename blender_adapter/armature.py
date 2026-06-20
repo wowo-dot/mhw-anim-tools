@@ -26,6 +26,7 @@ class ArmatureBindingSummary:
     supported_track_count: int
     resolved_track_count: int
     unresolved_track_count: int
+    raw_fallback_candidate_count: int
     missing_bone_ids: tuple[int, ...]
     root_required: bool
     root_resolved: bool
@@ -266,6 +267,7 @@ def summarize_track_binding(armature_object, track_specs) -> ArmatureBindingSumm
             supported_track_count=0,
             resolved_track_count=0,
             unresolved_track_count=0,
+            raw_fallback_candidate_count=0,
             missing_bone_ids=(),
             root_required=False,
             root_resolved=False,
@@ -303,6 +305,7 @@ def summarize_track_binding(armature_object, track_specs) -> ArmatureBindingSumm
         supported_track_count=supported_track_count,
         resolved_track_count=resolved_track_count,
         unresolved_track_count=unresolved_track_count,
+        raw_fallback_candidate_count=unresolved_track_count,
         missing_bone_ids=tuple(sorted(missing_bone_ids)),
         root_required=root_required,
         root_resolved=(not root_required) or bool(root_target_label),

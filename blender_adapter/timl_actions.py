@@ -506,6 +506,52 @@ def seed_eventloop_template_on_controller(
     return blender_action.name
 
 
+def seed_empty_attached_timl_controller(
+    *,
+    source_path: str,
+    entry_id: int,
+    source_offset: int = 0,
+    source_entry_count: int = 0,
+    target_armature=None,
+    data_index_a: int = 0,
+    data_index_b: int = 0,
+    animation_length: float = 0.0,
+    loop_start_point: float = 0.0,
+    loop_control: int = 0,
+    label_hash: int = 0,
+):
+    data_entry = SimpleNamespace(
+        id=int(entry_id),
+        types=(),
+        data_index_a=int(data_index_a),
+        data_index_b=int(data_index_b),
+        animation_length=float(animation_length),
+        loop_start_point=float(loop_start_point),
+        loop_control=int(loop_control),
+        label_hash=int(label_hash),
+    )
+    result = _import_timl_data_entry_to_action(
+        data_entry,
+        source_path=str(source_path or ""),
+        entry_id=int(entry_id),
+        import_kind="attached_timl",
+        source_kind=TIML_SOURCE_KIND_ATTACHED_LMT,
+        source_offset=int(source_offset),
+        source_entry_count=int(source_entry_count),
+        target_armature=target_armature,
+    )
+    result.diagnostics = [
+        diagnostic
+        for diagnostic in result.diagnostics
+        if not (
+            str(diagnostic.level).upper() == "WARNING"
+            and str(diagnostic.source or "") == "timl"
+            and str(diagnostic.message or "") == "TIML container has no transforms yet."
+        )
+    ]
+    return result
+
+
 def _import_timl_data_entry_to_action(
     data_entry,
     *,
@@ -698,13 +744,19 @@ def _import_timl_data_entry_to_action(
     return result
 
 
-def import_attached_timl_to_action(lmt, action_index: int, *, source_path: str, source_bytes: bytes, target_armature=None):
+def import_attached_timl_to_action(lmt, entry_id: int, *, source_path: str, source_bytes: bytes, target_armature=None):
     result = ImportTimlResult()
-    if action_index < 0 or action_index >= len(lmt.actions):
-        result.add("ERROR", "session", "Selected LMT action is out of range for the current session.")
+    source_action = next(
+        (
+            candidate
+            for candidate in getattr(lmt, "actions", ())
+            if int(getattr(candidate, "id", -1)) == int(entry_id)
+        ),
+        None,
+    )
+    if source_action is None:
+        result.add("ERROR", "session", f"Selected LMT entry {int(entry_id):03d} is not present in the current source file.")
         return result
-
-    source_action = lmt.actions[action_index]
     if not source_action.has_timl or not source_action.header.timl_offset:
         result.add("ERROR", "timl", "The selected LMT entry does not contain an attached TIML payload.")
         return result

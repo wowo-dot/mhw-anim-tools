@@ -947,12 +947,21 @@ class MHWANIMTOOLS_OT_analyze_timl_controller(bpy.types.Operator):
             try:
                 source_bytes, source_lmt = _load_source_context(metadata)
                 if source_bytes is not None:
-                    writeback_plan = _build_source_backed_writeback_plan(
-                        controller,
-                        metadata,
-                        source_bytes=source_bytes,
-                    )
-                    if source_lmt is not None:
+                    source_offset = int(getattr(metadata, "source_offset", 0) or 0)
+                    if source_offset > 0:
+                        writeback_plan = _build_source_backed_writeback_plan(
+                            controller,
+                            metadata,
+                            source_bytes=source_bytes,
+                        )
+                    else:
+                        add_diagnostic(
+                            scene_props,
+                            "INFO",
+                            "timl.writeback",
+                            "This TIML controller is a new added-entry payload and will export as a fresh embedded TIML block.",
+                        )
+                    if source_lmt is not None and source_offset > 0:
                         shared_payload_assessment = assess_timl_controller_shared_payload(
                             controller,
                             bpy.data.objects,
@@ -1076,13 +1085,41 @@ class MHWANIMTOOLS_OT_focus_selected_entry_timl_controller(bpy.types.Operator):
 
     def execute(self, context):
         scene_props = context.scene.mhw_anim_tools
+        entry = _selected_entry(scene_props)
         controller = _controller_for_selected_entry(scene_props)
         if controller is None:
-            entry = _selected_entry(scene_props)
             if entry is None:
                 scene_props.last_status = "Choose an LMT entry first."
+                add_diagnostic(scene_props, "WARNING", "timl.controller", scene_props.last_status)
+                self.report({"WARNING"}, scene_props.last_status)
+                return {"CANCELLED"}
+            entry_state = str(getattr(entry, "entry_state", "") or "source")
+            if entry_state == "added":
+                scene_props.last_status = (
+                    f"Entry {int(entry.entry_id):03d} is an added LMT slot and its blank TIML controller is missing. "
+                    "Seed TIML first."
+                )
+                self.report({"INFO"}, scene_props.last_status)
+                return {"CANCELLED"}
+            if entry_state == "deleted":
+                scene_props.last_status = f"Entry {int(entry.entry_id):03d} is marked deleted for export."
+                self.report({"INFO"}, scene_props.last_status)
+                return {"CANCELLED"}
+            if entry_state == "source_hole":
+                scene_props.last_status = f"Entry {int(entry.entry_id):03d} is an empty source slot."
+                self.report({"INFO"}, scene_props.last_status)
+                return {"CANCELLED"}
+            if not bool(getattr(entry, "has_timl", False)):
+                scene_props.last_status = f"Entry {int(entry.entry_id):03d} has no attached TIML to focus."
+                self.report({"INFO"}, scene_props.last_status)
+                return {"CANCELLED"}
+            if bool(getattr(entry, "timl_parse_error", "")):
+                scene_props.last_status = f"Entry {int(entry.entry_id):03d} attached TIML could not be parsed yet."
+                add_diagnostic(scene_props, "WARNING", "timl.controller", scene_props.last_status)
+                self.report({"WARNING"}, scene_props.last_status)
+                return {"CANCELLED"}
             else:
-                scene_props.last_status = f"Entry {int(entry.entry_id):03d} has no imported TIML controller yet."
+                scene_props.last_status = f"Entry {int(entry.entry_id):03d} has no imported TIML controller yet. Import TIML first."
             add_diagnostic(scene_props, "WARNING", "timl.controller", scene_props.last_status)
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}

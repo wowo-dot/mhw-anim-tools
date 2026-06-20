@@ -4,6 +4,7 @@ import unittest
 
 from core.diagnostics.errors import ValidationError
 from core.formats.timl.embedded_writer import build_embedded_timl_data_payload
+from core.formats.timl.embedded_writer import build_embedded_timl_data_payload_from_sampled
 from core.formats.timl.reader import UNSIGNED_KEYFRAME_STRUCT
 from core.formats.timl.reader import read_timl_bytes
 from core.formats.timl.reader import read_timl_data_bytes
@@ -68,6 +69,36 @@ def _build_multi_transform_embedded_source_bytes() -> tuple[bytes, int]:
 
 
 class TimlEmbeddedWriterTests(unittest.TestCase):
+    def test_embedded_writer_can_build_empty_payload_from_zero_sampled_transforms(self):
+        payload, rebase_offsets = build_embedded_timl_data_payload_from_sampled(
+            (),
+            base_offset=0x4000000000000000,
+            data_index_a=3,
+            data_index_b=4,
+            animation_length=12.5,
+            loop_start_point=1.0,
+            loop_control=2,
+            label_hash=0x12345678,
+        )
+
+        rebuilt_source = (b"\x00" * 48) + payload
+        rebuilt_entry = read_timl_data_bytes(
+            rebuilt_source,
+            data_offset=48,
+            source_name="empty-added#timl",
+            entry_id=0,
+        )
+
+        self.assertEqual(rebase_offsets, ())
+        self.assertEqual(rebuilt_entry.type_count, 0)
+        self.assertEqual(len(rebuilt_entry.types), 0)
+        self.assertEqual(rebuilt_entry.data_index_a, 3)
+        self.assertEqual(rebuilt_entry.data_index_b, 4)
+        self.assertEqual(rebuilt_entry.animation_length, 12.5)
+        self.assertEqual(rebuilt_entry.loop_start_point, 1.0)
+        self.assertEqual(rebuilt_entry.loop_control, 2)
+        self.assertEqual(rebuilt_entry.label_hash, 0x12345678)
+
     def test_embedded_float_payload_roundtrips_through_reader(self):
         source_bytes, source_offset = _build_embedded_timl_source_bytes()
         source_entry = read_timl_data_bytes(

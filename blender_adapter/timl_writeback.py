@@ -13,6 +13,7 @@ try:
     from ..core.formats.timl.embedded_writer import build_embedded_timl_data_payload_from_sampled
     from .timl_authoring import timl_header_state_from_controller
     from .timl_export import extract_action_timl_metadata
+    from .timl_sampling import sample_timl_controller_action
     from .timl_sampling import extract_timl_controller_metadata
     from .timl_sampling import is_imported_timl_controller
     from .timl_writeback_plan import plan_timl_controller_writeback
@@ -24,6 +25,7 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.timl.embedded_writer import build_embedded_timl_data_payload_from_sampled
     from blender_adapter.timl_authoring import timl_header_state_from_controller
     from blender_adapter.timl_export import extract_action_timl_metadata
+    from blender_adapter.timl_sampling import sample_timl_controller_action
     from blender_adapter.timl_sampling import extract_timl_controller_metadata
     from blender_adapter.timl_sampling import is_imported_timl_controller
     from blender_adapter.timl_writeback_plan import plan_timl_controller_writeback
@@ -206,6 +208,47 @@ def _source_entry_has_no_transforms(source_entry) -> bool:
     if source_entry is None:
         return True
     return not any(getattr(type_entry, "transforms", ()) for type_entry in getattr(source_entry, "types", ()))
+
+
+def build_new_attached_timl_payload(controller_object, *, base_offset: int) -> TimlWritebackResult:
+    result = TimlWritebackResult()
+    metadata = extract_timl_controller_metadata(controller_object)
+    result.controller_name = metadata.carrier_name
+    result.action_name = metadata.action_name
+    result.source_offset = int(base_offset)
+
+    sampled_result = sample_timl_controller_action(controller_object)
+    for diagnostic in sampled_result.diagnostics:
+        result.add(diagnostic.level, diagnostic.source, diagnostic.message)
+    if sampled_result.error_count:
+        return result
+
+    header_state = timl_header_state_from_controller(
+        controller_object,
+        source_lmt=metadata.source_lmt,
+        entry_id=int(metadata.entry_id),
+    )
+    try:
+        payload, rebase_offsets = build_embedded_timl_data_payload_from_sampled(
+            tuple(getattr(sampled_result, "sampled_transforms", ())),
+            base_offset=int(base_offset),
+            data_index_a=int(header_state["data_index_a"]),
+            data_index_b=int(header_state["data_index_b"]),
+            animation_length=float(header_state["animation_length"]),
+            loop_start_point=float(header_state["loop_start_point"]),
+            loop_control=int(header_state["loop_control"]),
+            label_hash=int(header_state["label_hash"]),
+        )
+    except (BinaryFormatError, ValidationError, ValueError) as exc:
+        result.add("ERROR", "timl.writeback", str(exc))
+        return result
+
+    result.replacement_payloads[int(base_offset)] = RawTimlPayload(
+        payload=bytes(payload),
+        rebase_offsets=tuple(int(offset) for offset in rebase_offsets),
+    )
+    return result
+
 
 def build_matching_timl_writeback(export_action, controller_objects, *, source_lmt, source_bytes: bytes) -> TimlWritebackResult:
     result = TimlWritebackResult()

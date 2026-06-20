@@ -8,10 +8,9 @@ import bpy
 from bpy_extras.io_utils import ExportHelper
 
 from ..blender_adapter.export_workflow import analyze_export_action
-from ..blender_adapter.export_workflow import analyze_source_export_actions
+from ..blender_adapter.export_workflow import analyze_lmt_session_export
 from ..blender_adapter.export_workflow import effective_export_action
-from ..blender_adapter.export_workflow import source_export_actions
-from ..blender_adapter.export_workflow import write_source_export_file
+from ..blender_adapter.export_workflow import write_lmt_session_export_file
 from ..blender_adapter.timl_file_export import analyze_standalone_timl_export
 from ..blender_adapter.timl_file_export import write_standalone_timl_file
 from ..blender_adapter.timl_metadata import TIML_SOURCE_KIND_STANDALONE_FILE
@@ -62,6 +61,41 @@ def _apply_export_summary(scene_props, analysis):
     scene_props.last_export_matching_timl_controller_names = ", ".join(analysis.impact_summary.matching_timl_controller_names)
     scene_props.last_export_timl_source_scope = analysis.impact_summary.timl_source_scope_label
     scene_props.last_export_timl_writeback_scope = analysis.impact_summary.timl_writeback_scope_label
+
+
+def _reset_export_summary(scene_props):
+    scene_props.last_export_action_name = ""
+    scene_props.last_export_track_count = 0
+    scene_props.last_export_sparse_key_count = 0
+    scene_props.last_export_supported_track_count = 0
+    scene_props.last_export_frame_count = 0
+    scene_props.last_export_buffer_summary = ""
+    scene_props.last_export_warning_count = 0
+    scene_props.last_export_error_count = 0
+    scene_props.last_export_mode = ""
+    scene_props.last_export_source_name = ""
+    scene_props.last_export_entry_id = 0
+    scene_props.last_export_source_action_count = 0
+    scene_props.last_export_preserves_siblings = False
+    scene_props.last_export_matching_timl_controller_count = 0
+    scene_props.last_export_matching_timl_controller_names = ""
+    scene_props.last_export_timl_source_scope = ""
+    scene_props.last_export_timl_writeback_scope = ""
+
+
+def _apply_session_export_summary(scene_props, export_plan):
+    clear_export_analysis(scene_props)
+    _reset_export_summary(scene_props)
+    if export_plan.analyses:
+        _apply_export_summary(scene_props, export_plan.analyses[0])
+    scene_props.last_export_warning_count = int(export_plan.warning_count)
+    scene_props.last_export_error_count = int(export_plan.error_count)
+    scene_props.last_export_mode = "merge"
+    scene_props.last_export_source_name = str(export_plan.source_path or "")
+    scene_props.last_export_source_action_count = int(export_plan.source_action_count)
+    scene_props.last_export_preserves_siblings = int(export_plan.source_action_count) > 1
+    if getattr(scene_props, "lmt_entries", None) and 0 <= int(scene_props.selected_entry_index) < len(scene_props.lmt_entries):
+        scene_props.last_export_entry_id = int(scene_props.lmt_entries[int(scene_props.selected_entry_index)].entry_id)
 
 
 def _active_timl_controller(scene_props, context):
@@ -140,16 +174,16 @@ class MHWANIMTOOLS_OT_analyze_export_action(bpy.types.Operator):
 class MHWANIMTOOLS_OT_export_source_lmt(bpy.types.Operator, ExportHelper):
     bl_idname = "mhw_anim_tools.export_source_lmt"
     bl_label = "Export Full LMT"
-    bl_description = "Write the full source LMT using every imported Blender action from that source file"
+    bl_description = "Write the full inspected LMT session, including deleted slots, holes, and added entries"
 
     filename_ext = ".lmt"
     filter_glob: bpy.props.StringProperty(default="*.lmt", options={"HIDDEN"}, maxlen=255)
 
     def invoke(self, context, _event):
         scene_props = context.scene.mhw_anim_tools
-        source_path, _export_actions, report = source_export_actions(scene_props, actions=bpy.data.actions)
-        if report.error_count:
-            scene_props.last_status = report.diagnostics[0].message if report.diagnostics else "Full LMT export is not available for the current selection."
+        source_path = str(scene_props.last_lmt_path or "")
+        if not source_path or not getattr(scene_props, "lmt_entries", None):
+            scene_props.last_status = "Inspect an LMT file before exporting the full source LMT."
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
         if not self.filepath:
@@ -163,52 +197,40 @@ class MHWANIMTOOLS_OT_export_source_lmt(bpy.types.Operator, ExportHelper):
         clear_diagnostics(scene_props)
         clear_export_analysis(scene_props)
 
-        source_path, analyses, report = analyze_source_export_actions(
+        export_plan = analyze_lmt_session_export(
             scene_props,
             actions=bpy.data.actions,
             objects=bpy.data.objects,
         )
-        _publish_report_diagnostics(scene_props, report)
-        for analysis in analyses:
+        _publish_export_diagnostics(scene_props, export_plan.diagnostics)
+        for analysis in export_plan.analyses:
             _publish_export_diagnostics(scene_props, analysis.diagnostics)
 
-        if report.error_count or not analyses:
-            scene_props.last_status = report.diagnostics[0].message if report.diagnostics else "Full LMT export could not start."
+        if export_plan.error_count:
+            scene_props.last_status = export_plan.status_message or "Full LMT export could not start."
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
 
-        anchor_analysis = analyses[0]
-        _apply_export_summary(scene_props, anchor_analysis)
-
-        total_warning_count = report.warning_count + sum(int(analysis.warning_count) for analysis in analyses)
-        total_error_count = report.error_count + sum(int(analysis.error_count) for analysis in analyses)
-        if total_error_count:
-            scene_props.last_export_warning_count = total_warning_count
-            scene_props.last_export_error_count = total_error_count
-            scene_props.last_status = (
-                f"Full LMT export analysis failed: {total_error_count} error(s), "
-                f"{total_warning_count} warning(s)."
-            )
-            self.report({"WARNING"}, scene_props.last_status)
-            return {"CANCELLED"}
+        _apply_session_export_summary(scene_props, export_plan)
 
         try:
-            output_path = write_source_export_file(self.filepath, analyses)
+            output_path = write_lmt_session_export_file(self.filepath, export_plan)
         except (ValidationError, BinaryFormatError, OSError, ValueError) as exc:
             add_diagnostic(scene_props, "ERROR", "writer", str(exc))
-            scene_props.last_export_warning_count = total_warning_count
-            scene_props.last_export_error_count = total_error_count + 1
+            scene_props.last_export_warning_count = int(export_plan.warning_count)
+            scene_props.last_export_error_count = int(export_plan.error_count) + 1
             scene_props.last_status = f"Full LMT export failed: {exc}"
             self.report({"WARNING"}, scene_props.last_status)
             return {"CANCELLED"}
 
-        scene_props.last_export_warning_count = total_warning_count
-        scene_props.last_export_error_count = total_error_count
+        scene_props.last_export_warning_count = int(export_plan.warning_count)
+        scene_props.last_export_error_count = int(export_plan.error_count)
         scene_props.last_status = (
-            f"Exported full source LMT {Path(source_path).name or output_path.name}: "
-            f"edited_actions={len(analyses)}, "
-            f"source_actions={anchor_analysis.impact_summary.source_action_count}, "
-            f"warnings={total_warning_count}, "
+            f"Exported full source LMT {Path(export_plan.source_path).name or output_path.name}: "
+            f"edited_actions={export_plan.edited_action_count}, "
+            f"structural_changes={export_plan.structural_change_count}, "
+            f"source_actions={export_plan.source_action_count}, "
+            f"warnings={export_plan.warning_count}, "
             f"mode=merge"
         )
         self.report({"INFO"}, scene_props.last_status)

@@ -143,10 +143,15 @@ def build_action_summary(action, *, lmt=None, source_bytes: bytes | None = None,
     }
     return {
         "entry_id": action.id,
+        "entry_state": "source",
+        "has_source_action": True,
+        "is_synthetic": False,
         "frame_count": action.header.frame_count,
         "loop_frame": action.header.loop_frame,
         "track_count": len(action.tracks),
         "has_timl": action.has_timl,
+        "flags": int(action.header.flags),
+        "flags2": int(action.header.flags2),
         "flags_hex": f"0x{action.header.flags:02X}",
         "flags2_hex": f"0x{action.header.flags2:02X}",
         "translation_preview": _format_vector(action.header.translation[:3]),
@@ -157,14 +162,65 @@ def build_action_summary(action, *, lmt=None, source_bytes: bytes | None = None,
     }
 
 
+def build_empty_entry_summary(
+    entry_id: int,
+    *,
+    entry_state: str = "source_hole",
+    is_synthetic: bool = False,
+    has_timl: bool = False,
+) -> dict[str, object]:
+    return {
+        "entry_id": int(entry_id),
+        "entry_state": str(entry_state or "source_hole"),
+        "has_source_action": False,
+        "is_synthetic": bool(is_synthetic),
+        "frame_count": 0,
+        "loop_frame": -1,
+        "track_count": 0,
+        "has_timl": bool(has_timl),
+        "flags": 0,
+        "flags2": 0,
+        "flags_hex": "0x00",
+        "flags2_hex": "0x00",
+        "translation_preview": "0.0000, 0.0000, 0.0000",
+        "rotation_preview": "0.0000, 0.0000, 0.0000, 1.0000",
+        "track_breakdown": "No tracks",
+        "track_payload": "[]",
+        "timl_source_offset": 0,
+        "timl_type_count": 0,
+        "timl_transform_count": 0,
+        "timl_keyframe_count": 0,
+        "timl_animation_length": 0.0,
+        "timl_loop_start_point": 0.0,
+        "timl_loop_control": 0,
+        "timl_data_type_breakdown": "",
+        "timl_timeline_breakdown": "",
+        "timl_transform_payload": "[]",
+        "timl_parse_error": "",
+    }
+
+
 def build_file_summary(lmt, *, source_bytes: bytes | None = None):
     attached_timl_cache: dict[int, dict[str, object]] = {}
-    return [
-        build_action_summary(
-            action,
-            lmt=lmt,
-            source_bytes=source_bytes,
-            attached_timl_cache=attached_timl_cache,
+    actions_by_id = {
+        int(action.id): action
+        for action in getattr(lmt, "actions", ())
+    }
+    summaries = []
+    for entry_id, entry_offset in enumerate(getattr(lmt, "entry_offsets", ())):
+        if int(entry_offset) == 0:
+            summaries.append(build_empty_entry_summary(entry_id))
+            continue
+        action = actions_by_id.get(int(entry_id))
+        if action is None:
+            summaries.append(build_empty_entry_summary(entry_id))
+            continue
+        summaries.append(
+            build_action_summary(
+                action,
+                lmt=lmt,
+                source_bytes=source_bytes,
+                attached_timl_cache=attached_timl_cache,
+            )
         )
-        for action in lmt.actions
-    ]
+    return summaries

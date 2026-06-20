@@ -49,7 +49,7 @@ def import_all_lmt_actions_to_armature(
     *,
     source_path: str,
     import_action,
-    entry_indices=None,
+    entry_ids=None,
     source_identity=None,
 ):
     """Import one or more LMT actions through the single-action importer callback."""
@@ -59,31 +59,35 @@ def import_all_lmt_actions_to_armature(
         result.add("ERROR", "session", "No parsed LMT file is available for batch import.")
         return result
 
-    if entry_indices is None:
-        requested_indices = list(range(len(getattr(lmt, "actions", ()))))
+    if entry_ids is None:
+        requested_ids = [int(getattr(action, "id", 0)) for action in getattr(lmt, "actions", ())]
     else:
-        requested_indices = [int(index) for index in entry_indices]
+        requested_ids = [int(entry_id) for entry_id in entry_ids]
 
-    result.requested_action_count = len(requested_indices)
-    if not requested_indices:
+    result.requested_action_count = len(requested_ids)
+    if not requested_ids:
         result.add("ERROR", "session", "The current LMT file contains no actions to import.")
         return result
 
+    actions_by_id = {
+        int(getattr(action, "id", -1)): action
+        for action in getattr(lmt, "actions", ())
+    }
     imported_action_names: list[str] = []
-    for action_index in requested_indices:
-        if action_index < 0 or action_index >= len(lmt.actions):
+    for entry_id in requested_ids:
+        source_action = actions_by_id.get(int(entry_id))
+        if source_action is None:
             result.failed_action_count += 1
             result.add(
                 "ERROR",
                 "session",
-                f"Requested LMT action index {action_index} is out of range for batch import.",
+                f"Requested LMT entry {int(entry_id):03d} is not present in the current source file.",
             )
             continue
 
-        action_id = int(lmt.actions[action_index].id)
         single_result = import_action(
             lmt,
-            action_index,
+            int(entry_id),
             armature_object,
             source_path=source_path,
             source_identity=source_identity,
@@ -100,7 +104,7 @@ def import_all_lmt_actions_to_armature(
         for diagnostic in getattr(single_result, "diagnostics", ()):
             result.add(
                 str(getattr(diagnostic, "level", "INFO") or "INFO"),
-                _prefixed_source(action_id, getattr(diagnostic, "source", "")),
+                _prefixed_source(int(entry_id), getattr(diagnostic, "source", "")),
                 str(getattr(diagnostic, "message", "") or ""),
             )
 

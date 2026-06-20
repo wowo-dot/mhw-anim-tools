@@ -7,6 +7,7 @@ import os
 import bpy
 
 from ..blender_adapter.armature import summarize_track_binding
+from ..blender_adapter.lmt_track_authoring import session_lmt_action_for_entry
 from ..blender_adapter.space import uses_mhw_model_editor_space_adapter
 from ..blender_adapter.timl_sampling import extract_timl_controller_metadata
 from ..blender_adapter.timl_sampling import is_imported_timl_controller
@@ -44,6 +45,24 @@ def _workspace_timl_controller(context):
     if scene_props.last_imported_timl_object_name:
         candidate = bpy.data.objects.get(scene_props.last_imported_timl_object_name)
         if is_imported_timl_controller(candidate):
+            return candidate
+    return None
+
+
+def _timl_controller_for_lmt_entry(scene_props, entry):
+    if entry is None:
+        return None
+    source_path = str(scene_props.last_lmt_path or "")
+    if not source_path:
+        return None
+    entry_id = int(getattr(entry, "entry_id", -1))
+    for candidate in bpy.data.objects:
+        if not is_imported_timl_controller(candidate):
+            continue
+        metadata = extract_timl_controller_metadata(candidate)
+        if str(metadata.source_lmt or "") != source_path:
+            continue
+        if int(metadata.entry_id) == entry_id:
             return candidate
     return None
 
@@ -179,6 +198,11 @@ def _draw_entry_binding_summary(details, scene_props, entry):
             f"{binding_summary.supported_track_count}"
         )
     )
+    if binding_summary.raw_fallback_candidate_count:
+        binding_box.label(
+            text=f"Raw fallback candidates: {binding_summary.raw_fallback_candidate_count}",
+            icon="INFO",
+        )
     if binding_summary.root_required:
         root_text = binding_summary.root_target_label or "missing"
         binding_box.label(text=f"Root binding: {root_text}")
@@ -194,14 +218,20 @@ def _draw_entry_binding_summary(details, scene_props, entry):
 def _draw_entry_import_section(panel_body, scene_props, entry):
     import_row = panel_body.row(align=True)
     import_row.scale_y = 1.1
-    import_row.operator("mhw_anim_tools.import_selected_lmt_action", icon="ACTION", text="Import Selected")
+    entry_state = str(getattr(entry, "entry_state", "") or "source")
+    import_selected = import_row.row(align=True)
+    import_selected.enabled = entry_state in {"source", "added"} and entry_state != "deleted"
+    import_selected.operator("mhw_anim_tools.import_selected_lmt_action", icon="ACTION", text="Import Selected")
     import_row.operator("mhw_anim_tools.import_all_lmt_actions", icon="ACTION_TWEAK", text="Import All")
-    if entry.has_timl:
+    if entry_state in {"source", "added"} and entry.has_timl:
         timl_row = panel_body.row(align=True)
         timl_row.scale_y = 1.05
-        timl_row.operator("mhw_anim_tools.import_selected_attached_timl", icon="IMPORT", text="Import TIML")
-        timl_row.operator("mhw_anim_tools.focus_selected_entry_timl_controller", icon="RESTRICT_SELECT_OFF", text="Focus TIML")
-        if entry.timl_parse_error:
+        import_text = "Import TIML" if entry_state == "source" else "Seed TIML"
+        timl_row.operator("mhw_anim_tools.import_selected_attached_timl", icon="IMPORT", text=import_text)
+        focus_timl = timl_row.row(align=True)
+        focus_timl.enabled = _timl_controller_for_lmt_entry(scene_props, entry) is not None
+        focus_timl.operator("mhw_anim_tools.focus_selected_entry_timl_controller", icon="RESTRICT_SELECT_OFF", text="Focus TIML")
+        if entry_state == "source" and entry.timl_parse_error:
             panel_body.label(text=f"TIML parse issue: {entry.timl_parse_error}", icon="ERROR")
     if not scene_props.last_imported_action_name:
         return
@@ -217,6 +247,19 @@ def _draw_entry_import_section(panel_body, scene_props, entry):
 
 
 def _draw_track_details(panel_body, scene_props):
+    entry = (
+        scene_props.lmt_entries[scene_props.selected_entry_index]
+        if 0 <= scene_props.selected_entry_index < len(scene_props.lmt_entries)
+        else None
+    )
+    editable_action = None
+    if entry is not None:
+        editable_action = session_lmt_action_for_entry(
+            bpy.data.actions,
+            source_path=str(scene_props.last_lmt_path or ""),
+            entry_id=int(getattr(entry, "entry_id", 0)),
+            preferred_action=scene_props.export_action,
+        )
     panel_body.template_list(
         "MHWANIMTOOLS_UL_lmt_tracks",
         "",
@@ -226,13 +269,29 @@ def _draw_track_details(panel_body, scene_props):
         "selected_track_index",
         rows=8,
     )
+    controls = panel_body.row(align=True)
+    controls.scale_y = 1.05
+    add_row = controls.row(align=True)
+    add_row.enabled = (
+        entry is not None
+        and scene_props.target_armature is not None
+        and str(getattr(entry, "entry_state", "") or "") not in {"deleted", "source_hole"}
+        and (editable_action is not None or str(getattr(entry, "entry_state", "") or "") == "added")
+    )
+    add_row.operator("mhw_anim_tools.add_lmt_track", text="", icon="ADD")
+    remove_row = controls.row(align=True)
+    remove_row.enabled = editable_action is not None and 0 <= scene_props.selected_track_index < len(scene_props.lmt_tracks)
+    remove_row.operator("mhw_anim_tools.remove_lmt_track", text="", icon="TRASH")
     if not (0 <= scene_props.selected_track_index < len(scene_props.lmt_tracks)):
+        if editable_action is not None:
+            panel_body.label(text="No editable tracks on the imported action yet.", icon="INFO")
         return
     track = scene_props.lmt_tracks[scene_props.selected_track_index]
     track_box = panel_body.box()
     track_box.label(text=f"Track {track.track_index:02d}", icon="IPO_BEZIER")
     track_box.label(text=f"Usage: {track.usage_label}")
-    track_box.label(text=f"Bone ID: {track.bone_id}")
+    target_label = "Root" if int(track.bone_id) < 0 else f"Bone ID: {track.bone_id}"
+    track_box.label(text=target_label)
     track_box.label(text=f"Blender target hint: {track.blender_path_hint or 'n/a'}")
     track_box.label(text=f"Channels: {track.channel_labels}")
     track_box.label(text=f"Encoding: {track.buffer_label} ({track.buffer_code})")
@@ -250,6 +309,8 @@ def _draw_track_details(panel_body, scene_props):
         track_box.label(text=f"Tail: {track.tail_preview}")
     track_box.label(text=f"Weight: {track.weight:.3f}")
     track_box.label(text=f"Joint type: {track.joint_type} / Tag: {track.unknown_tag}")
+    if track.import_mode == "raw_duplicate" or track.fallback_reason:
+        track_box.label(text="Raw fallback track", icon="INFO")
     if track.decode_error:
         track_box.label(text=f"Decode issue: {track.decode_error}", icon="ERROR")
 
@@ -286,6 +347,17 @@ def _draw_lmt_inspector_section(layout, scene_props):
         "selected_entry_index",
         rows=6,
     )
+    controls_row = panel_body.row(align=True)
+    controls_row.scale_y = 1.05
+    controls_row.operator("mhw_anim_tools.add_lmt_entry", text="", icon="ADD")
+    delete_row = controls_row.row(align=True)
+    selected_entry = (
+        scene_props.lmt_entries[scene_props.selected_entry_index]
+        if 0 <= scene_props.selected_entry_index < len(scene_props.lmt_entries)
+        else None
+    )
+    delete_row.enabled = selected_entry is not None and str(getattr(selected_entry, "entry_state", "") or "") != "source_hole"
+    delete_row.operator("mhw_anim_tools.delete_lmt_entry", text="", icon="TRASH")
     if not (0 <= scene_props.selected_entry_index < len(scene_props.lmt_entries)):
         return
     entry = scene_props.lmt_entries[scene_props.selected_entry_index]
@@ -296,15 +368,29 @@ def _draw_lmt_inspector_section(layout, scene_props):
     details_header.label(text=f"Entry {entry.entry_id:03d}")
     if details_body is not None:
         details_box = details_body.box()
-        details_box.label(text=f"Frames: {entry.frame_count}", icon="ACTION")
-        details_box.label(text=f"Loop frame: {entry.loop_frame}")
-        details_box.label(text=f"Tracks: {entry.track_count}")
-        details_box.label(text=f"Flags: {entry.flags_hex} / {entry.flags2_hex}")
-        details_box.label(text=f"Action translation: {entry.translation_preview}")
-        details_box.label(text=f"Action rotation basis: {entry.rotation_preview}")
-        if entry.has_timl:
-            details_box.label(text="TIML attached", icon="NODETREE")
-        _draw_entry_binding_summary(details_box, scene_props, entry)
+        entry_state = str(getattr(entry, "entry_state", "") or "source")
+        if entry_state == "deleted":
+            details_box.label(text="Deleted for export", icon="TRASH")
+            details_box.label(text="This source slot will export as an empty hole.")
+        elif entry_state == "source_hole":
+            details_box.label(text="Empty source slot", icon="INFO")
+            details_box.label(text="No source action exists at this entry id.")
+        else:
+            if entry_state == "added":
+                details_box.label(text="Added entry slot", icon="ADD")
+                if int(entry.track_count) <= 0:
+                    details_box.label(text="No tracks yet")
+            details_box.label(text=f"Frames: {entry.frame_count}", icon="ACTION")
+            details_box.label(text=f"Loop frame: {entry.loop_frame}")
+            details_box.label(text=f"Tracks: {entry.track_count}")
+            details_box.label(text=f"Flags: {entry.flags_hex} / {entry.flags2_hex}")
+            details_box.label(text=f"Action translation: {entry.translation_preview}")
+            details_box.label(text=f"Action rotation basis: {entry.rotation_preview}")
+            if entry.has_timl:
+                timl_label = "Blank TIML seeded" if entry_state == "added" else "TIML attached"
+                details_box.label(text=timl_label, icon="NODETREE")
+            if entry.track_payload:
+                _draw_entry_binding_summary(details_box, scene_props, entry)
         _draw_entry_import_section(details_body, scene_props, entry)
 
     tracks_header, tracks_body = panel_body.panel(

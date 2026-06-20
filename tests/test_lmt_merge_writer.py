@@ -15,6 +15,7 @@ from core.formats.lmt.reconstructed import LmtReconstructedTrack
 from core.formats.lmt.writer import LERP_BASIS_STRUCT
 from core.formats.lmt.writer import TRACK_STRUCT
 from core.formats.timl.embedded_writer import build_embedded_timl_data_payload
+from core.formats.timl.embedded_writer import build_embedded_timl_data_payload_from_sampled
 from core.formats.timl.reader import read_timl_data_bytes
 
 
@@ -379,6 +380,114 @@ class LmtMergeWriterTests(unittest.TestCase):
         self.assertNotEqual(layouts[merged_timl_offset].payload, timl_payload)
         (type_offset,) = struct.unpack_from("<Q", merged_bytes, merged_timl_offset)
         self.assertEqual(type_offset, merged_timl_offset + 48)
+
+    def test_merge_writer_can_delete_a_source_slot_into_a_hole(self):
+        source_bytes, _timl_payload = _build_source_container_with_shared_timl()
+        source_lmt = read_lmt_bytes(source_bytes, source_name="merge-source.lmt")
+
+        merged_bytes = write_multi_merged_lmt_bytes(
+            source_lmt,
+            source_bytes,
+            {},
+            deleted_action_ids={0},
+            target_entry_count=2,
+        )
+        merged_lmt = read_lmt_bytes(merged_bytes, source_name="merge-output.lmt")
+
+        self.assertEqual(merged_lmt.header.entry_count, 2)
+        self.assertEqual(merged_lmt.entry_offsets[0], 0)
+        self.assertNotEqual(merged_lmt.entry_offsets[1], 0)
+        self.assertEqual(tuple(action.id for action in merged_lmt.actions), (1,))
+        self.assertEqual(merged_lmt.actions[0].header.flags, 17)
+
+    def test_merge_writer_can_append_blank_added_slot_beyond_original_entry_count(self):
+        source_bytes, _timl_payload = _build_source_container_with_shared_timl()
+        source_lmt = read_lmt_bytes(source_bytes, source_name="merge-source.lmt")
+
+        merged_bytes = write_multi_merged_lmt_bytes(
+            source_lmt,
+            source_bytes,
+            {
+                2: LmtReconstructedAction(
+                    action_name="AddedBlank",
+                    frame_start=0,
+                    frame_end=0,
+                    tracks=(),
+                ),
+            },
+            added_action_headers_by_id={
+                2: {"loop_frame": -1, "flags": 0, "flags2": 0},
+            },
+            target_entry_count=3,
+        )
+        merged_lmt = read_lmt_bytes(merged_bytes, source_name="merge-output.lmt")
+
+        self.assertEqual(merged_lmt.header.entry_count, 3)
+        self.assertEqual(tuple(action.id for action in merged_lmt.actions), (0, 1, 2))
+        self.assertNotEqual(merged_lmt.entry_offsets[2], 0)
+        self.assertEqual(len(merged_lmt.actions[2].tracks), 0)
+        self.assertEqual(merged_lmt.actions[2].header.loop_frame, -1)
+        self.assertEqual(merged_lmt.actions[2].header.flags, 0)
+        self.assertEqual(merged_lmt.actions[2].header.flags2, 0)
+        self.assertEqual(merged_lmt.actions[2].header.timl_offset, 0)
+
+    def test_merge_writer_can_append_added_slot_with_new_timl_payload(self):
+        source_bytes, _timl_payload = _build_source_container_with_shared_timl()
+        source_lmt = read_lmt_bytes(source_bytes, source_name="merge-source.lmt")
+        synthetic_timl_offset = (1 << 62) + 2
+        payload, rebase_offsets = build_embedded_timl_data_payload_from_sampled(
+            (),
+            base_offset=synthetic_timl_offset,
+            data_index_a=7,
+            data_index_b=8,
+            animation_length=19.0,
+            loop_start_point=2.0,
+            loop_control=1,
+            label_hash=0xCAFEBABE,
+        )
+
+        merged_bytes = write_multi_merged_lmt_bytes(
+            source_lmt,
+            source_bytes,
+            {
+                2: LmtReconstructedAction(
+                    action_name="AddedBlankWithTiml",
+                    frame_start=0,
+                    frame_end=0,
+                    tracks=(),
+                ),
+            },
+            added_action_headers_by_id={
+                2: {
+                    "loop_frame": -1,
+                    "flags": 0,
+                    "flags2": 0,
+                    "timl_source_offset": synthetic_timl_offset,
+                },
+            },
+            replacement_timl_payloads={
+                synthetic_timl_offset: RawTimlPayload(payload=payload, rebase_offsets=rebase_offsets),
+            },
+            target_entry_count=3,
+        )
+        merged_lmt = read_lmt_bytes(merged_bytes, source_name="merge-output.lmt")
+
+        self.assertEqual(merged_lmt.header.entry_count, 3)
+        self.assertEqual(tuple(action.id for action in merged_lmt.actions), (0, 1, 2))
+        self.assertNotEqual(merged_lmt.actions[2].header.timl_offset, 0)
+        rebuilt_entry = read_timl_data_bytes(
+            merged_bytes,
+            data_offset=merged_lmt.actions[2].header.timl_offset,
+            source_name="merge-output#timl",
+            entry_id=2,
+        )
+        self.assertEqual(rebuilt_entry.type_count, 0)
+        self.assertEqual(rebuilt_entry.data_index_a, 7)
+        self.assertEqual(rebuilt_entry.data_index_b, 8)
+        self.assertEqual(rebuilt_entry.animation_length, 19.0)
+        self.assertEqual(rebuilt_entry.loop_start_point, 2.0)
+        self.assertEqual(rebuilt_entry.loop_control, 1)
+        self.assertEqual(rebuilt_entry.label_hash, 0xCAFEBABE)
 
     def test_merge_writer_preserves_source_chunk_order_for_unchanged_raw_tracks(self):
         source_bytes = _build_source_container_with_lerp_before_raw_tracks()

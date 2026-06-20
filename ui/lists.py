@@ -24,18 +24,30 @@ class MHWANIMTOOLS_UL_lmt_entries(bpy.types.UIList):
         del context, icon, active_data, active_propname, index
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row(align=True)
+            entry_state = str(getattr(item, "entry_state", "") or "source")
+            state_icon = "CHECKMARK"
+            offset_text = item.timl_source_offset_display or ("empty" if item.has_timl else "-")
+            if entry_state == "source_hole":
+                state_icon = "INFO"
+                offset_text = "empty"
+            elif entry_state == "added":
+                state_icon = "ADD"
+                offset_text = "added"
+            elif entry_state == "deleted":
+                state_icon = "TRASH"
+                offset_text = "deleted"
+            elif item.timl_parse_error:
+                state_icon = "ERROR"
+            elif not item.has_timl:
+                state_icon = "REMOVE"
             row.label(text=f"{item.entry_id:03d}")
             row.label(text=f"{item.frame_count}f")
-            offset_text = item.timl_source_offset_display or ("empty" if item.has_timl else "-")
             row.label(text=offset_text)
-            if item.has_timl:
+            if entry_state in {"source", "added"} and item.has_timl:
                 row.label(text=f"{item.timl_type_count}t/{item.timl_transform_count}tr/{item.timl_keyframe_count}k")
             else:
                 row.label(text="-")
-            icon_name = "CHECKMARK" if item.has_timl else "REMOVE"
-            if item.timl_parse_error:
-                icon_name = "ERROR"
-            row.label(text="", icon=icon_name)
+            row.label(text="", icon=state_icon)
         elif self.layout_type == "GRID":
             layout.alignment = "CENTER"
             layout.label(text=str(item.entry_id))
@@ -60,7 +72,7 @@ class MHWANIMTOOLS_UL_lmt_tracks(bpy.types.UIList):
             row = layout.row(align=True)
             row.label(text=f"T{item.track_index:02d}")
             row.label(text=item.usage_label or f"Usage {item.usage}")
-            row.label(text=f"Bone {item.bone_id}")
+            row.label(text="Root" if int(item.bone_id) < 0 else f"Bone {item.bone_id}")
             row.label(text=item.buffer_code or f"B{item.buffer_type}")
             if item.decode_error:
                 row.label(text="Decode error", icon="ERROR")

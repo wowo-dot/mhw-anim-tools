@@ -47,14 +47,14 @@ class ImportBatchTests(unittest.TestCase):
     def test_batch_import_aggregates_successful_actions(self):
         lmt = _FakeLmt([0, 1])
 
-        def _import_action(_lmt, action_index, _armature_object, *, source_path: str, source_identity=None):
+        def _import_action(_lmt, entry_id, _armature_object, *, source_path: str, source_identity=None):
             self.assertEqual(source_path, "sample.lmt")
             self.assertIsNone(source_identity)
             return _FakeSingleResult(
-                action_name=f"LMT::sample::{action_index:03d}",
+                action_name=f"LMT::sample::{entry_id:03d}",
                 imported_track_count=2,
                 created_fcurve_count=6,
-                frame_end=20 + action_index,
+                frame_end=20 + entry_id,
             )
 
         result = import_all_lmt_actions_to_armature(
@@ -78,10 +78,10 @@ class ImportBatchTests(unittest.TestCase):
     def test_batch_import_continues_after_per_action_failure(self):
         lmt = _FakeLmt([7, 8])
 
-        def _import_action(_lmt, action_index, _armature_object, *, source_path: str, source_identity=None):
+        def _import_action(_lmt, entry_id, _armature_object, *, source_path: str, source_identity=None):
             del source_path
             self.assertIsNone(source_identity)
-            if action_index == 0:
+            if entry_id == 7:
                 return _FakeSingleResult(
                     diagnostics=(
                         _FakeDiagnostic("ERROR", "import", "No supported tracks were imported."),
@@ -115,7 +115,7 @@ class ImportBatchTests(unittest.TestCase):
         self.assertTrue(any(item.source.startswith("entry 007 /") for item in result.diagnostics))
         self.assertTrue(any(item.source.startswith("entry 008 /") for item in result.diagnostics))
 
-    def test_batch_import_rejects_out_of_range_action_indices(self):
+    def test_batch_import_rejects_missing_entry_ids(self):
         lmt = _FakeLmt([3])
 
         def _import_action(*args, **kwargs):  # pragma: no cover - should not be called
@@ -126,13 +126,13 @@ class ImportBatchTests(unittest.TestCase):
             object(),
             source_path="sample.lmt",
             import_action=_import_action,
-            entry_indices=[1],
+            entry_ids=[1],
         )
 
         self.assertEqual(result.imported_action_count, 0)
         self.assertEqual(result.failed_action_count, 1)
         self.assertEqual(result.error_count, 1)
-        self.assertIn("out of range", result.diagnostics[0].message)
+        self.assertIn("not present", result.diagnostics[0].message)
 
 
 if __name__ == "__main__":

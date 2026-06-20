@@ -177,6 +177,30 @@ def _resolved_action_header_vectors(
     return translation, rotation_lerp
 
 
+def _reconstructed_action_header_vectors(
+    reconstructed_action,
+) -> tuple[
+    tuple[float, float, float, float],
+    tuple[float, float, float, float],
+]:
+    translation = (0.0, 0.0, 0.0, 0.0)
+    rotation_lerp = (0.0, 0.0, 0.0, 1.0)
+    for track in reconstructed_action.tracks:
+        usage_info = get_usage_semantics(track.usage)
+        if usage_info.scope != "root" or track.tail_value is None:
+            continue
+        if usage_info.transform == "translation":
+            translation = (
+                float(track.tail_value[0]),
+                float(track.tail_value[1]),
+                float(track.tail_value[2]),
+                0.0,
+            )
+        elif usage_info.transform == "rotation":
+            rotation_lerp = wxyz_to_xyzw(tuple(float(component) for component in track.tail_value))
+    return translation, rotation_lerp
+
+
 def _serialize_reconstructed_action(
     reconstructed_action,
     source_action,
@@ -270,6 +294,86 @@ def _serialize_reconstructed_action(
         timl_source_offset=int(source_action.header.timl_offset),
         tracks=tuple(serialized_tracks),
     )
+
+
+def _serialize_new_reconstructed_action(
+    reconstructed_action,
+    *,
+    action_id: int,
+    loop_frame: int = -1,
+    flags: int = 0,
+    flags2: int = 0,
+    timl_source_offset: int = 0,
+    null0: tuple[int, int, int] = (0, 0, 0),
+    null2: bytes = b"\x00\x00",
+    null3: tuple[int, int, int, int, int] = (0, 0, 0, 0, 0),
+    track_metadata_by_identity: dict[tuple[int, int], dict[str, object]] | None = None,
+    track_metadata_by_index: dict[int, dict[str, object]] | None = None,
+    raw_quaternion_source_identities: frozenset[tuple[int, int]] | set[tuple[int, int]] | None = None,
+) -> _SerializedAction:
+    metadata_map = track_metadata_by_identity or {}
+    metadata_map_by_index = track_metadata_by_index or {}
+    plan = plan_reconstructed_action_export(
+        reconstructed_action,
+        track_metadata_by_identity=metadata_map,
+        track_metadata_by_index=metadata_map_by_index,
+        raw_quaternion_source_identities=raw_quaternion_source_identities,
+    )
+    if plan.error_count:
+        messages = "; ".join(diagnostic.message for diagnostic in plan.diagnostics if diagnostic.level == "ERROR")
+        raise ValidationError(f"Cannot merge-export new LMT action '{reconstructed_action.action_name}': {messages}")
+
+    action_frame_count = resolve_action_frame_count(reconstructed_action)
+    translation, rotation_lerp = _reconstructed_action_header_vectors(reconstructed_action)
+
+    serialized_tracks: list[_SerializedTrack] = []
+    for reconstructed_track, planned_track in zip(reconstructed_action.tracks, plan.tracks):
+        metadata = _track_write_metadata(reconstructed_track, metadata_map, metadata_map_by_index)
+        usage_info = get_usage_semantics(reconstructed_track.usage)
+        raw_buffer = _encode_track_buffer(reconstructed_track, planned_track, action_frame_count)
+        lerp_bytes = b""
+        if planned_track.lerp_mult is not None and planned_track.lerp_add is not None:
+            lerp_bytes = LERP_BASIS_STRUCT.pack(
+                *tuple(float(value) for value in planned_track.lerp_mult),
+                *tuple(float(value) for value in planned_track.lerp_add),
+            )
+        serialized_tracks.append(
+            _SerializedTrack(
+                buffer_type=int(planned_track.buffer_type),
+                usage=int(reconstructed_track.usage),
+                joint_type=int(metadata.joint_type),
+                unknown_tag=int(metadata.unknown_tag),
+                bone_id=int(reconstructed_track.bone_id),
+                weight=float(metadata.weight),
+                basis_xyzw=_basis_xyzw(reconstructed_track, usage_info),
+                raw_buffer=raw_buffer,
+                lerp_bytes=lerp_bytes,
+                source_buffer_offset=0,
+                source_lerp_offset=0,
+            )
+        )
+
+    return _SerializedAction(
+        action_id=int(action_id),
+        frame_count=int(action_frame_count),
+        loop_frame=int(loop_frame),
+        null0=tuple(int(value) for value in null0),
+        translation=translation,
+        rotation_lerp=rotation_lerp,
+        flags=int(flags),
+        null2=bytes(null2),
+        flags2=int(flags2),
+        null3=tuple(int(value) for value in null3),
+        timl_source_offset=int(timl_source_offset),
+        tracks=tuple(serialized_tracks),
+    )
+
+
+def _coerce_header_int(value, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return int(default)
 
 
 def _serialized_action_size(action: _SerializedAction) -> int:
@@ -442,10 +546,10 @@ def write_multi_merged_lmt_bytes(
     preserve_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]] | set[tuple[int, int]] | None] | None = None,
     raw_quaternion_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]] | set[tuple[int, int]] | None] | None = None,
     replacement_timl_payloads: dict[int, object] | None = None,
+    target_entry_count: int | None = None,
+    deleted_action_ids: set[int] | frozenset[int] | tuple[int, ...] | None = None,
+    added_action_headers_by_id: dict[int, dict[str, object]] | None = None,
 ) -> bytes:
-    if not reconstructed_actions_by_id:
-        raise ValidationError("At least one reconstructed source action is required for merged LMT export.")
-
     normalized_reconstructed_actions_by_id = {
         int(action_id): reconstructed_action
         for action_id, reconstructed_action in dict(reconstructed_actions_by_id).items()
@@ -466,42 +570,98 @@ def write_multi_merged_lmt_bytes(
         int(action_id): identities
         for action_id, identities in dict(raw_quaternion_source_identities_by_action_id or {}).items()
     }
+    normalized_deleted_action_ids = {
+        int(action_id)
+        for action_id in tuple(deleted_action_ids or ())
+    }
+    normalized_added_action_headers_by_id = {
+        int(action_id): dict(metadata or {})
+        for action_id, metadata in dict(added_action_headers_by_id or {}).items()
+    }
 
     source_actions_by_id = {int(action.id): action for action in source_lmt.actions}
+    allowed_added_ids = set(normalized_added_action_headers_by_id)
     missing_action_ids = sorted(
         action_id
         for action_id in normalized_reconstructed_actions_by_id
-        if action_id not in source_actions_by_id
+        if action_id not in source_actions_by_id and action_id not in allowed_added_ids
     )
     if missing_action_ids:
         labels = ", ".join(f"{action_id:03d}" for action_id in missing_action_ids)
         raise ValidationError(
             f"Could not find source action id(s) {labels} in '{source_lmt.source_name}'."
         )
+    invalid_deleted_action_ids = sorted(
+        action_id
+        for action_id in normalized_deleted_action_ids
+        if action_id < 0
+    )
+    if invalid_deleted_action_ids:
+        labels = ", ".join(str(action_id) for action_id in invalid_deleted_action_ids)
+        raise ValidationError(f"Invalid deleted LMT entry id(s): {labels}.")
+    invalid_added_action_ids = sorted(
+        action_id
+        for action_id in normalized_added_action_headers_by_id
+        if action_id < 0
+    )
+    if invalid_added_action_ids:
+        labels = ", ".join(str(action_id) for action_id in invalid_added_action_ids)
+        raise ValidationError(f"Invalid added LMT entry id(s): {labels}.")
 
     timl_payloads = dict(extract_raw_timl_payload_layouts(source_lmt, source_bytes))
     if replacement_timl_payloads:
         timl_payloads.update({int(offset): payload for offset, payload in replacement_timl_payloads.items()})
 
     action_records_by_id: dict[int, _SerializedAction] = {}
-    for entry_id, entry_offset in enumerate(source_lmt.entry_offsets):
-        if int(entry_offset) == 0:
+    resolved_target_entry_count = int(
+        max(
+            int(target_entry_count or 0),
+            int(getattr(source_lmt.header, "entry_count", 0) or 0),
+            (max(normalized_reconstructed_actions_by_id) + 1) if normalized_reconstructed_actions_by_id else 0,
+            (max(normalized_added_action_headers_by_id) + 1) if normalized_added_action_headers_by_id else 0,
+            (max(normalized_deleted_action_ids) + 1) if normalized_deleted_action_ids else 0,
+        )
+    )
+    if resolved_target_entry_count <= 0:
+        raise ValidationError("Merged LMT export requires at least one target entry slot.")
+
+    for entry_id in range(resolved_target_entry_count):
+        if entry_id in normalized_deleted_action_ids:
             continue
+
+        source_entry_offset = int(source_lmt.entry_offsets[entry_id]) if entry_id < len(source_lmt.entry_offsets) else 0
         source_entry_action = source_actions_by_id.get(entry_id)
-        if source_entry_action is None:
+        if source_entry_offset and source_entry_action is None:
             raise ValidationError(
                 f"Source LMT entry {entry_id} points to an action offset but no parsed action was available."
             )
-        if entry_id in normalized_reconstructed_actions_by_id:
+
+        reconstructed_action = normalized_reconstructed_actions_by_id.get(entry_id)
+        if reconstructed_action is not None and source_entry_action is not None:
             action_records_by_id[entry_id] = _serialize_reconstructed_action(
-                normalized_reconstructed_actions_by_id[entry_id],
+                reconstructed_action,
                 source_entry_action,
                 track_metadata_by_identity=track_metadata_by_action_id.get(entry_id),
                 track_metadata_by_index=track_metadata_by_index_by_action_id.get(entry_id),
                 preserve_source_identities=preserve_source_identities_by_action_id.get(entry_id),
                 raw_quaternion_source_identities=raw_quaternion_source_identities_by_action_id.get(entry_id),
             )
-        else:
+            continue
+        if reconstructed_action is not None:
+            header_defaults = normalized_added_action_headers_by_id.get(entry_id, {})
+            action_records_by_id[entry_id] = _serialize_new_reconstructed_action(
+                reconstructed_action,
+                action_id=entry_id,
+                loop_frame=_coerce_header_int(header_defaults.get("loop_frame", -1), -1),
+                flags=_coerce_header_int(header_defaults.get("flags", 0), 0),
+                flags2=_coerce_header_int(header_defaults.get("flags2", 0), 0),
+                timl_source_offset=_coerce_header_int(header_defaults.get("timl_source_offset", 0), 0),
+                track_metadata_by_identity=track_metadata_by_action_id.get(entry_id),
+                track_metadata_by_index=track_metadata_by_index_by_action_id.get(entry_id),
+                raw_quaternion_source_identities=raw_quaternion_source_identities_by_action_id.get(entry_id),
+            )
+            continue
+        if source_entry_action is not None:
             action_records_by_id[entry_id] = _serialize_source_action(source_entry_action)
 
     resolved_version = int(source_lmt.header.version if version is None else version)
@@ -509,21 +669,23 @@ def write_multi_merged_lmt_bytes(
     if len(resolved_header_unknown) != 8:
         raise ValidationError("LMT header unknown bytes must be exactly 8 bytes long.")
 
-    header_size = HEADER_STRUCT.size + (ENTRY_OFFSET_STRUCT.size * len(source_lmt.entry_offsets))
-    entry_offsets = [0] * len(source_lmt.entry_offsets)
+    header_size = HEADER_STRUCT.size + (ENTRY_OFFSET_STRUCT.size * resolved_target_entry_count)
+    entry_offsets = [0] * resolved_target_entry_count
     cursor = _align(header_size, 16)
-    for entry_id, source_entry_offset in enumerate(source_lmt.entry_offsets):
-        if int(source_entry_offset) == 0:
+    for entry_id in range(resolved_target_entry_count):
+        action = action_records_by_id.get(entry_id)
+        if action is None:
             continue
         cursor = _align(cursor, 16)
         entry_offsets[entry_id] = cursor
-        cursor += _serialized_action_size(action_records_by_id[entry_id])
+        cursor += _serialized_action_size(action)
 
     timl_payload_order: list[int] = []
-    for entry_id, source_entry_offset in enumerate(source_lmt.entry_offsets):
-        if int(source_entry_offset) == 0:
+    for entry_id in range(resolved_target_entry_count):
+        action = action_records_by_id.get(entry_id)
+        if action is None:
             continue
-        timl_source_offset = int(action_records_by_id[entry_id].timl_source_offset)
+        timl_source_offset = int(action.timl_source_offset)
         if timl_source_offset and timl_source_offset not in timl_payload_order:
             timl_payload_order.append(timl_source_offset)
 
@@ -546,7 +708,7 @@ def write_multi_merged_lmt_bytes(
         HEADER_STRUCT.pack(
             EXPECTED_SIGNATURE,
             int(resolved_version),
-            len(source_lmt.entry_offsets),
+            resolved_target_entry_count,
             resolved_header_unknown,
         )
     )
@@ -554,8 +716,8 @@ def write_multi_merged_lmt_bytes(
         data.extend(ENTRY_OFFSET_STRUCT.pack(int(entry_offset)))
     _pad_to(data, 16)
 
-    for entry_id, source_entry_offset in enumerate(source_lmt.entry_offsets):
-        if int(source_entry_offset) == 0:
+    for entry_id in range(resolved_target_entry_count):
+        if entry_offsets[entry_id] == 0:
             continue
         action_offset = entry_offsets[entry_id]
         if len(data) < action_offset:

@@ -366,6 +366,82 @@ class LmtActionImportTests(unittest.TestCase):
         self.assertIn(bindings[0]["property_name"], armature_object)
         self.assertTrue(any("armature-attached raw slot" in diagnostic.message for diagnostic in result.diagnostics))
 
+    def test_import_missing_bone_track_as_raw_editable_fallback(self):
+        action = LmtAction(
+            header=LmtActionHeader(
+                id=0,
+                fcurve_offset=0,
+                fcurve_count=1,
+                frame_count=10,
+                loop_frame=-1,
+                null0=(0, 0, 0),
+                translation=(0.0, 0.0, 0.0, 0.0),
+                rotation_lerp=(0.0, 0.0, 0.0, 1.0),
+                flags=0,
+                null2=b"\x00\x00",
+                flags2=0,
+                null3=(0, 0, 0, 0, 0),
+                timl_offset=0,
+            ),
+            tracks=(_track(bone_id=2, usage=1, buffer_type=3),),
+        )
+        lmt = LmtFile(
+            source_name="missing_bone.lmt",
+            file_size=0,
+            header=LmtHeader(signature=b"LMT\x00", version=95, entry_count=1, unknown=b"\x00" * 8),
+            entry_offsets=(32,),
+            actions=(action,),
+        )
+        armature_object = _FakeArmature()
+        fake_action = _FakeAction("LMT::missing_bone::000")
+        fake_animation_data = SimpleNamespace(action=None)
+
+        with patch(
+            "blender_adapter.actions.decode_action_tracks",
+            return_value=SimpleNamespace(
+                tracks=(
+                    _FakeDecodedTrack(
+                        0,
+                        bone_id=2,
+                        usage=1,
+                        buffer_type=3,
+                        basis_value=(0.0, 0.0, 0.0),
+                    ),
+                )
+            ),
+        ):
+            with patch("blender_adapter.actions.ensure_action", return_value=fake_action):
+                with patch(
+                    "blender_adapter.actions.ensure_armature_animation_data",
+                    return_value=fake_animation_data,
+                ):
+                    with patch(
+                        "blender_adapter.actions.create_action_fcurves",
+                        return_value=[object(), object(), object()],
+                    ):
+                        result = import_lmt_action_to_armature(
+                            lmt,
+                            0,
+                            armature_object,
+                            source_path="missing_bone.lmt",
+                        )
+
+        self.assertEqual(result.error_count, 0)
+        self.assertEqual(result.imported_track_count, 1)
+        self.assertEqual(result.skipped_track_count, 0)
+        self.assertTrue(any("raw editable fallback" in diagnostic.message for diagnostic in result.diagnostics))
+        bindings = load_lmt_import_track_bindings(fake_action)
+        self.assertEqual(len(bindings), 1)
+        binding = bindings[0]
+        self.assertEqual(binding["import_mode"], "raw_duplicate")
+        self.assertEqual(binding["source_kind"], "missing_bone_raw")
+        self.assertEqual(binding["fallback_reason"], "missing_bone")
+        self.assertIn("missing bone id 002", binding["fallback_detail"].lower())
+        self.assertTrue(binding["display_name"].startswith("Missing Bone 002"))
+        self.assertEqual(binding["action_group"], "Missing Bone 002 / LMT Raw")
+        self.assertEqual(binding["owner_kind"], "object")
+        self.assertIn(binding["property_name"], armature_object)
+
     def test_reimport_clears_legacy_armature_raw_slot_before_migrating_to_pose_bone(self):
         action = LmtAction(
             header=LmtActionHeader(
@@ -521,7 +597,7 @@ class LmtActionImportTests(unittest.TestCase):
                         ):
                             result = import_lmt_action_to_armature(
                                 lmt,
-                                0,
+                                9,
                                 armature_object,
                                 source_path="collision.lmt",
                             )

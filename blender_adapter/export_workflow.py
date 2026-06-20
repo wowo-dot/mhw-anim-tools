@@ -26,6 +26,7 @@ try:
     from ..core.formats.lmt.quaternion_source_diagnostics import identify_raw_sensitive_quaternion_identities
     from ..core.formats.lmt.reader import read_lmt_bytes
     from ..core.formats.lmt.reconstruction import reconstruct_sampled_action
+    from ..core.formats.lmt.reconstructed import LmtReconstructedAction
     from ..core.formats.lmt.source_preservation import identify_preservable_decoded_track_identities
     from ..core.formats.lmt.writer import DEFAULT_VERSION
     from ..core.formats.lmt.writer import write_lmt_file
@@ -38,6 +39,7 @@ try:
     from .source_identity import source_file_identity_from_bytes
     from .source_identity import SourceFileIdentity
     from .timl_export import assess_timl_export_readiness
+    from .timl_writeback import build_new_attached_timl_payload
     from .timl_writeback import build_matching_timl_writeback
     from .timl_writeback import matching_timl_controllers_for_export_action
 except ImportError:  # pragma: no cover - test runner imports from addon root
@@ -54,6 +56,7 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from core.formats.lmt.quaternion_source_diagnostics import identify_raw_sensitive_quaternion_identities
     from core.formats.lmt.reader import read_lmt_bytes
     from core.formats.lmt.reconstruction import reconstruct_sampled_action
+    from core.formats.lmt.reconstructed import LmtReconstructedAction
     from core.formats.lmt.source_preservation import identify_preservable_decoded_track_identities
     from core.formats.lmt.writer import DEFAULT_VERSION
     from core.formats.lmt.writer import write_lmt_file
@@ -66,6 +69,7 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from blender_adapter.source_identity import SourceFileIdentity
     from blender_adapter.export_sampling import sample_action_for_lmt_export
     from blender_adapter.timl_export import assess_timl_export_readiness
+    from blender_adapter.timl_writeback import build_new_attached_timl_payload
     from blender_adapter.timl_writeback import build_matching_timl_writeback
     from blender_adapter.timl_writeback import matching_timl_controllers_for_export_action
 
@@ -120,6 +124,38 @@ class ExportAnalysis:
             and self.plan is not None
             and self.error_count == 0
         )
+
+
+@dataclass(frozen=True)
+class SessionLmtExportPlan:
+    source_path: str = ""
+    source_lmt: object | None = None
+    source_bytes: bytes | None = None
+    version: int = DEFAULT_VERSION
+    header_unknown: bytes = b"\x00" * 8
+    target_entry_count: int = 0
+    source_action_count: int = 0
+    analyses: tuple[ExportAnalysis, ...] = ()
+    reconstructed_actions_by_id: dict[int, object] = field(default_factory=dict)
+    track_metadata_by_action_id: dict[int, dict[tuple[int, int], dict[str, object]] | None] = field(default_factory=dict)
+    track_metadata_by_index_by_action_id: dict[int, dict[int, dict[str, object]] | None] = field(default_factory=dict)
+    preserve_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]]] = field(default_factory=dict)
+    raw_quaternion_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]]] = field(default_factory=dict)
+    replacement_timl_payloads: dict[int, object] = field(default_factory=dict)
+    added_action_headers_by_id: dict[int, dict[str, object]] = field(default_factory=dict)
+    deleted_action_ids: frozenset[int] = frozenset()
+    diagnostics: tuple[ExportWorkflowDiagnostic, ...] = ()
+    warning_count: int = 0
+    error_count: int = 0
+    status_message: str = ""
+
+    @property
+    def edited_action_count(self) -> int:
+        return len(self.reconstructed_actions_by_id)
+
+    @property
+    def structural_change_count(self) -> int:
+        return len(self.added_action_headers_by_id) + len(self.deleted_action_ids)
 
 
 def effective_export_action(scene_props):
@@ -178,6 +214,13 @@ def _safe_action_entry_id(action, default: int = 0) -> int:
 
 def _workflow_diagnostic(level: str, source: str, message: str) -> ExportWorkflowDiagnostic:
     return ExportWorkflowDiagnostic(level=level.upper(), source=source, message=message)
+
+
+def _coerce_int(value, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return int(default)
 
 
 def _report_diagnostics(report: Report) -> list[ExportWorkflowDiagnostic]:
@@ -522,6 +565,417 @@ def source_export_actions(scene_props, *, actions, action=None) -> tuple[str, tu
             f"No imported LMT actions from '{source_path}' are available for full-source export.",
         )
     return source_path, ordered_actions, report
+
+
+def _session_entry_state(entry) -> str:
+    return str(getattr(entry, "entry_state", "") or "source")
+
+
+def _session_entry_header_defaults(entry) -> dict[str, object]:
+    return {
+        "loop_frame": _coerce_int(getattr(entry, "loop_frame", -1), default=-1),
+        "flags": _coerce_int(getattr(entry, "flags", 0), default=0),
+        "flags2": _coerce_int(getattr(entry, "flags2", 0), default=0),
+    }
+
+
+def _action_has_fcurves(action) -> bool:
+    try:
+        return bool(getattr(action, "fcurves", ()))
+    except TypeError:
+        return False
+
+
+def _blank_reconstructed_action(entry_id: int) -> LmtReconstructedAction:
+    return LmtReconstructedAction(
+        action_name=f"LMT Session Entry {int(entry_id):03d}",
+        frame_start=0,
+        frame_end=0,
+        tracks=(),
+    )
+
+
+def _session_export_diagnostic(level: str, source: str, message: str) -> ExportWorkflowDiagnostic:
+    return ExportWorkflowDiagnostic(level=level.upper(), source=source, message=message)
+
+
+_SYNTHETIC_ADDED_TIML_BASE_OFFSET = 1 << 62
+
+
+def _session_entry_timl_payload_key(entry_id: int) -> int:
+    return int(_SYNTHETIC_ADDED_TIML_BASE_OFFSET + int(entry_id))
+
+
+def _matching_timl_controllers_for_session_entry(source_path: str, entry_id: int, objects) -> tuple[object, ...]:
+    return matching_timl_controllers_for_export_action(
+        {
+            "name": f"LMT Session Entry {int(entry_id):03d}",
+            "mhw_anim_tools_source_lmt": str(source_path or ""),
+            "mhw_anim_tools_entry_id": int(entry_id),
+            "mhw_anim_tools_source_timl_offset": 0,
+            "mhw_anim_tools_source_has_timl": True,
+        },
+        objects,
+    )
+
+
+def _build_session_added_action_analysis(
+    scene_props,
+    action,
+    *,
+    entry_id: int,
+    source_path: str,
+    source_action_count: int,
+) -> ExportAnalysis:
+    workflow_diagnostics: list[ExportWorkflowDiagnostic] = []
+
+    readiness_report = assess_timl_export_readiness(action, ()) if action is not None else Report()
+    workflow_diagnostics.extend(_report_diagnostics(readiness_report))
+    if readiness_report.error_count:
+        return ExportAnalysis(
+            action=action,
+            diagnostics=tuple(workflow_diagnostics),
+            warning_count=readiness_report.warning_count,
+            error_count=readiness_report.error_count,
+            status_message="Selected action cannot be exported with the current TIML writer coverage.",
+        )
+
+    if scene_props.target_armature is None:
+        message = "Choose a target armature before analyzing export data."
+        workflow_diagnostics.append(_workflow_diagnostic("ERROR", "armature", message))
+        return ExportAnalysis(
+            action=action,
+            diagnostics=tuple(workflow_diagnostics),
+            error_count=1,
+            status_message=message,
+        )
+
+    sampling_result = sample_action_for_lmt_export(action, scene_props.target_armature)
+    workflow_diagnostics.extend(
+        _workflow_diagnostic(diagnostic.level, diagnostic.source, diagnostic.message)
+        for diagnostic in sampling_result.diagnostics
+    )
+    if sampling_result.error_count:
+        return ExportAnalysis(
+            action=action,
+            sampling_result=sampling_result,
+            diagnostics=tuple(workflow_diagnostics),
+            warning_count=readiness_report.warning_count + sampling_result.warning_count,
+            error_count=readiness_report.error_count + sampling_result.error_count,
+            status_message="Selected added LMT entry action could not be sampled for export.",
+        )
+
+    reconstructed = reconstruct_sampled_action(
+        action_name=sampling_result.action_name,
+        frame_start=sampling_result.frame_start,
+        frame_end=sampling_result.frame_end,
+        sampled_tracks=sampling_result.sampled_tracks,
+    )
+    plan = plan_reconstructed_action_export(reconstructed)
+    workflow_diagnostics.extend(
+        _workflow_diagnostic(diagnostic.level, diagnostic.source, diagnostic.message)
+        for diagnostic in plan.diagnostics
+    )
+    metadata = ExportSourceMetadata(
+        version=DEFAULT_VERSION,
+        action_id=int(entry_id),
+        export_mode="merge",
+    )
+    impact_summary = ExportImpactSummary(
+        export_mode="merge",
+        source_name=str(source_path or ""),
+        entry_id=int(entry_id),
+        source_action_count=int(source_action_count),
+        preserves_siblings=int(source_action_count) > 1,
+    )
+    return ExportAnalysis(
+        action=action,
+        sampling_result=sampling_result,
+        reconstructed=reconstructed,
+        plan=plan,
+        metadata=metadata,
+        impact_summary=impact_summary,
+        diagnostics=tuple(workflow_diagnostics),
+        warning_count=readiness_report.warning_count + sampling_result.warning_count + plan.warning_count,
+        error_count=readiness_report.error_count + sampling_result.error_count + plan.error_count,
+    )
+
+
+def analyze_lmt_session_export(
+    scene_props,
+    *,
+    actions,
+    objects,
+) -> SessionLmtExportPlan:
+    diagnostics: list[ExportWorkflowDiagnostic] = []
+    analyses: list[ExportAnalysis] = []
+    reconstructed_actions_by_id: dict[int, object] = {}
+    track_metadata_by_action_id: dict[int, dict[tuple[int, int], dict[str, object]] | None] = {}
+    track_metadata_by_index_by_action_id: dict[int, dict[int, dict[str, object]] | None] = {}
+    preserve_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]]] = {}
+    raw_quaternion_source_identities_by_action_id: dict[int, frozenset[tuple[int, int]]] = {}
+    replacement_timl_payloads: dict[int, object] = {}
+    added_action_headers_by_id: dict[int, dict[str, object]] = {}
+    deleted_action_ids: set[int] = set()
+
+    source_path = str(getattr(scene_props, "last_lmt_path", "") or "")
+    if not source_path:
+        diagnostics.append(
+            _session_export_diagnostic(
+                "ERROR",
+                "session",
+                "Inspect an LMT file before exporting the full source LMT.",
+            )
+        )
+        return SessionLmtExportPlan(
+            diagnostics=tuple(diagnostics),
+            error_count=1,
+            status_message=diagnostics[0].message,
+        )
+    if not getattr(scene_props, "lmt_entries", None):
+        diagnostics.append(
+            _session_export_diagnostic(
+                "ERROR",
+                "session",
+                "No LMT session entries are loaded for full export. Inspect the source LMT first.",
+            )
+        )
+        return SessionLmtExportPlan(
+            source_path=source_path,
+            diagnostics=tuple(diagnostics),
+            error_count=1,
+            status_message=diagnostics[0].message,
+        )
+
+    try:
+        source_bytes, source_lmt = _load_source_container(source_path)
+    except (OSError, ValueError, TypeError, BinaryFormatError) as exc:
+        diagnostics.append(
+            _session_export_diagnostic(
+                "ERROR",
+                "lmt.export.source_read",
+                f"Could not read the current LMT session source '{source_path}': {exc}",
+            )
+        )
+        return SessionLmtExportPlan(
+            source_path=source_path,
+            diagnostics=tuple(diagnostics),
+            error_count=1,
+            status_message=diagnostics[0].message,
+        )
+
+    session_entries_by_id: dict[int, object] = {}
+    duplicate_session_ids: set[int] = set()
+    for entry in scene_props.lmt_entries:
+        entry_id = _coerce_int(getattr(entry, "entry_id", -1), default=-1)
+        if entry_id in session_entries_by_id:
+            duplicate_session_ids.add(entry_id)
+            continue
+        session_entries_by_id[entry_id] = entry
+        if _session_entry_state(entry) == "deleted":
+            deleted_action_ids.add(entry_id)
+        elif _session_entry_state(entry) == "added":
+            added_action_headers_by_id[entry_id] = _session_entry_header_defaults(entry)
+
+    if duplicate_session_ids:
+        labels = ", ".join(f"{entry_id:03d}" for entry_id in sorted(duplicate_session_ids))
+        diagnostics.append(
+            _session_export_diagnostic(
+                "ERROR",
+                "session",
+                f"The current LMT session contains duplicate entry ids: {labels}.",
+            )
+        )
+
+    anchor_action = effective_export_action(scene_props)
+    anchor_source_path = _safe_action_source_lmt(anchor_action) if anchor_action is not None else ""
+    anchor_entry_id = _safe_action_entry_id(anchor_action, default=-1) if anchor_action is not None else -1
+    if anchor_action is not None and anchor_source_path == source_path and anchor_entry_id in deleted_action_ids:
+        diagnostics.append(
+            _session_export_diagnostic(
+                "ERROR",
+                "lmt.export.source_action",
+                (
+                    f"Active export action '{getattr(anchor_action, 'name', '')}' points to deleted source slot "
+                    f"{int(anchor_entry_id):03d}. Choose a surviving action or clear the Export Action field."
+                ),
+            )
+        )
+
+    imported_actions_by_entry_id: dict[int, object] = {}
+    duplicate_action_ids: set[int] = set()
+    invalid_action_names: list[str] = []
+    for candidate in actions:
+        import_kind = _safe_action_import_kind(candidate)
+        if import_kind not in {"lmt_action", "lmt_session_entry"}:
+            continue
+        if _safe_action_source_lmt(candidate) != source_path:
+            continue
+        entry_id = _safe_action_entry_id(candidate, default=-1)
+        if entry_id < 0:
+            invalid_action_names.append(str(getattr(candidate, "name", "") or "<unnamed action>"))
+            continue
+        if entry_id in imported_actions_by_entry_id:
+            duplicate_action_ids.add(entry_id)
+            continue
+        imported_actions_by_entry_id[entry_id] = candidate
+
+    if invalid_action_names:
+        diagnostics.append(
+            _session_export_diagnostic(
+                "ERROR",
+                "lmt.export.source_entry",
+                (
+                    "Imported LMT action metadata is missing a valid source entry id for: "
+                    f"{', '.join(invalid_action_names)}."
+                ),
+            )
+        )
+
+    active_duplicate_ids = {
+        entry_id
+        for entry_id in duplicate_action_ids
+        if entry_id in session_entries_by_id and _session_entry_state(session_entries_by_id.get(entry_id)) != "deleted"
+    }
+    if active_duplicate_ids:
+        diagnostics.append(
+            _session_export_diagnostic(
+                "ERROR",
+                "lmt.export.source_entry",
+                (
+                    "Found multiple imported Blender actions mapped to the same active session entry id(s): "
+                    + ", ".join(f"{entry_id:03d}" for entry_id in sorted(active_duplicate_ids))
+                    + "."
+                ),
+            )
+        )
+
+    source_cache = {source_path: (source_bytes, source_lmt)}
+    for entry_id, entry in sorted(session_entries_by_id.items()):
+        entry_state = _session_entry_state(entry)
+        if entry_state in {"deleted", "source_hole"}:
+            continue
+
+        imported_action = imported_actions_by_entry_id.get(int(entry_id))
+        if entry_state == "source":
+            if imported_action is None:
+                continue
+            analysis = analyze_action_for_export(
+                scene_props,
+                imported_action,
+                actions=actions,
+                objects=objects,
+                source_cache=source_cache,
+            )
+            analyses.append(analysis)
+            if analysis.error_count:
+                continue
+            reconstructed_actions_by_id[int(entry_id)] = analysis.reconstructed
+            track_metadata_by_action_id[int(entry_id)] = analysis.metadata.track_metadata_by_identity
+            track_metadata_by_index_by_action_id[int(entry_id)] = analysis.metadata.track_metadata_by_index
+            preserve_source_identities_by_action_id[int(entry_id)] = analysis.metadata.preserve_source_track_identities
+            raw_quaternion_source_identities_by_action_id[int(entry_id)] = analysis.metadata.raw_quaternion_source_identities
+            for source_offset, payload in dict(analysis.metadata.replacement_timl_payloads or {}).items():
+                replacement_timl_payloads[int(source_offset)] = payload
+            continue
+
+        if entry_state == "added":
+            added_action_headers_by_id[int(entry_id)] = _session_entry_header_defaults(entry)
+            if bool(getattr(entry, "has_timl", False)):
+                matching_controllers = _matching_timl_controllers_for_session_entry(source_path, int(entry_id), objects)
+                if not matching_controllers:
+                    diagnostics.append(
+                        _session_export_diagnostic(
+                            "ERROR",
+                            "timl.controller",
+                            (
+                                f"Added LMT entry {int(entry_id):03d} expects a blank TIML controller, "
+                                "but none is currently imported. Seed TIML again before full export."
+                            ),
+                        )
+                    )
+                elif len(matching_controllers) > 1:
+                    diagnostics.append(
+                        _session_export_diagnostic(
+                            "ERROR",
+                            "timl.controller",
+                            (
+                                f"Added LMT entry {int(entry_id):03d} matches multiple TIML controllers "
+                                f"({', '.join(getattr(item, 'name', '') for item in matching_controllers)})."
+                            ),
+                        )
+                    )
+                else:
+                    payload_key = _session_entry_timl_payload_key(int(entry_id))
+                    timl_writeback = build_new_attached_timl_payload(
+                        matching_controllers[0],
+                        base_offset=payload_key,
+                    )
+                    diagnostics.extend(
+                        _session_export_diagnostic(diagnostic.level, diagnostic.source, diagnostic.message)
+                        for diagnostic in timl_writeback.diagnostics
+                    )
+                    if not timl_writeback.error_count and payload_key in timl_writeback.replacement_payloads:
+                        replacement_timl_payloads[payload_key] = timl_writeback.replacement_payloads[payload_key]
+                        added_action_headers_by_id[int(entry_id)]["timl_source_offset"] = int(payload_key)
+            if imported_action is None or not _action_has_fcurves(imported_action):
+                reconstructed_actions_by_id[int(entry_id)] = _blank_reconstructed_action(int(entry_id))
+                continue
+            analysis = _build_session_added_action_analysis(
+                scene_props,
+                imported_action,
+                entry_id=int(entry_id),
+                source_path=source_path,
+                source_action_count=int(len(getattr(source_lmt, "actions", ()))),
+            )
+            analyses.append(analysis)
+            if analysis.error_count:
+                continue
+            reconstructed_actions_by_id[int(entry_id)] = analysis.reconstructed
+            track_metadata_by_action_id[int(entry_id)] = analysis.metadata.track_metadata_by_identity
+            track_metadata_by_index_by_action_id[int(entry_id)] = analysis.metadata.track_metadata_by_index
+            preserve_source_identities_by_action_id[int(entry_id)] = analysis.metadata.preserve_source_track_identities
+            raw_quaternion_source_identities_by_action_id[int(entry_id)] = analysis.metadata.raw_quaternion_source_identities
+
+    warning_count = sum(1 for diagnostic in diagnostics if diagnostic.level == "WARNING")
+    error_count = sum(1 for diagnostic in diagnostics if diagnostic.level == "ERROR")
+    warning_count += sum(int(analysis.warning_count) for analysis in analyses)
+    error_count += sum(int(analysis.error_count) for analysis in analyses)
+
+    target_entry_count = max(
+        int(getattr(source_lmt.header, "entry_count", 0) or 0),
+        (max(session_entries_by_id) + 1) if session_entries_by_id else 0,
+    )
+
+    status_message = ""
+    if diagnostics:
+        status_message = diagnostics[0].message
+    elif analyses and any(analysis.error_count for analysis in analyses):
+        failing = next((analysis for analysis in analyses if analysis.error_count), None)
+        status_message = str(getattr(failing, "status_message", "") or "Full LMT export analysis failed.")
+
+    return SessionLmtExportPlan(
+        source_path=source_path,
+        source_lmt=source_lmt,
+        source_bytes=source_bytes,
+        version=int(source_lmt.header.version),
+        header_unknown=bytes(source_lmt.header.unknown),
+        target_entry_count=int(target_entry_count),
+        source_action_count=int(len(getattr(source_lmt, "actions", ()))),
+        analyses=tuple(analyses),
+        reconstructed_actions_by_id=reconstructed_actions_by_id,
+        track_metadata_by_action_id=track_metadata_by_action_id,
+        track_metadata_by_index_by_action_id=track_metadata_by_index_by_action_id,
+        preserve_source_identities_by_action_id=preserve_source_identities_by_action_id,
+        raw_quaternion_source_identities_by_action_id=raw_quaternion_source_identities_by_action_id,
+        replacement_timl_payloads=replacement_timl_payloads,
+        added_action_headers_by_id=added_action_headers_by_id,
+        deleted_action_ids=frozenset(sorted(deleted_action_ids)),
+        diagnostics=tuple(diagnostics),
+        warning_count=int(warning_count),
+        error_count=int(error_count),
+        status_message=status_message,
+    )
 
 
 def _augment_source_metadata_with_action(
@@ -906,4 +1360,28 @@ def write_source_export_file(filepath: str, analyses: tuple[ExportAnalysis, ...]
         preserve_source_identities_by_action_id=preserve_source_identities_by_action_id,
         raw_quaternion_source_identities_by_action_id=raw_quaternion_source_identities_by_action_id,
         replacement_timl_payloads=replacement_timl_payloads,
+    )
+
+
+def write_lmt_session_export_file(filepath: str, export_plan: SessionLmtExportPlan):
+    if export_plan.source_lmt is None or export_plan.source_bytes is None or not export_plan.source_path:
+        raise ValidationError("Full LMT session export requires an inspected source LMT session.")
+    if export_plan.error_count:
+        raise ValidationError("Full LMT session export still has unresolved analysis errors.")
+
+    return write_multi_merged_lmt_file(
+        filepath,
+        export_plan.source_lmt,
+        export_plan.source_bytes,
+        export_plan.reconstructed_actions_by_id,
+        version=export_plan.version,
+        header_unknown=export_plan.header_unknown,
+        track_metadata_by_action_id=export_plan.track_metadata_by_action_id,
+        track_metadata_by_index_by_action_id=export_plan.track_metadata_by_index_by_action_id,
+        preserve_source_identities_by_action_id=export_plan.preserve_source_identities_by_action_id,
+        raw_quaternion_source_identities_by_action_id=export_plan.raw_quaternion_source_identities_by_action_id,
+        replacement_timl_payloads=export_plan.replacement_timl_payloads,
+        target_entry_count=export_plan.target_entry_count,
+        deleted_action_ids=export_plan.deleted_action_ids,
+        added_action_headers_by_id=export_plan.added_action_headers_by_id,
     )

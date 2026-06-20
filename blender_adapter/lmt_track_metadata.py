@@ -54,8 +54,17 @@ def raw_duplicate_display_name(*, bone_id: int, usage: int, track_index: int) ->
     return f"Raw Duplicate {track_display_name(bone_id=bone_id, usage=usage, track_index=track_index)}"
 
 
+def missing_bone_raw_display_name(*, bone_id: int, usage: int, track_index: int) -> str:
+    return f"Missing Bone {int(bone_id):03d} / {track_display_name(bone_id=bone_id, usage=usage, track_index=track_index)}"
+
+
 def raw_duplicate_action_group(*, bone_id: int, usage: int, track_index: int) -> str:
     return f"LMT Raw / {track_display_name(bone_id=bone_id, usage=usage, track_index=track_index)}"
+
+
+def missing_bone_raw_action_group(*, bone_id: int, usage: int, track_index: int) -> str:
+    del usage, track_index
+    return f"Missing Bone {int(bone_id):03d} / LMT Raw"
 
 
 def raw_duplicate_data_path(*, property_name: str, owner_kind: str = "", owner_name: str = "") -> str:
@@ -121,16 +130,25 @@ def _binding_from_raw(binding) -> dict[str, object] | None:
             "owner_name": str(binding.get("owner_name", "") or ""),
             "data_path": str(binding.get("data_path", "") or ""),
             "preserve_raw_quaternion_values": bool(binding.get("preserve_raw_quaternion_values", False)),
+            "fallback_reason": str(binding.get("fallback_reason", "") or ""),
+            "fallback_detail": str(binding.get("fallback_detail", "") or ""),
         }
     except (TypeError, ValueError):
         return None
     if not normalized["display_name"]:
         if normalized["import_mode"] == LMT_RAW_DUPLICATE_IMPORT_MODE:
-            normalized["display_name"] = raw_duplicate_display_name(
-                bone_id=normalized["bone_id"],
-                usage=normalized["usage"],
-                track_index=normalized["track_index"],
-            )
+            if normalized["source_kind"] == "missing_bone_raw" or normalized["fallback_reason"] == "missing_bone":
+                normalized["display_name"] = missing_bone_raw_display_name(
+                    bone_id=normalized["bone_id"],
+                    usage=normalized["usage"],
+                    track_index=normalized["track_index"],
+                )
+            else:
+                normalized["display_name"] = raw_duplicate_display_name(
+                    bone_id=normalized["bone_id"],
+                    usage=normalized["usage"],
+                    track_index=normalized["track_index"],
+                )
         else:
             normalized["display_name"] = track_display_name(
                 bone_id=normalized["bone_id"],
@@ -139,13 +157,20 @@ def _binding_from_raw(binding) -> dict[str, object] | None:
             )
     if normalized["import_mode"] == LMT_RAW_DUPLICATE_IMPORT_MODE:
         if not normalized["action_group"]:
-            normalized["action_group"] = raw_duplicate_group_name(
-                bone_id=normalized["bone_id"],
-                usage=normalized["usage"],
-                track_index=normalized["track_index"],
-                owner_kind=normalized["owner_kind"],
-                owner_name=normalized["owner_name"],
-            )
+            if normalized["source_kind"] == "missing_bone_raw" or normalized["fallback_reason"] == "missing_bone":
+                normalized["action_group"] = missing_bone_raw_action_group(
+                    bone_id=normalized["bone_id"],
+                    usage=normalized["usage"],
+                    track_index=normalized["track_index"],
+                )
+            else:
+                normalized["action_group"] = raw_duplicate_group_name(
+                    bone_id=normalized["bone_id"],
+                    usage=normalized["usage"],
+                    track_index=normalized["track_index"],
+                    owner_kind=normalized["owner_kind"],
+                    owner_name=normalized["owner_name"],
+                )
         if not normalized["data_path"] and normalized["property_name"]:
             normalized["data_path"] = raw_duplicate_data_path(
                 property_name=normalized["property_name"],

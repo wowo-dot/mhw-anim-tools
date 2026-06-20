@@ -46,6 +46,10 @@ def _selected_entry(scene_props):
     return None
 
 
+def _entry_state(entry) -> str:
+    return str(getattr(entry, "entry_state", "") or "source")
+
+
 def _selected_timl_file_entry(scene_props):
     items = scene_props.timl_file_entries
     index = int(scene_props.selected_timl_file_entry_index)
@@ -68,6 +72,19 @@ def _controller_for_entry(scene_props, entry):
         if int(metadata.entry_id) == entry_id:
             return candidate
     return None
+
+
+def _entry_supports_attached_timl_import(entry) -> bool:
+    if entry is None:
+        return False
+    entry_state = _entry_state(entry)
+    if entry_state == "added":
+        return bool(getattr(entry, "has_timl", False))
+    if entry_state != "source":
+        return False
+    return bool(getattr(entry, "has_source_action", False)) and bool(getattr(entry, "has_timl", False)) and not bool(
+        getattr(entry, "timl_parse_error", "")
+    )
 
 
 def _controller_for_timl_file_entry(scene_props, entry):
@@ -187,11 +204,16 @@ def _draw_entry_browser(layout, scene_props, controller):
             row = panel_body.row(align=True)
             row.scale_y = 1.05
             selected_entry = _selected_timl_file_entry(scene_props)
+            selected_controller = _controller_for_timl_file_entry(scene_props, selected_entry)
             import_selected = row.row(align=True)
             import_selected.enabled = selected_entry is not None and bool(selected_entry.has_data)
             import_selected.operator("mhw_anim_tools.import_selected_timl_entry", text="Import Selected", icon="IMPORT")
-            row.operator("mhw_anim_tools.import_all_timl_entries", text="Import All", icon="IMPORT")
-            row.operator("mhw_anim_tools.focus_selected_timl_entry_controller", text="Focus", icon="RESTRICT_SELECT_OFF")
+            import_all = row.row(align=True)
+            import_all.enabled = any(bool(item.has_data) for item in scene_props.timl_file_entries)
+            import_all.operator("mhw_anim_tools.import_all_timl_entries", text="Import All", icon="IMPORT")
+            focus_row = row.row(align=True)
+            focus_row.enabled = selected_controller is not None
+            focus_row.operator("mhw_anim_tools.focus_selected_timl_entry_controller", text="Focus", icon="RESTRICT_SELECT_OFF")
             if selected_entry is None:
                 return
             details = panel_body.box()
@@ -215,7 +237,6 @@ def _draw_entry_browser(layout, scene_props, controller):
                     details.label(text=selected_entry.label_hash_display)
             else:
                 details.label(text="Empty TIML entry slot", icon="INFO")
-            selected_controller = _controller_for_timl_file_entry(scene_props, selected_entry)
             details.label(
                 text=f"Imported {selected_controller.name}" if selected_controller is not None else "Not imported"
             )
@@ -236,23 +257,37 @@ def _draw_entry_browser(layout, scene_props, controller):
         "selected_entry_index",
         rows=6,
     )
+    entry = _selected_entry(scene_props)
+    selected_controller = _controller_for_entry(scene_props, entry)
     row = panel_body.row(align=True)
     row.scale_y = 1.05
-    row.operator("mhw_anim_tools.import_selected_attached_timl", text="Import Selected", icon="IMPORT")
-    row.operator("mhw_anim_tools.import_all_attached_timl", text="Import All", icon="IMPORT")
-    row.operator("mhw_anim_tools.focus_selected_entry_timl_controller", text="Focus", icon="RESTRICT_SELECT_OFF")
+    import_selected = row.row(align=True)
+    import_selected.enabled = _entry_supports_attached_timl_import(entry)
+    import_selected.operator("mhw_anim_tools.import_selected_attached_timl", text="Import Selected", icon="IMPORT")
+    import_all = row.row(align=True)
+    import_all.enabled = any(_entry_supports_attached_timl_import(item) for item in scene_props.lmt_entries)
+    import_all.operator("mhw_anim_tools.import_all_attached_timl", text="Import All", icon="IMPORT")
+    focus_row = row.row(align=True)
+    focus_row.enabled = selected_controller is not None
+    focus_row.operator("mhw_anim_tools.focus_selected_entry_timl_controller", text="Focus", icon="RESTRICT_SELECT_OFF")
 
-    entry = _selected_entry(scene_props)
     if entry is None:
         return
     details = panel_body.box()
+    offset_display = entry.timl_source_offset_display or ("Added TIML" if _entry_state(entry) == "added" and entry.has_timl else "No TIML")
     details.label(
         text=(
             f"Entry {int(entry.entry_id):03d} | {int(entry.frame_count)}f | "
-            f"{entry.timl_source_offset_display or 'No TIML'}"
+            f"{offset_display}"
         )
     )
-    if entry.has_timl:
+    if _entry_state(entry) == "added":
+        details.label(text="Added LMT slot | Blank TIML seeded", icon="INFO")
+    elif _entry_state(entry) == "deleted":
+        details.label(text="Deleted LMT slot", icon="INFO")
+    elif _entry_state(entry) == "source_hole":
+        details.label(text="Empty source slot", icon="INFO")
+    elif entry.has_timl:
         details.label(
             text=(
                 f"{int(entry.timl_type_count)}t | "
@@ -260,8 +295,9 @@ def _draw_entry_browser(layout, scene_props, controller):
                 f"{int(entry.timl_keyframe_count)}k"
             )
         )
-    controller = _controller_for_entry(scene_props, entry)
-    details.label(text=f"Imported {controller.name}" if controller is not None else "Not imported")
+    else:
+        details.label(text="No attached TIML on this LMT entry", icon="INFO")
+    details.label(text=f"Imported {selected_controller.name}" if selected_controller is not None else "Not imported")
 
 
 def _draw_workspace_toolbar(layout):

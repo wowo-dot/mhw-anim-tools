@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Scene properties for the Blender UI surfaces."""
 
+from collections import Counter
 import json
 
 import bpy
@@ -9,6 +10,8 @@ from ..core.diagnostics.collections import has_text_diagnostic
 from ..core.formats.timl.editor_model import TimlEditorTransformView
 from ..core.formats.timl.editor_model import build_timl_editor_block_views
 from ..core.formats.timl.model import timl_data_type_name
+from ..blender_adapter.lmt_track_authoring import editable_track_summaries_for_action
+from ..blender_adapter.lmt_track_authoring import session_lmt_action_for_entry
 from .timl_presenter import build_timl_transform_labels
 from .timl_labels import count_timl_edit_policies
 from .timl_labels import count_timl_writeback_statuses
@@ -19,12 +22,26 @@ from .timl_labels import timl_payload_scope_label
 from .timl_labels import timl_writeback_reason_label
 from .timl_labels import timl_writeback_status_label
 
+
+def _track_breakdown(track_summaries):
+    counts = Counter(str(track.get("transform_label", "") or "") for track in track_summaries)
+    parts = []
+    for label in ("Rotation", "Translation", "Scale"):
+        if counts[label]:
+            parts.append(f"{counts[label]} {label.lower()[:3]}")
+    return ", ".join(parts) if parts else "No tracks"
+
 class MhwAnimToolsLmtEntryItem(bpy.types.PropertyGroup):
     entry_id: bpy.props.IntProperty(name="Entry ID", default=0)
+    entry_state: bpy.props.StringProperty(name="Entry State", default="source")
+    has_source_action: bpy.props.BoolProperty(name="Has Source Action", default=False)
+    is_synthetic: bpy.props.BoolProperty(name="Is Synthetic", default=False)
     frame_count: bpy.props.IntProperty(name="Frame Count", default=0, min=0)
     loop_frame: bpy.props.IntProperty(name="Loop Frame", default=0)
     track_count: bpy.props.IntProperty(name="Track Count", default=0, min=0)
     has_timl: bpy.props.BoolProperty(name="Has TIML", default=False)
+    flags: bpy.props.IntProperty(name="Flags Value", default=0)
+    flags2: bpy.props.IntProperty(name="Flags2 Value", default=0)
     flags_hex: bpy.props.StringProperty(name="Flags", default="")
     flags2_hex: bpy.props.StringProperty(name="Flags2", default="")
     translation_preview: bpy.props.StringProperty(name="Translation", default="")
@@ -46,6 +63,7 @@ class MhwAnimToolsLmtEntryItem(bpy.types.PropertyGroup):
 
 class MhwAnimToolsLmtTrackItem(bpy.types.PropertyGroup):
     track_index: bpy.props.IntProperty(name="Track Index", default=0, min=0)
+    source_track_index: bpy.props.IntProperty(name="Source Track Index", default=-1)
     bone_id: bpy.props.IntProperty(name="Bone ID", default=0)
     usage: bpy.props.IntProperty(name="Usage", default=0)
     usage_scope: bpy.props.StringProperty(name="Usage Scope", default="")
@@ -70,6 +88,12 @@ class MhwAnimToolsLmtTrackItem(bpy.types.PropertyGroup):
     decode_error: bpy.props.StringProperty(name="Decode Error", default="")
     unknown_tag: bpy.props.IntProperty(name="Unknown Tag", default=0)
     joint_type: bpy.props.IntProperty(name="Joint Type", default=0)
+    import_mode: bpy.props.StringProperty(name="Import Mode", default="")
+    source_kind: bpy.props.StringProperty(name="Source Kind", default="")
+    source_name: bpy.props.StringProperty(name="Source Name", default="")
+    data_path: bpy.props.StringProperty(name="Data Path", default="", options={"HIDDEN"})
+    channel_count: bpy.props.IntProperty(name="Channel Count", default=0, min=0)
+    fallback_reason: bpy.props.StringProperty(name="Fallback Reason", default="")
 
 
 class MhwAnimToolsTimlTransformItem(bpy.types.PropertyGroup):
@@ -232,15 +256,34 @@ def _populate_track_items(scene_props):
         return
     entry_index = min(scene_props.selected_entry_index, len(scene_props.lmt_entries) - 1)
     entry = scene_props.lmt_entries[entry_index]
-    if not entry.track_payload:
-        return
-    try:
-        track_items = json.loads(entry.track_payload)
-    except json.JSONDecodeError:
-        return
+    track_items = None
+    imported_action = session_lmt_action_for_entry(
+        bpy.data.actions,
+        source_path=str(scene_props.last_lmt_path or ""),
+        entry_id=int(getattr(entry, "entry_id", 0)),
+        preferred_action=scene_props.export_action,
+    )
+    if imported_action is not None and scene_props.target_armature is not None:
+        track_items = editable_track_summaries_for_action(
+            imported_action,
+            armature_object=scene_props.target_armature,
+            source_track_payload=str(entry.track_payload or ""),
+        )
+        entry.track_count = len(track_items)
+        entry.track_breakdown = _track_breakdown(track_items)
+        entry.track_payload = json.dumps(track_items, separators=(",", ":"))
+        refresh_lmt_session_counts(scene_props)
+    if track_items is None:
+        if not entry.track_payload:
+            return
+        try:
+            track_items = json.loads(entry.track_payload)
+        except json.JSONDecodeError:
+            return
     for track in track_items:
         item = scene_props.lmt_tracks.add()
         item.track_index = int(track.get("track_index", 0))
+        item.source_track_index = int(track.get("source_track_index", -1))
         item.bone_id = int(track.get("bone_id", 0))
         item.usage = int(track.get("usage", 0))
         item.usage_scope = track.get("usage_scope", "")
@@ -265,6 +308,34 @@ def _populate_track_items(scene_props):
         item.decode_error = track.get("decode_error", "")
         item.unknown_tag = int(track.get("unknown_tag", 0))
         item.joint_type = int(track.get("joint_type", 0))
+        item.import_mode = str(track.get("import_mode", "") or "")
+        item.source_kind = str(track.get("source_kind", "") or "")
+        item.source_name = str(track.get("source_name", "") or "")
+        item.data_path = str(track.get("data_path", "") or "")
+        item.channel_count = int(track.get("channel_count", 0) or 0)
+        item.fallback_reason = str(track.get("fallback_reason", "") or "")
+
+
+def _session_action_count(scene_props) -> int:
+    return sum(
+        1
+        for entry in scene_props.lmt_entries
+        if str(getattr(entry, "entry_state", "") or "") not in {"deleted", "source_hole"}
+    )
+
+
+def _session_track_count(scene_props) -> int:
+    return sum(
+        int(getattr(entry, "track_count", 0) or 0)
+        for entry in scene_props.lmt_entries
+        if str(getattr(entry, "entry_state", "") or "") not in {"deleted", "source_hole"}
+    )
+
+
+def refresh_lmt_session_counts(scene_props) -> None:
+    scene_props.last_entry_count = len(scene_props.lmt_entries)
+    scene_props.last_action_count = _session_action_count(scene_props)
+    scene_props.last_track_count = _session_track_count(scene_props)
 
 
 def _populate_timl_transform_items(scene_props):

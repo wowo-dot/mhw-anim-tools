@@ -29,6 +29,8 @@ try:
     from .lmt_track_metadata import raw_duplicate_data_path
     from .lmt_track_metadata import raw_duplicate_display_name
     from .lmt_track_metadata import raw_duplicate_group_name
+    from .lmt_track_metadata import missing_bone_raw_action_group
+    from .lmt_track_metadata import missing_bone_raw_display_name
     from .lmt_track_metadata import load_lmt_import_track_bindings
     from .lmt_track_metadata import raw_duplicate_property_name
     from .lmt_track_metadata import save_lmt_import_track_bindings
@@ -60,6 +62,8 @@ except ImportError:  # pragma: no cover - test runner imports from addon root
     from blender_adapter.lmt_track_metadata import raw_duplicate_data_path
     from blender_adapter.lmt_track_metadata import raw_duplicate_display_name
     from blender_adapter.lmt_track_metadata import raw_duplicate_group_name
+    from blender_adapter.lmt_track_metadata import missing_bone_raw_action_group
+    from blender_adapter.lmt_track_metadata import missing_bone_raw_display_name
     from blender_adapter.lmt_track_metadata import load_lmt_import_track_bindings
     from blender_adapter.lmt_track_metadata import raw_duplicate_property_name
     from blender_adapter.lmt_track_metadata import save_lmt_import_track_bindings
@@ -125,6 +129,13 @@ def _ensure_object_quaternion_mode(armature_object):
 def _action_name_for_import(source_path: str, action_id: int) -> str:
     stem = Path(source_path).stem
     return f"LMT::{stem}::{action_id:03d}"
+
+
+def _source_action_by_entry_id(lmt, entry_id: int):
+    for candidate in getattr(lmt, "actions", ()):
+        if int(getattr(candidate, "id", -1)) == int(entry_id):
+            return candidate
+    return None
 
 
 def _format_duplicate_track_identities(duplicate_track_identities) -> str:
@@ -263,6 +274,11 @@ def _import_track_as_raw_duplicate(
     source_action,
     decoded_track,
     usage_info,
+    source_kind: str = "raw_duplicate",
+    display_name: str | None = None,
+    action_group: str | None = None,
+    fallback_reason: str = "",
+    fallback_detail: str = "",
 ):
     frames = _build_track_frames(decoded_track, usage_info)
     property_name = raw_duplicate_property_name(
@@ -280,23 +296,28 @@ def _import_track_as_raw_duplicate(
     )
     owner_kind = str(duplicate_target["owner_kind"])
     owner_name = str(duplicate_target["owner_name"])
+    resolved_display_name = str(
+        display_name
+        or raw_duplicate_display_name(
+            bone_id=int(decoded_track.bone_id),
+            usage=int(decoded_track.usage),
+            track_index=int(decoded_track.track_index),
+        )
+    )
+    resolved_action_group = str(action_group or duplicate_target["action_group"])
     binding = {
         "track_index": int(decoded_track.track_index),
         "bone_id": int(decoded_track.bone_id),
         "usage": int(decoded_track.usage),
         "buffer_type": int(decoded_track.buffer_type),
         "import_mode": LMT_RAW_DUPLICATE_IMPORT_MODE,
-        "source_kind": "raw_duplicate",
+        "source_kind": str(source_kind or "raw_duplicate"),
         "source_name": "",
         "transform": str(usage_info.blender_path_hint or ""),
         "property_name": property_name,
         "channel_count": len(tuple(decoded_track.basis_value)),
-        "display_name": raw_duplicate_display_name(
-            bone_id=int(decoded_track.bone_id),
-            usage=int(decoded_track.usage),
-            track_index=int(decoded_track.track_index),
-        ),
-        "action_group": str(duplicate_target["action_group"]),
+        "display_name": resolved_display_name,
+        "action_group": resolved_action_group,
         "owner_kind": owner_kind,
         "owner_name": owner_name,
         "data_path": raw_duplicate_data_path(
@@ -307,6 +328,8 @@ def _import_track_as_raw_duplicate(
         "preserve_raw_quaternion_values": bool(
             usage_info.is_quaternion and int(decoded_track.buffer_type) in QUATERNION_LERP_BUFFER_TYPES
         ),
+        "fallback_reason": str(fallback_reason or ""),
+        "fallback_detail": str(fallback_detail or ""),
     }
     ensure_raw_duplicate_property(duplicate_target["owner"], binding, basis_value=decoded_track.basis_value)
     created_fcurves = create_action_fcurves(
@@ -320,7 +343,7 @@ def _import_track_as_raw_duplicate(
 
 def import_lmt_action_to_armature(
     lmt,
-    action_index: int,
+    entry_id: int,
     armature_object,
     *,
     source_path: str,
@@ -330,11 +353,10 @@ def import_lmt_action_to_armature(
     if armature_object is None or armature_object.type != "ARMATURE":
         result.add("ERROR", "armature", "Select a target armature before importing an LMT action.")
         return result
-    if action_index < 0 or action_index >= len(lmt.actions):
-        result.add("ERROR", "session", "Selected LMT action is out of range for the current session.")
+    source_action = _source_action_by_entry_id(lmt, entry_id)
+    if source_action is None:
+        result.add("ERROR", "session", f"Selected LMT entry {int(entry_id):03d} is not present in the current source file.")
         return result
-
-    source_action = lmt.actions[action_index]
     decoded_action = decode_action_tracks(source_action, strict=False)
     root_helper = ensure_mhw_root_motion_bone(armature_object)
     if root_helper.error:
@@ -519,6 +541,41 @@ def import_lmt_action_to_armature(
             decoded_track.usage,
         )
         if target is None:
+            if int(decoded_track.bone_id) >= 0 and getattr(usage_info, "scope", "") != "root":
+                fallback_display_name = missing_bone_raw_display_name(
+                    bone_id=int(decoded_track.bone_id),
+                    usage=int(decoded_track.usage),
+                    track_index=int(decoded_track.track_index),
+                )
+                binding, created_fcurves, frames, fallback_warning = _import_track_as_raw_duplicate(
+                    blender_action=blender_action,
+                    armature_object=armature_object,
+                    source_path=source_path,
+                    source_action=source_action,
+                    decoded_track=decoded_track,
+                    usage_info=usage_info,
+                    source_kind="missing_bone_raw",
+                    display_name=fallback_display_name,
+                    action_group=missing_bone_raw_action_group(
+                        bone_id=int(decoded_track.bone_id),
+                        usage=int(decoded_track.usage),
+                        track_index=int(decoded_track.track_index),
+                    ),
+                    fallback_reason="missing_bone",
+                    fallback_detail=str(target_error or ""),
+                )
+                message = (
+                    "Imported unresolved source track as a raw editable fallback because "
+                    f"{target_error or 'the target binding could not be resolved.'}"
+                )
+                if fallback_warning:
+                    message += f" Raw slot target fallback: {fallback_warning}"
+                result.add("WARNING", source_label, message)
+                imported_track_bindings.append(binding)
+                result.imported_track_count += 1
+                result.created_fcurve_count += len(created_fcurves)
+                result.frame_end = max(result.frame_end, int(frames[-1][0]) if frames else source_action.header.frame_count)
+                continue
             result.skipped_track_count += 1
             result.add("WARNING", source_label, target_error or "Could not resolve target binding.")
             continue
@@ -582,4 +639,50 @@ def import_lmt_action_to_armature(
     assign_action(animation_data, blender_action)
     if result.imported_track_count == 0 and not result.error_count:
         result.add("ERROR", "import", "No supported tracks were imported.")
+    return result
+
+
+def import_empty_lmt_entry_to_armature(
+    entry_id: int,
+    armature_object,
+    *,
+    source_path: str,
+    source_version: int = 95,
+    source_entry_count: int = 0,
+    source_action_count: int = 0,
+    source_identity: SourceFileIdentity | None = None,
+) -> ImportActionResult:
+    result = ImportActionResult()
+    if armature_object is None or armature_object.type != "ARMATURE":
+        result.add("ERROR", "armature", "Select a target armature before importing an LMT entry.")
+        return result
+
+    action_name = _action_name_for_import(source_path, int(entry_id))
+    blender_action = ensure_action(action_name)
+    existing_import_track_bindings = load_lmt_import_track_bindings(blender_action)
+    clear_lmt_import_track_bindings(blender_action)
+    cleared_duplicate_slot_count = _clear_existing_raw_duplicate_slots(armature_object, existing_import_track_bindings)
+    blender_action["mhw_anim_tools_source_lmt"] = str(source_path or "")
+    blender_action["mhw_anim_tools_entry_id"] = int(entry_id)
+    blender_action["mhw_anim_tools_import_kind"] = "lmt_session_entry"
+    blender_action["mhw_anim_tools_source_version"] = int(source_version)
+    blender_action["mhw_anim_tools_source_entry_count"] = int(source_entry_count)
+    blender_action["mhw_anim_tools_source_action_count"] = int(source_action_count)
+    blender_action["mhw_anim_tools_source_has_timl"] = False
+    blender_action["mhw_anim_tools_source_timl_offset"] = 0
+    blender_action["mhw_anim_tools_source_has_duplicate_track_identities"] = False
+    blender_action["mhw_anim_tools_source_duplicate_track_identities"] = ""
+    if source_identity is not None:
+        store_source_file_identity(blender_action, source_identity)
+
+    animation_data = ensure_armature_animation_data(armature_object)
+    save_lmt_import_track_bindings(blender_action, [])
+    assign_action(animation_data, blender_action)
+    result.action_name = blender_action.name
+    if cleared_duplicate_slot_count:
+        result.add(
+            "INFO",
+            "import",
+            f"Cleared {cleared_duplicate_slot_count} stale raw duplicate-slot properties before creating a blank action.",
+        )
     return result

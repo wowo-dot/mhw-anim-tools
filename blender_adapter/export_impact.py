@@ -40,7 +40,11 @@ class ExportImpactSummary:
 def build_export_impact_summary(action, metadata, objects) -> ExportImpactSummary:
     action_metadata = extract_action_timl_metadata(action)
     source_name = str(getattr(getattr(metadata, "source_context", None), "source_name", "") or action_metadata.source_lmt or "")
-    entry_id = int(getattr(metadata, "action_id", 0) or action_metadata.entry_id or 0)
+    action_id = getattr(metadata, "action_id", None)
+    if action_id is None:
+        entry_id = int(action_metadata.entry_id or 0)
+    else:
+        entry_id = int(action_id)
     export_mode = str(getattr(metadata, "export_mode", "standalone") or "standalone")
     source_lmt = getattr(metadata, "source_lmt", None)
     source_context = getattr(metadata, "source_context", None)
