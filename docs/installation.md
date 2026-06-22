@@ -22,6 +22,11 @@ promise.
 
 ## Install from zip
 
+Use the packaged release asset zip such as `mhw_anim_tools-v1.0.1.zip`.
+Do not use GitHub's auto-generated `Source code (zip)` download for Blender
+installation, because that archive unwraps to a hyphenated folder name that
+Blender may treat as an invalid addon module name.
+
 1. In Blender, open `Edit > Preferences > Add-ons`
 2. Click `Install from Disk...`
 3. Choose the `mhw_anim_tools` zip

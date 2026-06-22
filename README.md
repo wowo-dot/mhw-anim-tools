@@ -11,6 +11,9 @@ developer tools can optionally compare results against external reference
 copies during validation work, but the add-on does not depend on those copies
 for normal use.
 
+For Blender installation, use the packaged release asset zip such as
+`mhw_anim_tools-v1.0.1.zip`, not GitHub's auto-generated source-code archive.
+
 ## Start Here
 
 If you are new to the add-on, use these first:
