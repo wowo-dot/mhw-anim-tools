@@ -28,10 +28,11 @@ class TimlSemanticsTests(unittest.TestCase):
         self.assertEqual(format_hash_label(0x12345678), "0x12345678")
 
     def test_known_timeline_parameter_labels_use_curated_names(self):
-        self.assertEqual(format_timeline_parameter_label(0x24006667), "EventLoop")
-        self.assertEqual(format_timeline_parameter_label(0x01739779), "GameParameter")
+        self.assertEqual(format_timeline_parameter_label(0x24006667), "nWwiseTimeline::EventLoop")
+        self.assertEqual(format_timeline_parameter_label(0x01739779), "nWwiseTimeline::GameParameter")
 
     def test_known_datatype_hash_labels_use_curated_names(self):
         self.assertEqual(format_datatype_hash_label(0xE64D793E), "ReqNo A")
         self.assertEqual(format_datatype_hash_label(0xE4D7A72E), "ReleaseTime A")
         self.assertEqual(format_datatype_hash_label(0x08FD20A6), "mFlag")
+        self.assertEqual(format_datatype_hash_label(0xB296CA66), "ノードID[0]")

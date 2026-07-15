@@ -58,5 +58,5 @@ class TimlSummaryTests(unittest.TestCase):
         timl = read_timl_bytes(_build_eventloop_timl_bytes(), source_name="eventloop.timl")
         summary = build_file_summary(timl)
         transform_payload = summary["entries"][0]["transform_payload"][0]
-        self.assertEqual(transform_payload["timeline_parameter_label"], "EventLoop")
+        self.assertEqual(transform_payload["timeline_parameter_label"], "nWwiseTimeline::EventLoop")
         self.assertEqual(transform_payload["datatype_label"], "ReqNo A")
