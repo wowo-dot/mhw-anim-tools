@@ -4,7 +4,7 @@
 workflows built around `.lmt` and `.timl` data in Blender.
 
 The current public release target is Blender `4.5 LTS`. That is the version
-the add-on is supported and tested against for `v1.0.1`.
+the add-on is supported and tested against for `v1.0.2`.
 
 The repository carries its own core format logic and Blender tooling. Some
 developer tools can optionally compare results against external reference
@@ -12,7 +12,7 @@ copies during validation work, but the add-on does not depend on those copies
 for normal use.
 
 For Blender installation, use the packaged release asset zip such as
-`mhw_anim_tools-v1.0.1.zip`, not GitHub's auto-generated source-code archive.
+`mhw_anim_tools-v1.0.2.zip`, not GitHub's auto-generated source-code archive.
 
 ## Start Here
 
@@ -102,6 +102,8 @@ Main supported workflows:
   that same armature path
 - import attached TIML into controller actions, edit it in the TIML Workspace,
   and write those edits back during source-backed LMT export
+- resolve known TIML timeline and property hashes to namespaced labels while
+  keeping their raw hashes visible and authoritative
 - inspect standalone `.timl` files, import selected entries into the same TIML
   Workspace model, and export the edited `.timl` file
 - check for add-on updates from Blender preferences

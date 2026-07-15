@@ -30,6 +30,10 @@ raw-first:
 - semantic labels are helpers
 - Graph Editor curves are still the actual value-edit surface
 
+Known timeline and property hashes resolve to namespaced labels for easier
+browsing. The displayed raw hashes remain the authoritative identity used for
+editing and export.
+
 The TIML Workspace lives in `Graph Editor > Sidebar > MHW Anim`.
 
 ## 3. Make edits

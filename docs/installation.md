@@ -16,13 +16,13 @@ The add-on can still inspect LMT files without `Blender MHW Model Editor`, but
 the main supported LMT import/edit/export path depends on MHW-style armatures
 imported through that toolchain.
 
-For `v1.0.1`, Blender 4.5 LTS is the supported and tested release target.
+For `v1.0.2`, Blender 4.5 LTS is the supported and tested release target.
 Later Blender versions may work, but they are not the current compatibility
 promise.
 
 ## Install from zip
 
-Use the packaged release asset zip such as `mhw_anim_tools-v1.0.1.zip`.
+Use the packaged release asset zip such as `mhw_anim_tools-v1.0.2.zip`.
 Do not use GitHub's auto-generated `Source code (zip)` download for Blender
 installation, because that archive unwraps to a hyphenated folder name that
 Blender may treat as an invalid addon module name.
