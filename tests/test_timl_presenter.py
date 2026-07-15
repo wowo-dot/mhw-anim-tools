@@ -28,9 +28,9 @@ class TimlPresenterTests(unittest.TestCase):
             data_type_name="uint32",
         )
         self.assertEqual(labels["identity_label"], "Type 00 / Transform 01")
-        self.assertEqual(labels["timeline_label"], "EventLoop")
+        self.assertEqual(labels["timeline_label"], "nWwiseTimeline::EventLoop")
         self.assertEqual(labels["datatype_label"], "ReqNo A")
-        self.assertEqual(labels["semantic_label"], "EventLoop / ReqNo A")
+        self.assertEqual(labels["semantic_label"], "nWwiseTimeline::EventLoop / ReqNo A")
         self.assertEqual(labels["raw_timeline_label"], "0x24006667")
         self.assertEqual(labels["raw_datatype_label"], "0xE64D793E")
 
