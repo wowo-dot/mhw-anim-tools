@@ -7,8 +7,9 @@ a normal release and mark it Latest after its target commit passes Python CI
 and the package checks. Keep the tag fixed once published.
 
 Update `bl_info`, the README, installation/quickstart pages and release notes
-together. Keep measured throughput conditional on the required caller
-integration and retain the native helper's documented context limitations.
+together. Public release notes are a concise changelog of additions, changes
+and fixes. Keep benchmarks, validation reports, dependencies and limitations
+in the relevant technical documentation.
 
 `tools/build_release.py --output NEW_DIRECTORY` builds committed HEAD; it
 rejects uncommitted changes to packaged tracked files. Use `--ref v1.1.0` to
@@ -38,10 +39,9 @@ publication, omit `--archive` to verify the public feed, download, backup,
 installation, every packaged file, reload and registration of the new helper
 operator. Confirm the new version reports no further update.
 
-Upload the install ZIP, `SHA256SUMS.txt`, `build_manifest.json` and the final
-verification receipt. Download the public asset and compare its SHA256 with
-the tested ZIP. Release notes should link to docs at the fixed tag using full
-GitHub URLs.
+Upload only the install ZIP as a release asset. Keep `SHA256SUMS.txt`,
+`build_manifest.json` and the verification receipt with the local build records.
+Download the public asset and compare its SHA256 with the tested ZIP.
 
 ## v1.1.0 publication evidence
 
@@ -53,5 +53,5 @@ the asset/manifest were corrected to canonical LF. All runtime files were
 unchanged. The tag was not moved.
 
 The live v1.0.2-to-v1.1.0 update passes all 122 package file hashes, backup,
-reload, registration and subsequent update-status checks. The receipt is
-attached to the [v1.1.0 release](https://github.com/wowo-dot/mhw-anim-tools/releases/tag/v1.1.0).
+reload, registration and subsequent update-status checks. The local receipt
+is `corpus_scans/releases/v1.1.0/release_verification.json`.
