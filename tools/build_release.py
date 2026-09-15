@@ -12,25 +12,31 @@ import zipfile
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--ref',default='HEAD',help='Committed revision to package (default: HEAD)')
     args=parser.parse_args()
     root=Path(__file__).resolve().parents[1]
     output=args.output.resolve()
     output.mkdir(parents=True,exist_ok=False)
-    commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
-    snapshot=subprocess.check_output(['git','archive','--format=zip',commit],cwd=root)
+    commit=subprocess.check_output(['git','rev-parse',args.ref+'^{commit}'],cwd=root,text=True).strip()
+    snapshot=subprocess.check_output(['git','-c','core.autocrlf=false','-c','core.eol=lf',
+                                      'archive','--format=zip',commit],cwd=root)
     with zipfile.ZipFile(io.BytesIO(snapshot)) as source_archive:
         source={name:source_archive.read(name) for name in source_archive.namelist() if not name.endswith('/')}
     tree=ast.parse(source['__init__.py'].decode('utf-8'))
     info=next(ast.literal_eval(node.value) for node in tree.body if isinstance(node,ast.Assign)
               and any(isinstance(t,ast.Name) and t.id=='bl_info' for t in node.targets))
     version='.'.join(map(str,info['version']))
-    files=[root/'__init__.py',root/'LICENSE',root/'README.md']
-    for folder in ('core','blender_adapter','integration','ui'):
-        files.extend(p for p in (root/folder).rglob('*') if p.is_file() and p.suffix in ('.py','.json'))
-    files.extend(p for p in (root/'docs').rglob('*') if p.is_file() and p.suffix in ('.md','.json','.png'))
-    files.extend(root/'tools'/name for name in ('duplicate_pose_bake_integration.py','bake_throughput_integration.py'))
-    names=sorted(p.relative_to(root).as_posix() for p in files)
-    subprocess.run(['git','diff','--exit-code','HEAD','--',*names],cwd=root,check=True,stdout=subprocess.DEVNULL)
+    names=['__init__.py','LICENSE','README.md']
+    for name in source:
+        path=Path(name)
+        if path.parts[0] in ('core','blender_adapter','integration','ui') and path.suffix in ('.py','.json'):
+            names.append(name)
+        elif path.parts[0]=='docs' and path.suffix in ('.md','.json','.png'):
+            names.append(name)
+    names.extend('tools/'+name for name in ('duplicate_pose_bake_integration.py','bake_throughput_integration.py'))
+    names.sort()
+    if args.ref=='HEAD':
+        subprocess.run(['git','diff','--exit-code','HEAD','--',*names],cwd=root,check=True,stdout=subprocess.DEVNULL)
     # Git's canonical bytes match the updater's tag archive on every platform,
     # regardless of a Windows checkout's CRLF conversion.
     hashes={name:hashlib.sha256(source[name]).hexdigest() for name in names}
