@@ -16,8 +16,8 @@ def clear_action_fcurves(action):
         action.fcurves.remove(fcurve)
 
 
-def ensure_action(action_name: str):
-    action = bpy.data.actions.get(action_name)
+def ensure_action(action_name: str, *, reuse_existing: bool = True):
+    action = bpy.data.actions.get(action_name) if reuse_existing else None
     if action is None:
         action = bpy.data.actions.new(action_name)
     else:

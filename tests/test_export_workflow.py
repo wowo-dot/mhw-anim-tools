@@ -10,6 +10,8 @@ from blender_adapter.export_workflow import analyze_lmt_session_export
 from blender_adapter.export_workflow import effective_export_action
 from blender_adapter.export_workflow import resolve_source_action_export_metadata
 from blender_adapter.export_workflow import source_export_actions
+from blender_adapter.export_workflow import ExportAnalysis, write_export_file
+from core.diagnostics.errors import ValidationError
 from blender_adapter.lmt_track_metadata import save_lmt_import_track_bindings
 from blender_adapter.source_identity import SOURCE_FILE_SHA256_KEY
 from blender_adapter.source_identity import SOURCE_FILE_SIZE_KEY
@@ -23,6 +25,12 @@ class _Action(dict):
 
 
 class ExportWorkflowTests(unittest.TestCase):
+    def test_direct_writer_rejects_sampling_errors_before_writing(self):
+        analysis = ExportAnalysis(action=_Action('evaluated'), reconstructed=object(),
+                                  plan=SimpleNamespace(error_count=0), error_count=1)
+        with self.assertRaises(ValidationError):
+            write_export_file('must-not-be-written.lmt', analysis)
+
     def test_effective_export_action_prefers_explicit_scene_selection(self):
         explicit = object()
         active = object()

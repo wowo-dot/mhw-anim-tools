@@ -58,15 +58,32 @@ class BinaryReader:
         return chunk
 
     def read_struct(self, fmt: struct.Struct):
-        return fmt.unpack(self.read(fmt.size))
+        values = self._unpack_at(self._offset, fmt)
+        self._offset += fmt.size
+        return values
+
+    def _unpack_at(self, offset: int, fmt: struct.Struct):
+        if offset + fmt.size > len(self._data):
+            raise BinaryFormatError(
+                "Unexpected end of file",
+                source_name=self.source_name,
+                offset=offset,
+                requested_size=fmt.size,
+                file_size=len(self._data),
+            )
+        # unpack_from reads the existing buffer without allocating an intermediate
+        # bytes object for each track header / interpolation basis.
+        return fmt.unpack_from(self._data, offset)
 
     def read_struct_at(self, offset: int, fmt: struct.Struct):
-        previous = self.tell()
-        self.seek(offset)
-        try:
-            return self.read_struct(fmt)
-        finally:
-            self.seek(previous)
+        if offset < 0 or offset > len(self._data):
+            raise BinaryFormatError(
+                "Seek outside file bounds",
+                source_name=self.source_name,
+                offset=offset,
+                file_size=len(self._data),
+            )
+        return self._unpack_at(offset, fmt)
 
     def slice(self, offset: int, size: int) -> bytes:
         if offset < 0 or size < 0 or offset + size > self.size:

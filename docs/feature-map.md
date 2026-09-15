@@ -11,7 +11,7 @@ Location: `3D View > Sidebar > MHW Anim`
 | --- | --- | --- |
 | `Session Browser` | See current session status and jump to the TIML workspace | `Open TIML Workspace` |
 | `Workspace` | Choose the target armature used for import/export | `Target Armature`, `Use Active`, `Auto Detect`, `Refresh Workspace` |
-| `LMT Inspector` | Load an `.lmt`, browse slots/tracks, edit source-backed structure, import actions, import attached TIML | `Inspect LMT`, `Add Entry`, `Delete Entry`, `Import Selected`, `Import All`, `Import TIML`, `Focus TIML` |
+| `LMT Inspector` | Load an `.lmt`, browse slots/tracks, edit source-backed structure, import actions, evaluate source motion, import attached TIML | `Inspect LMT`, `Add Entry`, `Delete Entry`, `Import Selected`, `Import All`, `Build Evaluated Helper`, `Import TIML`, `Focus TIML` |
 | `TIML Inspector` | Inspect and summarize a standalone `.timl` session | `Inspect TIML` |
 | `Diagnostics` | Read current session warnings and errors | diagnostic list |
 | `Export` | Analyze and write back edited actions or save standalone TIML sessions | `Export Action`, `Analyze Export Action`, `Write Full LMT`, `Export TIML` |
@@ -23,6 +23,9 @@ Notes:
   `Blender MHW Model Editor`
 - `Write Full LMT` is the main supported export path
 - added/deleted LMT slots are session edits until `Write Full LMT`
+- `Build Evaluated Helper` creates a separate snapshot using the native
+  skeletal binding rule; choose its absent-component base explicitly. See
+  [supported rules and export ownership](repeated-track-support.md).
 
 ## TIML Workspace
 
@@ -84,6 +87,7 @@ Notes:
 | add or delete an LMT entry slot | `LMT Inspector > entry list controls` |
 | import one action | `LMT Inspector > Import Selected` |
 | import all actions from one source file | `LMT Inspector > Import All` |
+| evaluate repeated-track source motion | `LMT Inspector > Build Evaluated Helper` |
 | import attached TIML for one entry | `LMT Inspector > Import TIML` |
 | browse and edit raw TIML structure | `Graph Editor > MHW Anim > TIML Workspace` |
 | save a standalone TIML file | `3D View > MHW Anim > Export > Export TIML` |

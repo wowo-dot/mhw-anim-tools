@@ -1,0 +1,2068 @@
+{
+  "date": "2026-09-15",
+  "version": "1.1.0",
+  "status": "tested uninstalled candidate",
+  "runtime_dependencies": [
+    "Blender 4.5",
+    "bundled Python"
+  ],
+  "gpu_dependency": false,
+  "unit_tests": {
+    "passed": 318,
+    "python": [
+      "3.10",
+      "3.11"
+    ]
+  },
+  "binding": {
+    "actions": 861,
+    "native_binding_comparisons": 2583,
+    "duplicate_actions": 773,
+    "ordinary_actions": 88,
+    "source_banks": 114,
+    "unsupported_sampling": [
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 253,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 255,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 288,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 311,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 335,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 337,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 339,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 434,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 435,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 436,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 437,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 438,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 439,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 440,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 441,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 442,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 443,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 444,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 445,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 446,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 447,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 448,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 449,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 450,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 451,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 452,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 453,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 454,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 455,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 456,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 457,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 473,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 474,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 475,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 476,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 477,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 478,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 487,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 488,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 489,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 490,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_00/em107_00.lmt",
+        "entry": 491,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_03/em107_03.lmt",
+        "entry": 253,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_03/em107_03.lmt",
+        "entry": 255,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_03/em107_03.lmt",
+        "entry": 259,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_03/em107_03.lmt",
+        "entry": 262,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_04/em107_04.lmt",
+        "entry": 338,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_04/em107_04.lmt",
+        "entry": 351,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_04/em107_04.lmt",
+        "entry": 353,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_04/em107_04.lmt",
+        "entry": 364,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_05/em107_05.lmt",
+        "entry": 151,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_05/em107_05.lmt",
+        "entry": 160,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_05/em107_05.lmt",
+        "entry": 162,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_05/em107_05.lmt",
+        "entry": 164,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_07/em107_07.lmt",
+        "entry": 263,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_07/em107_07.lmt",
+        "entry": 268,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_07/em107_07.lmt",
+        "entry": 273,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 243,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 244,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 250,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 251,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 252,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 253,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 254,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 277,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 278,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 279,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 280,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 281,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 282,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 285,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 287,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 296,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 297,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 298,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 299,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 300,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 366,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 367,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 368,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 376,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 377,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 378,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 379,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 380,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 381,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 393,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 439,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 441,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 449,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 450,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 451,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 452,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 453,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 454,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 456,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 458,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em107/00/mot/em107_08/em107_08.lmt",
+        "entry": 460,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 253,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 255,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 288,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 311,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 335,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 337,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 339,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 434,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 435,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 436,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 437,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 438,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 439,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 440,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 441,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 442,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 443,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 444,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 445,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 446,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 447,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 448,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 449,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 450,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 451,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 452,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 453,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 454,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 455,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 456,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 457,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 473,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 474,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 475,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 476,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 477,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 478,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 487,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 488,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 489,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 490,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_00/em120_00.lmt",
+        "entry": 491,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_03/em120_03.lmt",
+        "entry": 253,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_03/em120_03.lmt",
+        "entry": 255,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_03/em120_03.lmt",
+        "entry": 259,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_03/em120_03.lmt",
+        "entry": 262,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_04/em120_04.lmt",
+        "entry": 338,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_04/em120_04.lmt",
+        "entry": 351,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_04/em120_04.lmt",
+        "entry": 353,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_04/em120_04.lmt",
+        "entry": 364,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      },
+      {
+        "bank": "em/em120/00/mot/em120_05/em120_05.lmt",
+        "entry": 151,
+        "errors": [
+          "Mirroring requires native joint-remapping context"
+        ]
+      }
+    ],
+    "native_reference_sha256": "9660b8e110d26534b0cc1e0bbce00b2184cbac6ca9fc702b56ffc2f44eaf02b7"
+  },
+  "sampler": {
+    "samples": 29306,
+    "cases": [
+      {
+        "event": "evc0034",
+        "entry": 0,
+        "sha256": "db0fba34294e47e0539d81bc36d919f7f8ba160922e389c92516df08da70b5bc",
+        "samples": 2928,
+        "maximum_error": {
+          "quaternion_component": 1.2058916343260506e-07,
+          "vector_component": 1.1444091796875e-05
+        },
+        "unsupported": []
+      },
+      {
+        "event": "evc0034",
+        "entry": 1,
+        "sha256": "db0fba34294e47e0539d81bc36d919f7f8ba160922e389c92516df08da70b5bc",
+        "samples": 2932,
+        "maximum_error": {
+          "quaternion_component": 1.326583330962805e-07,
+          "vector_component": 1.1444091796875e-05
+        },
+        "unsupported": []
+      },
+      {
+        "event": "evc0034",
+        "entry": 4,
+        "sha256": "db0fba34294e47e0539d81bc36d919f7f8ba160922e389c92516df08da70b5bc",
+        "samples": 2912,
+        "maximum_error": {
+          "quaternion_component": 1.2899906909336067e-07,
+          "vector_component": 1.52587890625e-05
+        },
+        "unsupported": []
+      },
+      {
+        "event": "evc0034",
+        "entry": 14,
+        "sha256": "db0fba34294e47e0539d81bc36d919f7f8ba160922e389c92516df08da70b5bc",
+        "samples": 2942,
+        "maximum_error": {
+          "quaternion_component": 1.2413863026417005e-07,
+          "vector_component": 7.62939453125e-06
+        },
+        "unsupported": []
+      },
+      {
+        "event": "evc0035",
+        "entry": 33,
+        "sha256": "11ff17925b189bb236487b39548cf0f6f10eea9e0d81e706c3444b1823c1181d",
+        "samples": 5728,
+        "maximum_error": {
+          "quaternion_component": 1.29074294030751e-07,
+          "vector_component": 1.52587890625e-05
+        },
+        "unsupported": []
+      },
+      {
+        "event": "evc0021",
+        "entry": 20,
+        "sha256": "81edd99962722dd3cb460d33da7c47cd97102b9f8e5529db6daee74c39873f1e",
+        "samples": 1818,
+        "maximum_error": {
+          "quaternion_component": 1.2445914276959513e-07,
+          "vector_component": 0.0009765625
+        },
+        "unsupported": []
+      },
+      {
+        "event": "evc0014",
+        "entry": 14,
+        "sha256": "8555c1a347e1839bb7e5c047f8d83799e2ca906f7a58fcc4beac1e9c44aed74a",
+        "samples": 216,
+        "maximum_error": {
+          "quaternion_component": 7.669155233092084e-08,
+          "vector_component": 0.00390625
+        },
+        "unsupported": []
+      },
+      {
+        "event": "evc0074",
+        "entry": 2,
+        "sha256": "b5d1f5664cbbf9efcda4720966301ab851477f5d708baaba0d9a35116dc128c4",
+        "samples": 3188,
+        "maximum_error": {
+          "quaternion_component": 1.090307553130998e-07,
+          "vector_component": 1.52587890625e-05
+        },
+        "unsupported": []
+      },
+      {
+        "event": "evc0074",
+        "entry": 3,
+        "sha256": "b5d1f5664cbbf9efcda4720966301ab851477f5d708baaba0d9a35116dc128c4",
+        "samples": 3450,
+        "maximum_error": {
+          "quaternion_component": 1.2452721842581838e-07,
+          "vector_component": 3.0517578125e-05
+        },
+        "unsupported": []
+      },
+      {
+        "event": "evc0074",
+        "entry": 5,
+        "sha256": "b5d1f5664cbbf9efcda4720966301ab851477f5d708baaba0d9a35116dc128c4",
+        "samples": 3192,
+        "maximum_error": {
+          "quaternion_component": 1.1818628165016776e-07,
+          "vector_component": 3.0517578125e-05
+        },
+        "unsupported": []
+      }
+    ],
+    "codec_track_counts": {
+      "2": 1197,
+      "1": 235,
+      "4": 46,
+      "14": 63,
+      "6": 89,
+      "11": 32,
+      "15": 102,
+      "12": 36,
+      "13": 104,
+      "7": 24,
+      "5": 7,
+      "3": 12
+    }
+  },
+  "blender_synthetic": {
+    "blender": "4.5.10 LTS",
+    "frame_samples": 8,
+    "maximum_matrix_or_vector_component_error": 1.7136335372924805e-07,
+    "save_reopen": "byte-identical sampled matrices",
+    "native_timing": [
+      0,
+      10
+    ],
+    "source_sha256": "9799e5c41357101d7c1ca8fdd4d1dfd4ee119b2e7484d6c041c00cf2404ac33c",
+    "checks": [
+      "template untouched",
+      "unique evaluated/raw actions",
+      "subframe native sampler agreement",
+      "random access",
+      "explicit base pass-through",
+      "incomplete base rejected",
+      "evaluated export blocked",
+      "source replacement rejected",
+      "exact source roundtrip",
+      "explicit helper disposal releases owned resources"
+    ]
+  },
+  "blender_native": {
+    "frames": 8156,
+    "component_checks": 667932,
+    "blender": "4.5.10 LTS",
+    "cases": [
+      {
+        "path": "event/evc0034/pl000_00/pl000_00.lmt",
+        "entry": 0,
+        "kind": "duplicate",
+        "source_sha256": "db0fba34294e47e0539d81bc36d919f7f8ba160922e389c92516df08da70b5bc",
+        "source_frames": 270,
+        "quarter_frame_checks": 1080,
+        "component_checks": 88560,
+        "max_rotation_matrix_component_error": 5.513429641723633e-07,
+        "max_translation_scale_component_error": 9.19909812324704e-07,
+        "exact_roundtrip": true,
+        "edited_slot": 3,
+        "edited_output_sha256": "0b19722e2d155acfc5becfbb90ca05a9258d5188a15463104da894347f9d8497",
+        "seconds": {
+          "load_and_build": 0.24874320000526495,
+          "sample_and_compare": 3.3639506999752484,
+          "source_export_readback_and_two_edited_audits": 0.15566670001135208,
+          "total": 3.7683605999918655
+        }
+      },
+      {
+        "path": "event/evc0034/pl000_00/pl000_00.lmt",
+        "entry": 1,
+        "kind": "duplicate",
+        "source_sha256": "db0fba34294e47e0539d81bc36d919f7f8ba160922e389c92516df08da70b5bc",
+        "source_frames": 140,
+        "quarter_frame_checks": 560,
+        "component_checks": 45920,
+        "max_rotation_matrix_component_error": 6.407499313354492e-07,
+        "max_translation_scale_component_error": 1.8310546892053026e-06,
+        "exact_roundtrip": true,
+        "edited_slot": 3,
+        "edited_output_sha256": "f56e6a9d0e30e84ddc1d15a3aaa54957d69319211086bc4c64f26f117e0c8135",
+        "seconds": {
+          "load_and_build": 0.1800848999992013,
+          "sample_and_compare": 1.8311854000203311,
+          "source_export_readback_and_two_edited_audits": 0.13595739999436773,
+          "total": 2.1472277000139
+        }
+      },
+      {
+        "path": "event/evc0034/pl000_00/pl000_00.lmt",
+        "entry": 4,
+        "kind": "duplicate",
+        "source_sha256": "db0fba34294e47e0539d81bc36d919f7f8ba160922e389c92516df08da70b5bc",
+        "source_frames": 268,
+        "quarter_frame_checks": 1072,
+        "component_checks": 87904,
+        "max_rotation_matrix_component_error": 6.407499313354492e-07,
+        "max_translation_scale_component_error": 1.8060354847193594e-06,
+        "exact_roundtrip": true,
+        "edited_slot": 3,
+        "edited_output_sha256": "ef639c5a995d7feaa690cd4229bd0a4905a14815ccba10f93be246dfccf60170",
+        "seconds": {
+          "load_and_build": 0.15654349999385886,
+          "sample_and_compare": 3.440749000001233,
+          "source_export_readback_and_two_edited_audits": 0.14001610002014786,
+          "total": 3.73730860001524
+        }
+      },
+      {
+        "path": "event/evc0034/pl000_00/pl000_00.lmt",
+        "entry": 14,
+        "kind": "duplicate",
+        "source_sha256": "db0fba34294e47e0539d81bc36d919f7f8ba160922e389c92516df08da70b5bc",
+        "source_frames": 130,
+        "quarter_frame_checks": 520,
+        "component_checks": 42640,
+        "max_rotation_matrix_component_error": 5.178153514862061e-07,
+        "max_translation_scale_component_error": 1.8310546892053026e-06,
+        "exact_roundtrip": true,
+        "edited_slot": 3,
+        "edited_output_sha256": "9731d7295f562b9a7ab2ae0d9dc476ca8ff8755d0dbee26c45e2dc45c6973578",
+        "seconds": {
+          "load_and_build": 0.08829949999926612,
+          "sample_and_compare": 1.682702899997821,
+          "source_export_readback_and_two_edited_audits": 0.1146180999930948,
+          "total": 1.885620499990182
+        }
+      },
+      {
+        "path": "event/evc0035/pl000_00/pl000_00.lmt",
+        "entry": 33,
+        "kind": "duplicate",
+        "source_sha256": "11ff17925b189bb236487b39548cf0f6f10eea9e0d81e706c3444b1823c1181d",
+        "source_frames": 291,
+        "quarter_frame_checks": 1164,
+        "component_checks": 93120,
+        "max_rotation_matrix_component_error": 5.364418029785156e-07,
+        "max_translation_scale_component_error": 2.3433923601601236e-07,
+        "exact_roundtrip": true,
+        "edited_slot": 3,
+        "edited_output_sha256": "fd4c2fdf59b4bdfabe78de77738a8f3fe625604dcd9da6e79f5b36f20441d73c",
+        "seconds": {
+          "load_and_build": 0.24011360001168214,
+          "sample_and_compare": 3.649288099986734,
+          "source_export_readback_and_two_edited_audits": 0.4364415000018198,
+          "total": 4.325843200000236
+        }
+      },
+      {
+        "path": "event/evc0021/pl000_00/pl000_00.lmt",
+        "entry": 20,
+        "kind": "duplicate",
+        "source_sha256": "81edd99962722dd3cb460d33da7c47cd97102b9f8e5529db6daee74c39873f1e",
+        "source_frames": 88,
+        "quarter_frame_checks": 352,
+        "component_checks": 30976,
+        "max_rotation_matrix_component_error": 6.258487701416016e-07,
+        "max_translation_scale_component_error": 1.464843751364242e-05,
+        "exact_roundtrip": true,
+        "edited_slot": 1,
+        "edited_output_sha256": "dbbfb646eeed1aad10bf80e487141e61b0cb6cebff408c55167ec01f958c421b",
+        "seconds": {
+          "load_and_build": 0.323717499995837,
+          "sample_and_compare": 1.1842395999992732,
+          "source_export_readback_and_two_edited_audits": 0.22255340000265278,
+          "total": 1.730510499997763
+        }
+      },
+      {
+        "path": "event/evc0014/pl000_00/pl000_00.lmt",
+        "entry": 14,
+        "kind": "duplicate",
+        "source_sha256": "8555c1a347e1839bb7e5c047f8d83799e2ca906f7a58fcc4beac1e9c44aed74a",
+        "source_frames": 65,
+        "quarter_frame_checks": 260,
+        "component_checks": 2600,
+        "max_rotation_matrix_component_error": 4.917383193969727e-07,
+        "max_translation_scale_component_error": 0.00011718749988176569,
+        "exact_roundtrip": true,
+        "edited_slot": 3,
+        "edited_output_sha256": "6cd576320041d8200b7fe3e3284e456d4c16a6c4fba40af82ca29c8fa734cc03",
+        "seconds": {
+          "load_and_build": 0.07214409997686744,
+          "sample_and_compare": 0.3533229000167921,
+          "source_export_readback_and_two_edited_audits": 0.12067899998510256,
+          "total": 0.5461459999787621
+        }
+      },
+      {
+        "path": "event/evc0074/pl000_00/pl000_00.lmt",
+        "entry": 2,
+        "kind": "duplicate",
+        "source_sha256": "b5d1f5664cbbf9efcda4720966301ab851477f5d708baaba0d9a35116dc128c4",
+        "source_frames": 131,
+        "quarter_frame_checks": 524,
+        "component_checks": 51876,
+        "max_rotation_matrix_component_error": 6.649643182754517e-07,
+        "max_translation_scale_component_error": 5.4931640249833436e-06,
+        "exact_roundtrip": true,
+        "edited_slot": 28,
+        "edited_output_sha256": "ff89ed2e6068046eb32220a670e9c48cc005b76ebe3130f19fbe394e56064022",
+        "seconds": {
+          "load_and_build": 0.22576030000345781,
+          "sample_and_compare": 1.8420196000079159,
+          "source_export_readback_and_two_edited_audits": 0.20774849998997524,
+          "total": 2.275528400001349
+        }
+      },
+      {
+        "path": "event/evc0074/pl000_00/pl000_00.lmt",
+        "entry": 3,
+        "kind": "duplicate",
+        "source_sha256": "b5d1f5664cbbf9efcda4720966301ab851477f5d708baaba0d9a35116dc128c4",
+        "source_frames": 134,
+        "quarter_frame_checks": 536,
+        "component_checks": 49312,
+        "max_rotation_matrix_component_error": 5.21540641784668e-07,
+        "max_translation_scale_component_error": 7.32421875682121e-06,
+        "exact_roundtrip": true,
+        "edited_slot": 8,
+        "edited_output_sha256": "a603f4b3cced9e739a5fc4e5767b25560f4ce181fd506716bfe7dbb30ca3a7ea",
+        "seconds": {
+          "load_and_build": 0.29478180001024157,
+          "sample_and_compare": 1.9386587000044528,
+          "source_export_readback_and_two_edited_audits": 0.21938649998628534,
+          "total": 2.4528270000009798
+        }
+      },
+      {
+        "path": "event/evc0074/pl000_00/pl000_00.lmt",
+        "entry": 5,
+        "kind": "duplicate",
+        "source_sha256": "b5d1f5664cbbf9efcda4720966301ab851477f5d708baaba0d9a35116dc128c4",
+        "source_frames": 56,
+        "quarter_frame_checks": 224,
+        "component_checks": 22176,
+        "max_rotation_matrix_component_error": 5.066394805908203e-07,
+        "max_translation_scale_component_error": 7.32421875682121e-06,
+        "exact_roundtrip": true,
+        "edited_slot": 198,
+        "edited_output_sha256": "63949ce037808423936560d0116c894bb0859fc1ddbbbd8473939d1d38b2190a",
+        "seconds": {
+          "load_and_build": 0.17862560000503436,
+          "sample_and_compare": 0.8852302000159398,
+          "source_export_readback_and_two_edited_audits": 0.2712481999769807,
+          "total": 1.3351039999979548
+        }
+      },
+      {
+        "path": "hm/common/mot/co00_03/co00_03.lmt",
+        "entry": 150,
+        "kind": "ordinary",
+        "source_sha256": "52391a1377f83665437165b935ac6b0de749be9c2d71c8d249fcf1a21ce51f78",
+        "source_frames": 72,
+        "quarter_frame_checks": 288,
+        "component_checks": 23616,
+        "max_rotation_matrix_component_error": 7.450580596923828e-07,
+        "max_translation_scale_component_error": 1.1269357713672434e-07,
+        "exact_roundtrip": true,
+        "edited_slot": 9,
+        "edited_output_sha256": "4f7fde171ced82e204153ac3804c42f5c9e2a3f14fe24415a83544d420078985",
+        "seconds": {
+          "load_and_build": 0.6381007000163663,
+          "sample_and_compare": 1.0006787999882363,
+          "source_export_readback_and_two_edited_audits": 1.521604200010188,
+          "total": 3.1603837000147905
+        }
+      },
+      {
+        "path": "hm/common/mot/co00_03/co00_03.lmt",
+        "entry": 151,
+        "kind": "ordinary",
+        "source_sha256": "52391a1377f83665437165b935ac6b0de749be9c2d71c8d249fcf1a21ce51f78",
+        "source_frames": 52,
+        "quarter_frame_checks": 208,
+        "component_checks": 17056,
+        "max_rotation_matrix_component_error": 6.407499313354492e-07,
+        "max_translation_scale_component_error": 2.479553220524622e-07,
+        "exact_roundtrip": true,
+        "edited_slot": 26,
+        "edited_output_sha256": "d12a9f7eec4d5e1de670738ed653b6f46b451ff06a13347a639690928470a7ac",
+        "seconds": {
+          "load_and_build": 0.17155520000960678,
+          "sample_and_compare": 0.6725321999983862,
+          "source_export_readback_and_two_edited_audits": 1.4550331000064034,
+          "total": 2.2991205000143964
+        }
+      },
+      {
+        "path": "hm/common/mot/co00_00/co00_00.lmt",
+        "entry": 363,
+        "kind": "ordinary",
+        "source_sha256": "589f12e1353a0344e1ec826b2b3c64b3e4abc6fd0de9e32e6012e45eae6512e1",
+        "source_frames": 141,
+        "quarter_frame_checks": 564,
+        "component_checks": 46248,
+        "max_rotation_matrix_component_error": 7.264316082000732e-07,
+        "max_translation_scale_component_error": 2.384185791015625e-07,
+        "exact_roundtrip": true,
+        "edited_slot": 1,
+        "edited_output_sha256": "8e8004670efbc6fa816aead0a5b05a38259bf56a4112e200e5129d061cd88730",
+        "seconds": {
+          "load_and_build": 0.38947550000739284,
+          "sample_and_compare": 1.8082756999938283,
+          "source_export_readback_and_two_edited_audits": 0.9407749999954831,
+          "total": 3.1385261999967042
+        }
+      },
+      {
+        "path": "hm/common/mot/co00_02/co00_02.lmt",
+        "entry": 67,
+        "kind": "ordinary",
+        "source_sha256": "8a21cfbbc0e5067d068b19b788370ebaf2689dfc421136e4804e9f677d6822b1",
+        "source_frames": 201,
+        "quarter_frame_checks": 804,
+        "component_checks": 65928,
+        "max_rotation_matrix_component_error": 5.364418029785156e-07,
+        "max_translation_scale_component_error": 1.0817800655260612e-07,
+        "exact_roundtrip": true,
+        "edited_slot": 14,
+        "edited_output_sha256": "2ccc3f1ed9eec41cf821d3154ba5ae2947ad37ff4a687f1d3fc140c035f49c00",
+        "seconds": {
+          "load_and_build": 0.1525248999823816,
+          "sample_and_compare": 2.4755948000238277,
+          "source_export_readback_and_two_edited_audits": 0.6100136999739334,
+          "total": 3.2381333999801427
+        }
+      }
+    ],
+    "source_cache": {
+      "hits": 6,
+      "misses": 9,
+      "evictions": 7,
+      "banks": 2,
+      "charged_bytes": 105098092,
+      "max_banks": 2,
+      "max_bytes": 536870912
+    },
+    "timing_scope": "Fixture qualification, includes exhaustive comparisons and repeated preservation audits; not a retarget bake benchmark"
+  },
+  "captured_pose_comparison": {
+    "method": "Same captured pose, same fitted frame, same unique arm functions; sampler changed only",
+    "source_sha256": "b5d1f5664cbbf9efcda4720966301ab851477f5d708baaba0d9a35116dc128c4",
+    "input_hashes": {
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame2994401.npz": "0c06d1069b1ec822879aa336f632226869653123354e71bc3fc4b948375d4ac3",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame2995357.npz": "20e053cf92d0688a1fe6c9f9c5ec34e5605ab7be8e8556d84c349b881ef04285",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame2997251.npz": "f10b192470abd27241821c9c159b0d87dc7eb387a7d7d7feee923a9ce720f986",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame2997749.npz": "1c462e1be6c419a1cd42ed6c5b9ca1727dece58737899e54a4f67a0c175be9c9",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame2998072.npz": "1e34fbf1f240cd4e7aa1ad4ac1f6f768e5be797a8b9fcdafedb50dc0f4156539",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame2998583.npz": "1d795fe55a6d75b42efab7d6f694cf179d0e54bbec84dc2235163d95b29de702",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame2999038.npz": "00e2f88f582c275acec06ce8164600961d0cb7c1e422139422669b7d4668a247",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame3000136.npz": "8df9d228e4e13ba70a0b58aa4d6dfb427670e2e74153b60ffb451b7925df1a5d",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame3000894.npz": "1e8cf6b0c8fe9c0166c84f9deb8be0c3a601680b33992286a161c1fca250e626",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame3001506.npz": "427db3949d637bd58293e7981672549e1540f6d36910f7f5fa665fb838fd56c1",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame3001849.npz": "ebd1a29fbdce8a382dfd4ae7c8ce318ea89745dbe02f126c183a29adf46da815",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame3002388.npz": "a69e8f04a7cb124312fbfa632dd158799899066818ce047fa019a8e710c13688",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame3003069.npz": "b067596b98b35fc67f41ab693c260b061fd4df5ce7d28ae563ca17c6f04e095c",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame3003414.npz": "bd149d2050fdaaa6555a00039162f2f29b24401e99cd773ba77b1d9cd74f2f1c",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame3003998.npz": "c74e09e1403fc7b1003821ee62cdff4523207029d107ab58b2abbb4fecbf19cd",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame3021871.npz": "e6b7e1e2cb203277ba88f5ce3c60e804722751c1b2f6aecaafa8b8d12ad7a2e9",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame3023663.npz": "c2eb294855ec61b779f8bbf8e8cd6dc3c8b6137a6fb3e786e9dd4aabf3244697",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame3035075.npz": "a277dc72ee9df07ba5087854c0ab5e9f16b04a82214eb93006d8ee7a0e9a99fa",
+      "corpus_scans\\duplicate_rules\\eorzea_20260915\\analysis_complete\\frame3044505.npz": "515384c176df58ada965e48b8c951b4a81a1dc9b523bde62452ea2ee29a3d02f"
+    },
+    "poses": [
+      {
+        "render_frame": 2994401,
+        "entry": 0,
+        "source_frame": 155.735,
+        "prior_arm_rms_degrees": 0.3185728674999984,
+        "native_sampler_arm_rms_degrees": 0.33575959174415276,
+        "per_function": {
+          "5": 0.1745922455247655,
+          "6": 0.32507637698056435,
+          "7": 0.24588474161059826,
+          "8": 0.5817887003044453,
+          "9": 0.11089223480529908,
+          "10": 0.23965076680051994,
+          "11": 0.22172897976288006,
+          "12": 0.49788372972380446
+        }
+      },
+      {
+        "render_frame": 2995357,
+        "entry": 0,
+        "source_frame": 214.07,
+        "prior_arm_rms_degrees": 0.36836027299815854,
+        "native_sampler_arm_rms_degrees": 0.33232813163826075,
+        "per_function": {
+          "5": 0.01546249158656554,
+          "6": 0.23736007118969418,
+          "7": 0.2901290584717885,
+          "8": 0.49443512773313436,
+          "9": 0.00451176584521574,
+          "10": 0.2408950557015031,
+          "11": 0.2975020571609379,
+          "12": 0.5930917134562802
+        }
+      },
+      {
+        "render_frame": 2997251,
+        "entry": 1,
+        "source_frame": 24.82,
+        "prior_arm_rms_degrees": 0.3318530728213029,
+        "native_sampler_arm_rms_degrees": 0.33233852510757295,
+        "per_function": {
+          "5": 0.033207163401592805,
+          "6": 0.14169305096041687,
+          "7": 0.27904220344543695,
+          "8": 0.4241347523387623,
+          "9": 0.005138228280015447,
+          "10": 0.32244466388873433,
+          "11": 0.28818113011561913,
+          "12": 0.6462285663089523
+        }
+      },
+      {
+        "render_frame": 2997749,
+        "entry": 1,
+        "source_frame": 93.64,
+        "prior_arm_rms_degrees": 0.3588872050611619,
+        "native_sampler_arm_rms_degrees": 0.3588899391424997,
+        "per_function": {
+          "5": 0.0003309405508775318,
+          "6": 0.2627117131910771,
+          "7": 0.3315051316076891,
+          "8": 0.41358365198261243,
+          "9": 0.0006544685961855086,
+          "10": 0.31923367441692685,
+          "11": 0.3399026893724104,
+          "12": 0.6804460732851937
+        }
+      },
+      {
+        "render_frame": 2998072,
+        "entry": 1,
+        "source_frame": 141.625,
+        "prior_arm_rms_degrees": 0.31783845112299736,
+        "native_sampler_arm_rms_degrees": 0.32097840643165554,
+        "per_function": {
+          "5": 0.03079610307957965,
+          "6": 0.18406379705733047,
+          "7": 0.288448442742109,
+          "8": 0.4240413246697723,
+          "9": 0.033022140709495,
+          "10": 0.2405736098016482,
+          "11": 0.3619106428605287,
+          "12": 0.5800260612570721
+        }
+      },
+      {
+        "render_frame": 2998583,
+        "entry": 2,
+        "source_frame": 6.5200000000000005,
+        "prior_arm_rms_degrees": 1.7339872866737025,
+        "native_sampler_arm_rms_degrees": 1.7389446502691643,
+        "per_function": {
+          "5": 0.025920632800984174,
+          "6": 0.26808538257369646,
+          "7": 0.315388200936754,
+          "8": 0.4046200305232062,
+          "9": 0.020031712123947117,
+          "10": 1.683103714753885,
+          "11": 2.6905247033068878,
+          "12": 3.7126185735191273
+        }
+      },
+      {
+        "render_frame": 2999038,
+        "entry": 2,
+        "source_frame": 76.68,
+        "prior_arm_rms_degrees": 1.7221352218420403,
+        "native_sampler_arm_rms_degrees": 1.7266445903726044,
+        "per_function": {
+          "5": 0.013083881236181179,
+          "6": 0.26886642251555154,
+          "7": 0.2715055640769335,
+          "8": 0.43076728291574756,
+          "9": 0.018793787531409836,
+          "10": 1.6745513074218579,
+          "11": 2.8299195225062284,
+          "12": 3.564513497764324
+        }
+      },
+      {
+        "render_frame": 3000136,
+        "entry": 3,
+        "source_frame": 31.375,
+        "prior_arm_rms_degrees": 0.30563602516162686,
+        "native_sampler_arm_rms_degrees": 0.2893533978965638,
+        "per_function": {
+          "5": 0.013907958685454283,
+          "6": 0.22155421680748294,
+          "7": 0.3551402664966584,
+          "8": 0.4234612919263116,
+          "9": 0.007414633205148817,
+          "10": 0.26151285496199034,
+          "11": 0.2497077673317636,
+          "12": 0.4292801123804283
+        }
+      },
+      {
+        "render_frame": 3000894,
+        "entry": 3,
+        "source_frame": 88.29,
+        "prior_arm_rms_degrees": 0.33122623780752286,
+        "native_sampler_arm_rms_degrees": 0.3228078411028855,
+        "per_function": {
+          "5": 0.027259645534988056,
+          "6": 0.247760632027624,
+          "7": 0.2873304702432537,
+          "8": 0.4955445823683659,
+          "9": 0.020574144400533144,
+          "10": 0.22306595815696476,
+          "11": 0.3315888832817013,
+          "12": 0.5322167437195803
+        }
+      },
+      {
+        "render_frame": 3001506,
+        "entry": 4,
+        "source_frame": 0.0,
+        "prior_arm_rms_degrees": 0.32975735609385615,
+        "native_sampler_arm_rms_degrees": 0.34462299377795147,
+        "per_function": {
+          "5": 0.006018250374634222,
+          "6": 0.2781364663651762,
+          "7": 0.3795396836315371,
+          "8": 0.6091049101021637,
+          "9": 0.01863436209737417,
+          "10": 0.16696050104547805,
+          "11": 0.33450518389402956,
+          "12": 0.4664204327539065
+        }
+      },
+      {
+        "render_frame": 3001849,
+        "entry": 4,
+        "source_frame": 53.205,
+        "prior_arm_rms_degrees": 0.31958965161433583,
+        "native_sampler_arm_rms_degrees": 0.3211937513553329,
+        "per_function": {
+          "5": 0.06199153339708446,
+          "6": 0.20168318783773845,
+          "7": 0.35836210688364734,
+          "8": 0.5072754669085681,
+          "9": 0.032811091628838815,
+          "10": 0.16705815601023044,
+          "11": 0.3490228383976582,
+          "12": 0.49421717178221575
+        }
+      },
+      {
+        "render_frame": 3002388,
+        "entry": 4,
+        "source_frame": 99.63,
+        "prior_arm_rms_degrees": 0.30711358430290286,
+        "native_sampler_arm_rms_degrees": 0.28778255034289996,
+        "per_function": {
+          "5": 0.01534089571893427,
+          "6": 0.2612157042966074,
+          "7": 0.24218057949221208,
+          "8": 0.46310305104767324,
+          "9": 0.01384072961515356,
+          "10": 0.24389062990406862,
+          "11": 0.2723219768767757,
+          "12": 0.43258762093716047
+        }
+      },
+      {
+        "render_frame": 3003069,
+        "entry": 4,
+        "source_frame": 153.9,
+        "prior_arm_rms_degrees": 0.3135045633269389,
+        "native_sampler_arm_rms_degrees": 0.2934889730099066,
+        "per_function": {
+          "5": 0.039145295879407925,
+          "6": 0.2942766872238934,
+          "7": 0.27397662720136434,
+          "8": 0.45336655635254164,
+          "9": 0.03129084007262774,
+          "10": 0.20137610739109518,
+          "11": 0.27508259748624864,
+          "12": 0.4507202901828387
+        }
+      },
+      {
+        "render_frame": 3003414,
+        "entry": 4,
+        "source_frame": 212.8375,
+        "prior_arm_rms_degrees": 0.30312533005089903,
+        "native_sampler_arm_rms_degrees": 0.28599670089018026,
+        "per_function": {
+          "5": 0.05315340977694205,
+          "6": 0.30916145303007897,
+          "7": 0.25255382733755016,
+          "8": 0.4070049788505757,
+          "9": 0.021312758580068862,
+          "10": 0.23829140373675942,
+          "11": 0.2813647497730721,
+          "12": 0.4360128170707356
+        }
+      },
+      {
+        "render_frame": 3003998,
+        "entry": 5,
+        "source_frame": 51.115,
+        "prior_arm_rms_degrees": 1.6142651129802794,
+        "native_sampler_arm_rms_degrees": 1.6185416654560927,
+        "per_function": {
+          "5": 0.013090507728520067,
+          "6": 0.23808608380445795,
+          "7": 0.2678926266379228,
+          "8": 0.41744408351820744,
+          "9": 0.019744944325017038,
+          "10": 1.7768439563358083,
+          "11": 2.407483508472034,
+          "12": 3.4206714931450963
+        }
+      },
+      {
+        "render_frame": 3021871,
+        "entry": 20,
+        "source_frame": 30.810000000000002,
+        "prior_arm_rms_degrees": 0.3279251694736338,
+        "native_sampler_arm_rms_degrees": 0.32031408115166976,
+        "per_function": {
+          "5": 0.0028020637758615313,
+          "6": 0.27005030006750474,
+          "7": 0.28235087152125393,
+          "8": 0.5237803828797196,
+          "9": 0.0008551437074582803,
+          "10": 0.258042359928064,
+          "11": 0.2784018148395655,
+          "12": 0.4997117200065939
+        }
+      },
+      {
+        "render_frame": 3023663,
+        "entry": 21,
+        "source_frame": 173.0809375,
+        "prior_arm_rms_degrees": 0.40790778504821396,
+        "native_sampler_arm_rms_degrees": 0.4043760830932124,
+        "per_function": {
+          "5": 0.0024545684971173337,
+          "6": 0.256803539348686,
+          "7": 0.4584326378613185,
+          "8": 0.685137409279366,
+          "9": 0.0022233737837636758,
+          "10": 0.2813609723039438,
+          "11": 0.3147540761365885,
+          "12": 0.6199945389049981
+        }
+      },
+      {
+        "render_frame": 3035075,
+        "entry": 30,
+        "source_frame": 37.135,
+        "prior_arm_rms_degrees": 0.3036100082184865,
+        "native_sampler_arm_rms_degrees": 0.3004254561079815,
+        "per_function": {
+          "5": 0.0337622620369743,
+          "6": 0.2761541548255227,
+          "7": 0.28951228542512675,
+          "8": 0.4430746130195908,
+          "9": 0.05020807166912805,
+          "10": 0.254881515093379,
+          "11": 0.20633315336395727,
+          "12": 0.5044317063464334
+        }
+      },
+      {
+        "render_frame": 3044505,
+        "entry": 34,
+        "source_frame": 178.24,
+        "prior_arm_rms_degrees": 0.28444277837998116,
+        "native_sampler_arm_rms_degrees": 0.28757584092087096,
+        "per_function": {
+          "5": 0.003167247537738514,
+          "6": 0.2223476759217208,
+          "7": 0.3285358828448936,
+          "8": 0.41177410408860426,
+          "9": 0.0012245935859292096,
+          "10": 0.2272820021300821,
+          "11": 0.2861735485947725,
+          "12": 0.4484448089278462
+        }
+      }
+    ]
+  },
+  "complete_operation_regression": {
+    "summary": {
+      "baseline": {
+        "combined_seconds": [
+          62.96261219997541
+        ],
+        "median_seconds": 62.96261219997541,
+        "minimum_seconds": 62.96261219997541,
+        "maximum_seconds": 62.96261219997541,
+        "speedup_vs_baseline": 1.0,
+        "reduction_percent": 0.0
+      },
+      "addon_only": {
+        "combined_seconds": [
+          60.37615860000369
+        ],
+        "median_seconds": 60.37615860000369,
+        "minimum_seconds": 60.37615860000369,
+        "maximum_seconds": 60.37615860000369,
+        "speedup_vs_baseline": 1.0428389890967915,
+        "reduction_percent": 4.107919779053781
+      },
+      "integrated": {
+        "combined_seconds": [
+          47.9124156999751
+        ],
+        "median_seconds": 47.9124156999751,
+        "minimum_seconds": 47.9124156999751,
+        "maximum_seconds": 47.9124156999751,
+        "speedup_vs_baseline": 1.3141189247113694,
+        "reduction_percent": 23.903386429075425
+      }
+    },
+    "paired_source_frames": 932,
+    "source_clips": [
+      "3:150",
+      "3:151",
+      "0:363",
+      "2:67"
+    ],
+    "reference_comparisons": 24,
+    "all_reference_lmts_and_arrays_exact": true,
+    "repetitions_per_path": 1,
+    "scope": "Existing qualified G8F/Lara pipeline, not a new duplicate retarget bake",
+    "timing_boundary": "Worker setup/import/solve/export/assembly/readback/validation/storage; excludes process startup, Python bootstrap and post-run reference comparison",
+    "prior_same_day_sweep": {
+      "baseline": {
+        "combined_seconds": [
+          65.12569940002868
+        ],
+        "median_seconds": 65.12569940002868,
+        "minimum_seconds": 65.12569940002868,
+        "maximum_seconds": 65.12569940002868,
+        "speedup_vs_baseline": 1.0,
+        "reduction_percent": 0.0
+      },
+      "addon_only": {
+        "combined_seconds": [
+          54.041994400002295
+        ],
+        "median_seconds": 54.041994400002295,
+        "minimum_seconds": 54.041994400002295,
+        "maximum_seconds": 54.041994400002295,
+        "speedup_vs_baseline": 1.2050942997770993,
+        "reduction_percent": 17.018941987779257
+      },
+      "integrated": {
+        "combined_seconds": [
+          39.269527900003595
+        ],
+        "median_seconds": 39.269527900003595,
+        "minimum_seconds": 39.269527900003595,
+        "maximum_seconds": 39.269527900003595,
+        "speedup_vs_baseline": 1.658428376472097,
+        "reduction_percent": 39.70194829111301
+      }
+    },
+    "caution": "Wall time varies. The prior 2026-09-13 three-run medians remain the repeated throughput experiment."
+  },
+  "cache": {
+    "hits": 6,
+    "misses": 9,
+    "evictions": 7,
+    "banks": 2,
+    "charged_bytes": 105098092,
+    "max_banks": 2,
+    "max_bytes": 536870912
+  },
+  "evidence_files": {
+    "corpus_scans\\duplicate_rules\\implementation_20260915\\corpus_bindings_final.json": "4f38ebda89f593ef2794ff816f710b51b14ab91de0598224cc1db953af83593d",
+    "corpus_scans\\duplicate_rules\\native_evaluator_20260915\\sampler_verification_final.json": "2ab05a532bc4250f9245b0057a4f5ebb907e39f783037d4e66484f828b4d3b95",
+    "corpus_scans\\duplicate_rules\\implementation_20260915\\native_blender_04\\report.json": "114f6515ca26939bf09c0a1a4c9a04753f7f4e4f76dd58455c76c36de47e28fd",
+    "corpus_scans\\duplicate_rules\\implementation_20260915\\blender_test_02\\report.json": "14b8dac30e65eac3f545b5ce1007ff268086298d8ca50e3f63b3489e7a8c8f35",
+    "corpus_scans\\duplicate_rules\\implementation_20260915\\capture_sampler_comparison.json": "19070f4f9da2996d340fab1feb5460c6618de57be41c7df7019b815aced91854",
+    "corpus_scans\\duplicate_rules\\implementation_20260915\\throughput_final\\summary.json": "e862e5c97a82f6c50071732deee56b48a86fdf47de14ee35a85b2c93e6e19cf8",
+    "corpus_scans\\duplicate_rules\\implementation_20260915\\throughput_final\\results.json": "166885e0bb361fd278a9472dfaa242beac35b59111bfc0a44cd2f3a6f672bd33",
+    "corpus_scans\\duplicate_rules\\implementation_20260915\\throughput_final\\manifest.json": "4063f4d86990dc0e8ca7c6ff2e8b9a36cf20ce42ad4e3d7e5253858805ef0767",
+    "tests\\fixtures\\native_pose_samples.json": "e1519466c14ece0fb09903aca6cc2aa6ed45dd097180273095adc14bf8995939"
+  },
+  "runtime_hashes": {
+    "core\\__init__.py": "cb2a5767453924a3b96d96e99942026b060afd88c3e93cda92d3b550678d847c",
+    "core\\animation\\__init__.py": "a516a9466114d9810fc43c03917ea6a2921559821150e760992af44606e4cc2c",
+    "core\\animation\\compression.py": "bff8eb73e87bbd41e94d1ddd866f80f3fa87dd8760309ac43c371a277512bffa",
+    "core\\animation\\curves.py": "5d22a9a3fe6f9d2e4ce8487ebf285d7fc453a856ae7d1a5029b56479bf5014f3",
+    "core\\animation\\sampling.py": "98c012643ccbf2de10ae5e935351d7f89a117398f4f7614d8a77517f59fb6734",
+    "core\\animation\\transforms.py": "c00b7fb2cf01bd90ee244aa1d190f455dc95aa6b0bd8939f5ca28d8555abd5fc",
+    "core\\binary\\__init__.py": "7ba47fceb757fe696558aeecd75be4c01ac61eb4a9a494826833dddc6d33e158",
+    "core\\binary\\reader.py": "d754f83003c4f368cdb81351b2e49157cf039f16011908286290acbd9475f4c0",
+    "core\\diagnostics\\__init__.py": "ca691e16e76fcdaa5591bf5e04a078427172c4d76d0cc8f4b180372bf6a2ffb9",
+    "core\\diagnostics\\collections.py": "4e7de55c90a8043fc3bf246b769420cf34d2b9f3f73f5889749d6a81d7d59310",
+    "core\\diagnostics\\errors.py": "55e2531878cf582a54abfebbbb631a96e6ea59d66280afc6dca7572d4456822c",
+    "core\\diagnostics\\reports.py": "4801c66aef2d644c86e1bd115a73b1f20807ffa4efdc2b4df20af9f265ad07d9",
+    "core\\formats\\__init__.py": "1f9be3ca0f7910eae660d5e79f63fd8a48ba6b7c5d0ab65716378265e3cf192d",
+    "core\\formats\\lmt\\__init__.py": "632e98b1fe318b9b2c0cdb91bf6878604adf50e1e735e2ee314c6c31b1a9fa13",
+    "core\\formats\\lmt\\content_signature.py": "e531b23fea35fcd441eb4fb63ba6fe33263a0360fee35f947513e855c0c63ee6",
+    "core\\formats\\lmt\\decoded.py": "dcdaf0fc7136abaec5443183044f12239927aa50d0ae1e616e32fc2809c1e98a",
+    "core\\formats\\lmt\\decoder.py": "ca9f9096f782d4f9e0b8be20dfba05f041eb5f52cb4b5c4012acc2d1547ce564",
+    "core\\formats\\lmt\\encoding.py": "d83dd288e84c4d9fb11873459b8d6b604b381a2c4fe8d2867f41fd2ce8413953",
+    "core\\formats\\lmt\\export_context.py": "07e7086f4d0381863eb6f687b9cd858c38ad1d5305f935bd49e65508204013c1",
+    "core\\formats\\lmt\\export_plan.py": "84faa80d43f15d20244929c391e238355f2f11d54e643376726b60332500c5d4",
+    "core\\formats\\lmt\\merge_writer.py": "833080cdddce7a13d8473f88341fdf5b1861fb0eb6659c86c32da6a470c13d3b",
+    "core\\formats\\lmt\\model.py": "554e1badc81777b13b4869e0b779175790c3a81d1901a065427d25e0c418faef",
+    "core\\formats\\lmt\\pose_evaluation.py": "df317f4c10a4e63ec3f7795351e8f3a24ae0a0b7bb61fe4236c485f2aa8baaf7",
+    "core\\formats\\lmt\\quantized.py": "9b7e525c4daf807fdea1f8ce9c59c7e1dc3f45c02c751935d97cac8aec08f150",
+    "core\\formats\\lmt\\quaternion_source_diagnostics.py": "43991f96c618a1a8f286aef1e8f768332d38b8bd9157ded9b44c7f475fd6a709",
+    "core\\formats\\lmt\\reader.py": "d7e0fbf819214e7f72f53a5aedb5e6f03b02f9d12133d309dbabe64b453ee690",
+    "core\\formats\\lmt\\reconstructed.py": "cc29a687f22ae8cdcb1ff17f9ecd0ae81743dc8b4a0fb9f8f823ce3c261a62bd",
+    "core\\formats\\lmt\\reconstruction.py": "5bf8f312839c4e5212ce978d297dda2905b5a48b9bd7b13cab6b35513402bdd6",
+    "core\\formats\\lmt\\semantics.py": "b55d9dcc2dc831f7d34953c2b91bc0c7f6a25fd9c9ab30ec6dfa009c6402e039",
+    "core\\formats\\lmt\\source_bank.py": "d4c638a0ae00fd7bfc02687f9ced8c0fbc89eb253f3f11eb06690a68aaabc974",
+    "core\\formats\\lmt\\source_preservation.py": "479c74e40511a28688714845b6787c832b6f8a4ec39d911bd9e6d64d04865ee7",
+    "core\\formats\\lmt\\source_slots.py": "21c09d5e93e04b9784a92c0577f431bb402dab83d01baf85dece6e1daf88cc54",
+    "core\\formats\\lmt\\validation.py": "b972d1f6201b47382e7e43e37c13d1c8546a23aba5818b5a97764b2fa9dfee5f",
+    "core\\formats\\lmt\\writer.py": "12f8abf6ae3f6c3c76e0ec985db7a3e2a98997dd44ddd541e10816ae73482e73",
+    "core\\formats\\timl\\__init__.py": "87882397dec88f0cb6c4da4aea29048de273cb976b98e2c5ea482845ed1c3033",
+    "core\\formats\\timl\\channels.py": "6f5f323a41207b8e3c002bf28d74778192d145c6c06c30922860b35ac038a19b",
+    "core\\formats\\timl\\editor_model.py": "98ff57a0a2b2c42f3ead7050fddbde8ce0e533ca00443f37273d70f2b6bb7faa",
+    "core\\formats\\timl\\embedded_writer.py": "eed31b87f8ca4e40f56c06eeb29e8ed8e653f223978e9919b74026190c46ffb4",
+    "core\\formats\\timl\\model.py": "438e625771433469de8094f9ab39dbe7a0f550b9ea4e64d01379adc6bee6b1c4",
+    "core\\formats\\timl\\reader.py": "9a0ee45a826e66f6fd4397e094f20e90e98780170b8b2af3c52456fc21b84244",
+    "core\\formats\\timl\\semantics.py": "0f89a724f563910972f3a117bef441aef1fd49da93e455598b38ea5e4325c030",
+    "core\\formats\\timl\\summary.py": "a58e5c5526269a81686c3319adcc86499a83d222941b5b18b87a0283444c4201",
+    "core\\formats\\timl\\validation.py": "944e48b80f5c5f0474c9e6c6fd5349502e72a123a34b6d2e67c23d786e0f0afb",
+    "core\\formats\\timl\\writer.py": "c6660034943e177cddfc6fbb5bcd6522a2d8c763bdeca95b92665d73516020af",
+    "core\\updater_support.py": "c566884cc5a252efd2bad1d4fcea2884fa5ad6e26b3e99b804f0154c56abc305",
+    "blender_adapter\\__init__.py": "3ef4e682aff33775aed4228bf113060ff09398ac3e74e1f529110f45641046ca",
+    "blender_adapter\\actions.py": "85c47ecd1e386df1f1880690f9d63beb9c0729eb80b85c1c0b7fe668cbfce425",
+    "blender_adapter\\armature.py": "90f27ff9dc51421f970402358b8434552eaa99e5b141f24163ae731711635b60",
+    "blender_adapter\\constraints.py": "a8f5e3698cff6cad794b521f597bf84465e0090068491a0073a22c2d574f0a2d",
+    "blender_adapter\\export_impact.py": "b04ff1a7d0192ac3cafd5e1b3155c60e52840ac073f13170fa27697c11bc6a0e",
+    "blender_adapter\\export_sampling.py": "b3aebda60a23d1e507d6a0f5b8fc19d61b03d68de172e01a5b9ca2f67504593e",
+    "blender_adapter\\export_workflow.py": "36ef417094d36a153f5d7f3684451208e5e4ca570dcf8996d9c08d41deb04a87",
+    "blender_adapter\\fcurves.py": "ed896cb6741a51f012a07885df3a884f57d136a596af24087d30a35c515cb310",
+    "blender_adapter\\import_batch.py": "d3d61f48b1838e03d945df960218fd31c4fe890cc326fe16962dfd0e95cc139e",
+    "blender_adapter\\lmt_session.py": "8f914d69c2e77f56effee2117dd4c607368329bfb760c55c29b78fbec585ef56",
+    "blender_adapter\\lmt_track_authoring.py": "f417a945c63d04483c71bd6563dc872701866d008e257da50a2fa0614381daed",
+    "blender_adapter\\lmt_track_metadata.py": "af327725a44fafeb0c473a1ca4b36e2c2b5fd441cd26785aa81e18350925530a",
+    "blender_adapter\\pose_helpers.py": "4b3eb6e3c2fa0e68d20e2ae5a77a4c94dd3e8dec0c8e686fe73539cf3dad6a7b",
+    "blender_adapter\\scene.py": "473ac415be00bfd106008a4a0ab7f6583fa9495bbe795c2977a0bf3283b9db1e",
+    "blender_adapter\\source_identity.py": "38f5224073fac5b8af4d82dddae34ee86a8c44f851f9379ad2b15fb05e8d249f",
+    "blender_adapter\\space.py": "150bfa5062c7f43e6327c54ec5de77430ab1bb6942a498d3d5542c2fcbcc436f",
+    "blender_adapter\\timl_actions.py": "4e2ace1507a72043659034837074a50912c49e221522086fb7fd144df5e268f4",
+    "blender_adapter\\timl_authoring.py": "7ff4ccf5ec48da8fb45c2ee2c3b0649220c684a6211f5ccb1626f3537e6bb8eb",
+    "blender_adapter\\timl_export.py": "e9047ab2942a5cfd4b4efc02e154ed0558129ea7d430c62acc99e6d910266529",
+    "blender_adapter\\timl_file_export.py": "2d329da17a72d89ebc7b75d567e87ec14f191b2ec51bda45e5a7c761fd5228a5",
+    "blender_adapter\\timl_metadata.py": "3ce4a4e8ba07b08419806e7f078091ece90f8dcd6b424e28cd17a78815be4842",
+    "blender_adapter\\timl_preview_state.py": "8d4396f2b0d09e4431928acae55e9931e46dcded806186aa83473e0dd738b069",
+    "blender_adapter\\timl_sampling.py": "e2e8176742dc6a432fd5a2d119006e2aa6708682c991eebf04627170a2494fa7",
+    "blender_adapter\\timl_templates.py": "fe9b7e3ca6e01dc1fd34b1aab245074fe2f1271533b2857f69c3a9b787233302",
+    "blender_adapter\\timl_writeback.py": "98927db3f405adb2b1535a549e579ab83d4ec82d4ff762bac80f944d60a52ab7",
+    "blender_adapter\\timl_writeback_plan.py": "d4f46e1a65f1f336789eb3da1b62866246d3e157bd3bdeede844c74b1c7f1f04",
+    "integration\\__init__.py": "0598bde8db25c9bf0bb4f1d5bc9fe1dd2b9516e73d635ffe268680ba71f263cf",
+    "integration\\mhw_bones.py": "0fe0c68c03982db85393853edc5433762e7ce9481b4a2a7691c65e3ddd158a9f",
+    "integration\\model_editor.py": "43102e359e96e04e8046e531fb09543327ca4526704ab220b2a704eede02e987",
+    "ui\\__init__.py": "9acb61423754d091a5cd243960433bd31d18d849f8c3f6a04d75e411adfb7e91",
+    "ui\\addon_preferences.py": "88e0f6baaca015575b41d6f97971a2b0e121e861e5f6863ada53337b9959fd46",
+    "ui\\lists.py": "c3489011f7746fb7f565819bbbaf8f59520a01724c5800f4bcb177e18ea7c64d",
+    "ui\\operators_export.py": "ec09576ecb6dfc1b7c67370e87538721710107aa34233c831454b5d8b8722576",
+    "ui\\operators_import.py": "ab34ac8029405a771f79f6bf9ee0d50d56571c8b86ad648963094f27e5daeaaa",
+    "ui\\operators_pose.py": "ba2777c977ba4a5d4f131b1721e7963772116dce22b98012fb656454c4b3784c",
+    "ui\\operators_timl.py": "2480c146f6e8665cb3639b87b46fcd87a39c5c71a95f634f5b0ce4cbe9213fd6",
+    "ui\\operators_tools.py": "a22759487fd998f1edd3c4a71778e304460519d2ef0a077f7397c05fdcc8e57a",
+    "ui\\panel_sections.py": "e4adc6cab3718144b63677c1b402f001410e92b4bd0f628875f6e7b93cc365ca",
+    "ui\\panels.py": "3a68dc44620c9e431a116651a7d4d79ad6374902404c1c6f58214be3af0da0a0",
+    "ui\\properties.py": "5aaedf3ae21d068c76ce6c65f330c358d2b3df945b7bc188d390724aa96b3368",
+    "ui\\timl_defaults.py": "8bc12d60025a75fe9fc44527f81e1cd0d943a6879b0ab3f01cd3ff8da033ea1e",
+    "ui\\timl_labels.py": "509c578d67b3c0cff5c1c0d51f5a37c4b7f0a2ff3587c4b65a84ca6d43112686",
+    "ui\\timl_presenter.py": "afeb0c8475f643ebcfb9413bdca5ce5bee6fda04b8d4970bbe401a9217709dbb",
+    "ui\\timl_workspace_sections.py": "48bc253bbd79eef2c9347efcb339d699828d2793e25833476f231c0e3b3f3c57"
+  },
+  "limitations": [
+    "Mirroring/joint-remapping blocked for 149 census entries",
+    "Nonzero joint modes/non-unit winning weights and unsupported winning codecs fail",
+    "Control consumers, cinematic layers, IK and procedural effects are external",
+    "Eorzea arm RMS residual remains about 1.62-1.74 degrees at fixed fitted times",
+    "Evaluated helper curve export is blocked; use preserved source slots or separately owned retarget bake",
+    "Legacy encoder/decoder and retargeting behavior remain unchanged; new native sampling is opt-in",
+    "No bakery/caller/installed game modifications; bulk baking remains paused"
+  ]
+}

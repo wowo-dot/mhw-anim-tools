@@ -1,0 +1,154 @@
+{
+  "status": "passed",
+  "date": "2026-09-15",
+  "conclusion": "Last applicable source record per resolved skeletal destination, for the inspected native paths. Preserve all ordered records for other consumers and export.",
+  "scope": "Native record binding, not full pose sampling, retargeting, or export qualification.",
+  "counts": {
+    "duplicate_actions": 773,
+    "ordinary_actions": 88,
+    "banks": 114,
+    "native_replays": 2583,
+    "binding_calls": 280926,
+    "synthetic_replays": 49
+  },
+  "control_counts": {
+    "groups": 57,
+    "conflicting": 16
+  },
+  "repeated_groups_by_usage": {
+    "0": 4957,
+    "1": 2106,
+    "2": 674,
+    "3": 709,
+    "4": 709,
+    "5": 192
+  },
+  "source_executable_unchanged": true,
+  "source_executable_sha256": "c2ebbbd2c49f216d484e31a5219bed419eb1e5e7d206d02cba040a3ab79d90ea",
+  "corpus_repeat_byte_identical": true,
+  "tracked_binding_report_byte_identical": true,
+  "tracked_consumer_report_byte_identical": true,
+  "negative_first_wins_rejected_all_three": true,
+  "native_regions": [
+    {
+      "name": "layer_binding",
+      "start": "0x14224c200",
+      "end_exclusive": "0x14224cc8d",
+      "bytes": 2701,
+      "sha256": "c18bad4bbe9ef96163ca24d0060331c7f77da960e5f6c77c65530804d06e801a"
+    },
+    {
+      "name": "component_binding",
+      "start": "0x14237c980",
+      "end_exclusive": "0x14237d311",
+      "bytes": 2449,
+      "sha256": "8b70178e07aabb701637cff4ab9d7f36642b2a5f18c16a1ba8cf8cdf32aaf832"
+    },
+    {
+      "name": "alternate_joint_storage_binding",
+      "start": "0x142642a30",
+      "end_exclusive": "0x142643269",
+      "bytes": 2105,
+      "sha256": "29aa17371176a715dfbdc0af2f3157d1f1d9a419678191b3345500dcb7d32b62"
+    },
+    {
+      "name": "binding_helper",
+      "start": "0x1422341e0",
+      "end_exclusive": "0x1422341f9",
+      "bytes": 25,
+      "sha256": "0ee5f20126fa98e6a3fe6ac42d0e3183ee76c39c88a01f6379b6638955220f23"
+    },
+    {
+      "name": "control_search",
+      "start": "0x140a8edba",
+      "end_exclusive": "0x140a8ee05",
+      "bytes": 75,
+      "sha256": "673ca3cb4ecf2d24d4d11d7386284f01a8355030fd32d6c1c71b3d1f902aab11"
+    }
+  ],
+  "limitations": [
+    "Synthetic model lookups, not every native skeleton",
+    "joint_type 0 in corpus; no qualification of nonzero joint types",
+    "root scale usage 5 not bound by these routines",
+    "control readers may select first source record",
+    "loaded code may contain existing runtime hooks; no pristine code claim",
+    "No full animation, interpolation, layer, round-trip, or throughput claim"
+  ],
+  "artifacts": [
+    {
+      "path": "corpus_scans/duplicate_rules/native_evaluator_20260915/executable_inventory.json",
+      "bytes": 2011,
+      "sha256": "717e974c615e396e7c50851693c872a39a22d8305b77946ffc3096475f77927a"
+    },
+    {
+      "path": "corpus_scans/duplicate_rules/native_evaluator_20260915/loaded_code_report.json",
+      "bytes": 1128,
+      "sha256": "7d127b3c419e84a95ba43f3fc42cbfc0f34bee9832ad8ec33d983f42e59fc4af"
+    },
+    {
+      "path": "corpus_scans/duplicate_rules/native_evaluator_20260915/binding_corpus.json",
+      "bytes": 8311754,
+      "sha256": "9660b8e110d26534b0cc1e0bbce00b2184cbac6ca9fc702b56ffc2f44eaf02b7"
+    },
+    {
+      "path": "corpus_scans/duplicate_rules/native_evaluator_20260915/binding_corpus_repeat.json",
+      "bytes": 8311754,
+      "sha256": "9660b8e110d26534b0cc1e0bbce00b2184cbac6ca9fc702b56ffc2f44eaf02b7"
+    },
+    {
+      "path": "corpus_scans/duplicate_rules/native_evaluator_20260915/tracked_tool_corpus.json",
+      "bytes": 8311754,
+      "sha256": "9660b8e110d26534b0cc1e0bbce00b2184cbac6ca9fc702b56ffc2f44eaf02b7"
+    },
+    {
+      "path": "corpus_scans/duplicate_rules/native_evaluator_20260915/tracked_tool_synthetic.json",
+      "bytes": 12249,
+      "sha256": "8c64494b17aaefcf4c86d941ee4ce8dc2fc6feb8fa2163a3cce14c1f0e9880e2"
+    },
+    {
+      "path": "corpus_scans/duplicate_rules/native_evaluator_20260915/tracked_tool_consumers.json",
+      "bytes": 11615,
+      "sha256": "6839581c0acc588ef82d3b6fb4a660e5cfac7dcf1dbccb03ea440c7ba3d33086"
+    },
+    {
+      "path": "corpus_scans/duplicate_rules/native_evaluator_20260915/inspect_native.py",
+      "bytes": 3525,
+      "sha256": "8703015d8bb8a498059ae68f652080aefb501b2d9b2422948339556c52ae82ba"
+    },
+    {
+      "path": "corpus_scans/duplicate_rules/native_evaluator_20260915/read_loaded_code.py",
+      "bytes": 2681,
+      "sha256": "d512e4a565d0c940897f844e30d554da5901189b42c53499fa77bee3bf09df7a"
+    },
+    {
+      "path": "corpus_scans/duplicate_rules/native_evaluator_20260915/ida_extract.py",
+      "bytes": 3314,
+      "sha256": "c5087586d2aa8462ac37bd56ab7320d03a832ecc8aa1017537ce706dd08facda"
+    },
+    {
+      "path": "corpus_scans/duplicate_rules/native_evaluator_20260915/find_code_refs.py",
+      "bytes": 1624,
+      "sha256": "e6e17f2045c279f1adbc64b9ea6669a974ca6c4071635c9eedec15274d9325a8"
+    },
+    {
+      "path": "tools/verify_native_track_binding.py",
+      "bytes": 11862,
+      "sha256": "eaa7df44cd9762f293016b94293430206b44d2b0a4473a175c4e7a8aa33c8946"
+    },
+    {
+      "path": "tools/verify_native_track_consumers.py",
+      "bytes": 4101,
+      "sha256": "9f45e6b2b1ea370c49ccce7ea4111e74c1995e73ba43d2e0be5da2bfbcbc999c"
+    },
+    {
+      "path": "docs/repeated-track-native-binding.md",
+      "bytes": 11362,
+      "sha256": "526bf19882372fc26a176c6b1a0f935bc991f6b553ee27c885c86c98942b4fda"
+    },
+    {
+      "path": "docs/duplicate-track-baking-integration.md",
+      "bytes": 5288,
+      "sha256": "97c0de84fd09d7a6abed4c3f3203da4d44c88fb405b112ccc2f1583e6ea56b67"
+    }
+  ]
+}

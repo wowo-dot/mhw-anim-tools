@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 
 from core.formats.lmt.decoded import LmtDecodedAction
 from core.formats.lmt.decoded import LmtDecodedSample
@@ -22,6 +23,21 @@ class _SampledTrack:
 
 
 class LmtSourcePreservationTests(unittest.TestCase):
+    def test_duplicate_slots_require_individual_matches_and_complete_ownership(self):
+        first = LmtDecodedTrack(track_index=0, bone_id=0, usage=1, buffer_type=1, basis_value=(1.,2.,3.))
+        last = replace(first, track_index=1, basis_value=(9.,8.,7.))
+        decoded = LmtDecodedAction(0, 2, -1, (first,last))
+        samples = [_SampledTrack(0,1,[(0,first.basis_value),(1,first.basis_value)]),
+                   _SampledTrack(0,1,[(0,last.basis_value),(1,last.basis_value)])]
+        for index, sample in enumerate(samples):
+            sample.source_track_index = index
+        self.assertEqual(identify_preservable_decoded_track_identities(decoded, samples), {(0,1)})
+        samples[0].frames[0].value = (99.,2.,3.)
+        self.assertEqual(identify_preservable_decoded_track_identities(decoded, samples), set())
+        self.assertEqual(identify_preservable_decoded_track_identities(decoded, samples[1:]), set())
+        samples[0].source_track_index = 1
+        self.assertEqual(identify_preservable_decoded_track_identities(decoded, samples), set())
+
     def test_identifies_unchanged_dense_quaternion_track(self):
         decoded = LmtDecodedAction(
             action_id=0,

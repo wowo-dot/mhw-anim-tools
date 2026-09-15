@@ -14,7 +14,7 @@ If you only want to inspect an `.lmt`, no target armature is required.
 If you want to inspect or edit a standalone `.timl`, no target armature is
 required there either.
 
-For `v1.0.2`, Blender 4.5 LTS is the supported and tested target.
+For `v1.1.0`, Blender 4.5 LTS is the supported target, tested on 4.5.10.
 
 ## Learn the two main UI surfaces
 
@@ -34,6 +34,19 @@ real keyframe surface.
 5. Open the selected `Entry` and `Tracks` foldouts if you want more detail
 
 This path is safe even without a target armature.
+
+## Preview repeated-track source motion
+
+After inspecting an LMT and choosing its native source armature and entry,
+click **Build Evaluated Helper**. Choose **REST** for absent components or
+**ACTION** with the intended complete base action for a partial clip. The
+helper is a separate source pose snapshot; the original raw source channels
+remain the editing path. Rebuild the helper after changing its source or base.
+
+Use its evaluated matrices as input to retargeting. Do not export its resolved
+action over the original raw duplicate slots. See
+[supported rules and limits](repeated-track-support.md), including mirrored
+entries and cinematic-context limitations.
 
 ## Fastest way to import, edit, and export an action
 

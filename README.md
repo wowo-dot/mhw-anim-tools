@@ -3,8 +3,15 @@
 `mhw_anim_tools` is a Blender add-on for Monster Hunter World animation
 workflows built around `.lmt` and `.timl` data in Blender.
 
+**v1.1.0** adds CPU native pose helpers for repeated LMT tracks, stricter raw
+channel export guards, and optional baking throughput APIs. See the
+[release notes](docs/releases/v1.1.0.md),
+[supported rules and validation](docs/repeated-track-support.md), and
+[baking integration](docs/duplicate-track-baking-integration.md).
+
 The current public release target is Blender `4.5 LTS`. That is the version
-the add-on is supported and tested against for `v1.0.2`.
+the add-on is supported and tested against for `v1.1.0` (Blender 4.5.10).
+There is no NVIDIA, CUDA or PyTorch runtime dependency.
 
 The repository carries its own core format logic and Blender tooling. Some
 developer tools can optionally compare results against external reference
@@ -12,7 +19,8 @@ copies during validation work, but the add-on does not depend on those copies
 for normal use.
 
 For Blender installation, use the packaged release asset zip such as
-`mhw_anim_tools-v1.0.2.zip`, not GitHub's auto-generated source-code archive.
+`mhw_anim_tools-v1.1.0.zip`, not GitHub's auto-generated source-code archive.
+Existing installations can use **Check for Updates** in add-on preferences.
 
 ## Start Here
 
@@ -40,6 +48,7 @@ Common first tasks:
 - inspect an `.lmt`: `LMT Inspector > Inspect LMT`
 - import one action: `LMT Inspector > Import Selected`
 - import all actions from one source file: `LMT Inspector > Import All`
+- evaluate repeated-track motion: `LMT Inspector > Build Evaluated Helper`
 - edit embedded TIML: `Import TIML`, then `Open TIML Workspace`
 - inspect a standalone TIML: `TIML Inspector > Inspect TIML`
 - save a standalone TIML session: `Export > Export TIML`
@@ -50,10 +59,17 @@ Common first tasks:
 
 Current release-confidence highlights:
 
-- `python -m unittest discover -s tests` passes with `292 / 292` tests green
-- the full whole-corpus LMT writer-readiness replay currently lands at:
+- `python -m unittest discover -s tests` passes with `318 / 318` tests green
+  under Python 3.10 and Blender's Python 3.11
+- native pose binding matches 2,583 saved instruction-loop results across all
+  773 duplicate-bearing actions and 88 ordinary controls; 149 mirrored entries
+  remain blocked for pose evaluation pending joint-remapping support
+- 14 Blender 4.5.10 fixtures pass quarter-frame sampling, exact source round
+  trips and edited-slot readback audits, including TIML relocation
+- the earlier full whole-corpus LMT writer-readiness replay lands at:
   - `5774 / 5774` files processed
-  - `105040 / 105040` actions fully supported
+  - `105040 / 105040` actions pass the raw read/write replay probe; this is
+    separate from native pose or cinematic-context support
   - `0` replay-planning failures
   - `0` decode-error actions
 - embedded TIML corpus scan:
@@ -95,6 +111,8 @@ Main supported workflows:
 - inspect `.lmt` files, browse entries/tracks, and read diagnostics
 - import one action or all actions from a source `.lmt` on armatures imported
   through `Blender MHW Model Editor`
+- build a separate evaluated source helper using the confirmed native
+  last-applicable-record rule, with an explicit rest or complete action base
 - add or delete source-backed LMT entry slots, then materialize those
   structural changes through `Write Full LMT`
 - add or remove raw LMT tracks inside imported actions without leaving Blender
@@ -139,6 +157,8 @@ LMT export currently supports:
 - conservative export planning that chooses candidate buffer families per track and reports unsupported shapes before binary writing
 - duplicate track-slot/source-index validation plus value-dimension validation
   before writing
+- blocking errors for incomplete raw duplicate-track channels and direct
+  attempts to export evaluated helper actions over source records
 - raw duplicate-track identity import/export through technical raw channels on
   the resolved pose bone when possible, with armature-level fallback when not
 - binary writer coverage for basis vector/quaternion tracks, float vector key tracks, and q14 quaternion key tracks
@@ -174,12 +194,14 @@ LMT export currently supports:
 Quaternion note:
 
 - raw LMT quaternion tuples are interpreted as `XYZW`
-- decoded quaternions exposed by `core/` are normalized to `WXYZ`
-- Blender-facing adapters should only consume the decoded `WXYZ` convention
+- legacy decoded quaternions use normalized `WXYZ`
+- the native helper sampler keeps endpoint lengths until interpolation, then
+  normalizes animated results; its Blender conversion follows that separate
+  [native rule](docs/repeated-track-support.md)
 
 Current limits:
 
-- helper/tether playback
+- game-specific tether/control playback
 - creating brand-new standalone TIML entry payloads from empty source slots
 - broad TIML structural rebuild coverage beyond the current conservative
   source-backed path
@@ -202,6 +224,9 @@ surface, not broad read/write correctness:
   path instead of being silently skipped
 - those duplicate/raw channels remain editable and exportable, but they do not
   behave like ordinary viewport pose controls
+- `Build Evaluated Helper` provides a separate evaluated pose snapshot for
+  preview and retargeting; raw edits require rebuilding it. Mirroring and
+  complete cinematic layering/IK remain outside its supported scope
 - Blender is the main editing shell, so the add-on aims to preserve motion
   intent and source semantics rather than recreate Capcom's internal authoring
   environment byte-for-byte for every edited case

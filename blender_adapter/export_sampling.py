@@ -246,6 +246,9 @@ def sample_action_for_lmt_export(action, armature_object, *, sample_frames=None)
     if action is None:
         result.add("ERROR", "action", "Choose a Blender Action before sampling export data.")
         return result
+    if action.get("mhw_anim_tools_pose_rule"):
+        result.add("ERROR", "action", "Evaluated helper curves do not own source records. Select the raw source action, use explicit slot replacements, or bake to a separately owned target action.")
+        return result
     if armature_object is None or getattr(armature_object, "type", None) != "ARMATURE":
         result.add("ERROR", "armature", "Choose a target armature before sampling export data.")
         return result
@@ -290,7 +293,7 @@ def sample_action_for_lmt_export(action, armature_object, *, sample_frames=None)
             if set(channel_map) != set(range(channel_count)):
                 result.skipped_track_count += 1
                 result.add(
-                    "WARNING",
+                    "ERROR",
                     source_label,
                     f"Skipped incomplete raw duplicate-track channels; expected {channel_count}, found {len(channel_map)}.",
                 )

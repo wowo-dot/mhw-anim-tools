@@ -13,6 +13,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 try:
+    from ..core.formats.lmt.source_bank import LmtSourceBankCache
+    from ..core.formats.lmt.merge_writer import write_source_action_lmt_bytes
+except ImportError:  # pragma: no cover - test runner imports from addon root
+    from core.formats.lmt.source_bank import LmtSourceBankCache
+    from core.formats.lmt.merge_writer import write_source_action_lmt_bytes
+
+try:
     from ..core.diagnostics.errors import BinaryFormatError
     from ..core.diagnostics.errors import ValidationError
     from ..core.diagnostics.reports import Report
@@ -319,8 +326,11 @@ def _resolved_action_entry_id(action, *, default: int = 0) -> tuple[int, bool]:
 def _load_source_container(
     source_path: str,
     *,
-    source_cache: dict[str, tuple[bytes, object]] | None = None,
+    source_cache: dict[str, tuple[bytes, object]] | LmtSourceBankCache | None = None,
 ) -> tuple[bytes, object]:
+    if isinstance(source_cache, LmtSourceBankCache):
+        bank = source_cache.load(source_path)
+        return bank.data, bank.lmt
     cached_source = source_cache.get(source_path) if source_cache is not None else None
     if cached_source is not None:
         return cached_source
@@ -355,7 +365,7 @@ def resolve_source_action_export_metadata(
     scene_props,
     action,
     *,
-    source_cache: dict[str, tuple[bytes, object]] | None = None,
+    source_cache: dict[str, tuple[bytes, object]] | LmtSourceBankCache | None = None,
 ) -> tuple[ExportSourceMetadata, Report]:
     report = Report()
     source_path = ""
@@ -421,10 +431,11 @@ def resolve_source_action_export_metadata(
         )
 
     try:
-        source_bytes, lmt = _load_source_container(
-            source_path,
-            source_cache=source_cache,
-        )
+        bank = source_cache.load(source_path) if isinstance(source_cache, LmtSourceBankCache) else None
+        if bank is not None:
+            source_bytes, lmt = bank.data, bank.lmt
+        else:
+            source_bytes, lmt = _load_source_container(source_path, source_cache=source_cache)
     except (OSError, ValueError, TypeError, BinaryFormatError) as exc:
         if source_required:
             report.add_error(
@@ -446,7 +457,8 @@ def resolve_source_action_export_metadata(
             report=report,
         )
 
-    resolved_source_identity = source_file_identity_from_bytes(source_bytes)
+    resolved_source_identity = (SourceFileIdentity(size=len(bank.data), sha256=bank.sha256)
+                                if bank is not None else source_file_identity_from_bytes(source_bytes))
     if imported_source_identity is not None and resolved_source_identity != imported_source_identity:
         report.add_error(
             "lmt.export.source_identity",
@@ -1075,7 +1087,7 @@ def analyze_action_for_export(
     *,
     actions,
     objects,
-    source_cache: dict[str, tuple[bytes, object]] | None = None,
+    source_cache: dict[str, tuple[bytes, object]] | LmtSourceBankCache | None = None,
 ) -> ExportAnalysis:
     workflow_diagnostics: list[ExportWorkflowDiagnostic] = []
 
@@ -1226,6 +1238,8 @@ def analyze_source_export_actions(
 def write_export_file(filepath: str, analysis: ExportAnalysis):
     if analysis.reconstructed is None or analysis.plan is None:
         raise ValidationError("Export analysis is incomplete; run analysis before writing an LMT file.")
+    if analysis.error_count or analysis.plan.error_count:
+        raise ValidationError("Cannot write an LMT while export analysis contains errors.")
 
     metadata = analysis.metadata
     if metadata.source_lmt is not None and metadata.source_bytes is not None:
@@ -1256,6 +1270,31 @@ def write_export_file(filepath: str, analysis: ExportAnalysis):
         track_metadata_by_index=metadata.track_metadata_by_index,
         raw_quaternion_source_identities=metadata.raw_quaternion_source_identities,
     )
+
+
+def write_source_action_export_file(filepath: str, analysis: ExportAnalysis) -> Path:
+    """Write a validated, single-action intermediate for a custom bank assembler.
+
+    The original slot id and rebased TIML are retained; sibling slots are holes.
+    Call analyze_action_for_export again after changing an action or its inputs.
+    """
+    if not analysis.is_ready or analysis.plan.error_count:
+        raise ValidationError("Source action export requires a complete, error-free analysis.")
+    metadata = analysis.metadata
+    if metadata.source_lmt is None or metadata.source_bytes is None:
+        raise ValidationError("Source action export requires an imported source-backed action.")
+    data = write_source_action_lmt_bytes(
+        metadata.source_lmt, metadata.source_bytes, analysis.reconstructed,
+        action_id=metadata.action_id, version=metadata.version, header_unknown=metadata.header_unknown,
+        track_metadata_by_identity=metadata.track_metadata_by_identity,
+        track_metadata_by_index=metadata.track_metadata_by_index,
+        preserve_source_identities=metadata.preserve_source_track_identities,
+        raw_quaternion_source_identities=metadata.raw_quaternion_source_identities,
+        replacement_timl_payloads=metadata.replacement_timl_payloads,
+    )
+    path = Path(filepath)
+    path.write_bytes(data)
+    return path
 
 
 def _timl_payload_signature(raw_timl_payload) -> tuple[bytes, tuple[int, ...]]:

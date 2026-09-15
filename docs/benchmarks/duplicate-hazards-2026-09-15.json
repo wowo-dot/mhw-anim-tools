@@ -1,0 +1,7077 @@
+{
+  "scope": "Research capture eligibility and ordinary-pose alignment. No new duplicate runtime rule established.",
+  "visibility_finding": "Native SDL schedules Draw=false for evc0008:6 and evc0014:14 throughout their selector intervals.",
+  "new_capture_validation": {
+    "status": "passed",
+    "captures_hashed": 17,
+    "capture_bytes": 27114028783,
+    "capture_metadata_unchanged_after_analysis": true,
+    "poses": 16,
+    "distinct_poses": 15,
+    "matched_draws": 258,
+    "unavailable": [
+      {
+        "render_frame": 1918977,
+        "extraction": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\poses\\frame1918977\\extraction.json",
+        "reason": "No draw matched the verified body geometry; no pose can be inferred."
+      }
+    ],
+    "entries": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      7,
+      8
+    ],
+    "target6_poses": 0,
+    "pose_reconstruction_arrays_repeat_exact": true,
+    "analysis_json_repeat_equal_except_output_paths": true,
+    "scene_visibility_repeat_byte_identical": true,
+    "scene_visibility_sha256": "dc460215cf982e7cbbf9e4b3351bde2d5932e1296d0cee456af1aafad2ef3a91",
+    "negative_checks": {
+      "truncated_sdl": "Unsupported SDL layout",
+      "invalid_boolean": "Non-boolean Draw value",
+      "existing_output": "inspect_duplicate_scene_visibility.py: error: Output must be new, inside checkout/corpus_scans, and outside the extract.",
+      "protected_extract_output": "inspect_duplicate_scene_visibility.py: error: Output must be new, inside checkout/corpus_scans, and outside the extract."
+    },
+    "mo2_configuration_matches_preparation": true,
+    "video": {
+      "path": "C:\\Users\\akifs\\AppData\\Local\\Temp\\steam\\386F765DA2BD547B.mp4",
+      "sha256": "f895aefccf5c6f5e49121e3a11f36958189fdca5af3f2836d0418be0734ae340",
+      "bytes": 1037229977
+    },
+    "syntax_passed": true
+  },
+  "capture_inventory": {
+    "status": "complete",
+    "captures": [
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame1918977.rdc",
+        "frame": 1918977,
+        "bytes": 1607059334,
+        "mtime_ns": 1789470730374200600,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame1918977.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame1927011.rdc",
+        "frame": 1927011,
+        "bytes": 1392235598,
+        "mtime_ns": 1789470770296859800,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame1927011.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame1927330.rdc",
+        "frame": 1927330,
+        "bytes": 1424951710,
+        "mtime_ns": 1789470773947634400,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame1927330.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame1927641.rdc",
+        "frame": 1927641,
+        "bytes": 1374505624,
+        "mtime_ns": 1789470777591776900,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame1927641.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame1927937.rdc",
+        "frame": 1927937,
+        "bytes": 1347336087,
+        "mtime_ns": 1789470781193646100,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame1927937.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2087326.rdc",
+        "frame": 2087326,
+        "bytes": 1356828342,
+        "mtime_ns": 1789471456655229800,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame2087326.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2087572.rdc",
+        "frame": 2087572,
+        "bytes": 1474063298,
+        "mtime_ns": 1789471461379426300,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame2087572.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2090629.rdc",
+        "frame": 2090629,
+        "bytes": 1614597326,
+        "mtime_ns": 1789471488442631900,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame2090629.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2094725.rdc",
+        "frame": 2094725,
+        "bytes": 3042701386,
+        "mtime_ns": 1789471511068819000,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame2094725.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2096743.rdc",
+        "frame": 2096743,
+        "bytes": 1475961855,
+        "mtime_ns": 1789471522600942600,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame2096743.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2103967.rdc",
+        "frame": 2103967,
+        "bytes": 1611051404,
+        "mtime_ns": 1789471561192715900,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame2103967.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2104513.rdc",
+        "frame": 2104513,
+        "bytes": 1682889745,
+        "mtime_ns": 1789471566524101900,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame2104513.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2105260.rdc",
+        "frame": 2105260,
+        "bytes": 1613353186,
+        "mtime_ns": 1789471572898131300,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame2105260.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2106793.rdc",
+        "frame": 2106793,
+        "bytes": 1552068703,
+        "mtime_ns": 1789471582305284600,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame2106793.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2111101.rdc",
+        "frame": 2111101,
+        "bytes": 1451874377,
+        "mtime_ns": 1789471604366482800,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame2111101.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2111416.rdc",
+        "frame": 2111416,
+        "bytes": 1463488080,
+        "mtime_ns": 1789471608139377400,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame2111416.png",
+        "status": "thumbnail_read"
+      },
+      {
+        "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2114005.rdc",
+        "frame": 2114005,
+        "bytes": 1629062728,
+        "mtime_ns": 1789471622687538000,
+        "lmt_entry": null,
+        "lmt_frame": null,
+        "open_file": "<Result: 'Success'>",
+        "thumbnail": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\hazards_20260915\\user_142751\\thumbnails\\evc0034_20260915_114729_frame2114005.png",
+        "status": "thumbnail_read"
+      }
+    ],
+    "capture_bytes": 27114028783,
+    "note": "OpenFile and embedded thumbnails only. GPU replay and motion identity are separate checks."
+  },
+  "capture_sha256": [
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame1918977.rdc",
+      "sha256": "ed4397f8876c10d20f805e172b7e1f5799681c7ebcbf5a9bed56b2d3867a8301",
+      "bytes": 1607059334
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame1927011.rdc",
+      "sha256": "bd1b58310d1318483887940cb367a80d22391bd9fd604917fa2fc57c268aac5c",
+      "bytes": 1392235598
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame1927330.rdc",
+      "sha256": "8b64f48480198aaca31d2c8111412f2baffa384589681649b28bfe0dadf83afc",
+      "bytes": 1424951710
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame1927641.rdc",
+      "sha256": "59111d022d57870624d91f3dff60a485a9af8c23bd8d0e286c2f32c0dc86866d",
+      "bytes": 1374505624
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame1927937.rdc",
+      "sha256": "424cd5abd432f9080abe6c41fdbb66ce4cdde661bac5d684e781531f7b7e44d9",
+      "bytes": 1347336087
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2087326.rdc",
+      "sha256": "acf8c9dd469d3b7522bc641f4019981559c4d9b69bc3ad80d2da154674b825c8",
+      "bytes": 1356828342
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2087572.rdc",
+      "sha256": "f0d91e2991abcb26f779df7a0ff574ec0604bb656f7abe4e1f76be76b117b5d1",
+      "bytes": 1474063298
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2090629.rdc",
+      "sha256": "19b8c999c4520c78e50e8964ead3e3af3ff9598949fbfbcb82f8731434f48573",
+      "bytes": 1614597326
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2094725.rdc",
+      "sha256": "c5af71ee173d24ccad4ed966a9ce7a03466d4934ef80fe32fda5f54ed119d044",
+      "bytes": 3042701386
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2096743.rdc",
+      "sha256": "b234bb4edd48900544429fad95445ea9e5f54b9c6019364cb72b81b306197000",
+      "bytes": 1475961855
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2103967.rdc",
+      "sha256": "a515620648b647d502473a0885039cbbb92ce434e59a9a49487161041c9e52a3",
+      "bytes": 1611051404
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2104513.rdc",
+      "sha256": "a423de7d748c893f01b998bfe65da8a743229254c2e6bc6d8fc83b619d06ef40",
+      "bytes": 1682889745
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2105260.rdc",
+      "sha256": "f23a0674124649d8f64fe065d600f4f9d1e3d9d5e9fb912abdac18822fbea96b",
+      "bytes": 1613353186
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2106793.rdc",
+      "sha256": "0cbcb24bfeb951e4ab90480d2814fb792161d5d73d3278121734cdd109210e57",
+      "bytes": 1552068703
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2111101.rdc",
+      "sha256": "2a4b4fdd0dd531fad4780b47447d1a045689706e5d59dc2a421f9efdaf47b0d9",
+      "bytes": 1451874377
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2111416.rdc",
+      "sha256": "887de5727548b5125a34c4092ca683fde2730ead0d7c46864d3b53acd72dda2c",
+      "bytes": 1463488080
+    },
+    {
+      "path": "D:\\Freehkwowo\\mhw_anim_tools\\corpus_scans\\duplicate_rules\\live_20260915\\captures\\evc0034_20260915_114729_frame2114005.rdc",
+      "sha256": "5cf9da278a50835c145de4375ff8faa99c64b51af017f3c11636540445b6923f",
+      "bytes": 1629062728
+    }
+  ],
+  "source_identity": {
+    "source": "D:\\mh world modding\\whole game extract\\chunk\\event\\evc0008\\pl000_00\\pl000_00.lmt",
+    "source_sha256": "076082e14a49af0c3e21aa310e33416cfb5856cd8cc553bd2255a6d44e5f3fbd",
+    "geometry_source": "D:\\mh world modding\\whole game extract\\chunk\\pl\\f_equip\\pl501_0000\\body\\mod\\f_body501_0000.mod3",
+    "geometry_sha256": "bfdf5604a6d09892621df415bec1e06cd800d662888f8a31462d97e7fed42c64",
+    "bind_max_component_error": 5.722045912648355e-06,
+    "sources_unchanged": true
+  },
+  "analysis_method": "Identify entry using eight unique arm rotations; refine time using only functions 5/9. Body0 translation and all root transforms are holdouts. No world placement or root removal fitted.",
+  "analysis_limitations": "Fitted times are not runtime counters. NLERP/SLERP are diagnostic alternatives. Existing add-on decoder; no injected root tail. Rendered poses may include procedural motion.",
+  "poses": [
+    {
+      "render_frame": 1927011,
+      "entry": 7,
+      "source_frame": 33.05,
+      "matched_draws": 15,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.339586980238761,
+      "unique_arm_degrees": [
+        0.0407325368073955,
+        0.34019153396708274,
+        0.3271255654242781,
+        0.3597995797774169,
+        0.03343838011265715,
+        0.26894093124870816,
+        0.49973138820969365,
+        0.49549917714782815
+      ],
+      "coarse_choices": [
+        {
+          "entry": 7,
+          "frame": 33.25,
+          "inverse": false,
+          "rms_degrees": 0.3395878564680082,
+          "max_degrees": 0.4992653286059698
+        },
+        {
+          "entry": 9,
+          "frame": 122.0,
+          "inverse": false,
+          "rms_degrees": 4.96104697153088,
+          "max_degrees": 11.425533643947286
+        },
+        {
+          "entry": 5,
+          "frame": 85.5,
+          "inverse": false,
+          "rms_degrees": 6.940805616473609,
+          "max_degrees": 13.356362811182297
+        },
+        {
+          "entry": 0,
+          "frame": 30.0,
+          "inverse": false,
+          "rms_degrees": 7.02768295112301,
+          "max_degrees": 13.938739727987977
+        },
+        {
+          "entry": 2,
+          "frame": 103.0,
+          "inverse": false,
+          "rms_degrees": 8.709208644357279,
+          "max_degrees": 13.200923865225489
+        },
+        {
+          "entry": 8,
+          "frame": 121.0,
+          "inverse": false,
+          "rms_degrees": 8.748535608078624,
+          "max_degrees": 13.344176893292541
+        }
+      ],
+      "refinement": {
+        "slerp": false,
+        "index": 760,
+        "frame": 33.05,
+        "loss": 9.400035693065899e-08,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 760,
+          "frame": 33.05,
+          "loss": 9.400035693065899e-08,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 760,
+          "frame": 33.05,
+          "loss": 9.400037189988658e-08,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -222.0690001002239,
+            104.37599298793391,
+            -12.847560222192365
+          ],
+          "predicted_world": [
+            [
+              0.1385303903638362,
+              0.0,
+              -0.9903581831568027,
+              17714.745537378058
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4352.373063300434
+            ],
+            [
+              0.9903581831568027,
+              0.0,
+              0.1385303903638362,
+              -22391.03966025751
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.04917408045720108,
+          "rotation_error_degrees": 3.1945284701301985e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -222.0690001002239,
+            104.37599298793391,
+            -12.847560222192365
+          ],
+          "predicted_world": [
+            [
+              0.1385303903638362,
+              0.0,
+              -0.9903581831568027,
+              17714.745537378058
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4352.373063300434
+            ],
+            [
+              0.9903581831568027,
+              0.0,
+              0.1385303903638362,
+              -22391.03966025751
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.04917408045720108,
+          "rotation_error_degrees": 3.1945284701301985e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          29.25,
+          37.25
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.001586891085842767,
+            "max_position_error": 0.33151230859788494
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.001586891085842767,
+            "max_position_error": 0.33151230859788494
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.001586891085842767,
+            "max_position_error": 0.33151230859788494
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.001586891085842767,
+            "max_position_error": 0.33151230859788494
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 1927330,
+      "entry": 7,
+      "source_frame": 33.05,
+      "matched_draws": 15,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.339586980238761,
+      "unique_arm_degrees": [
+        0.0407325368073955,
+        0.34019153396708274,
+        0.3271255654242781,
+        0.3597995797774169,
+        0.03343838011265715,
+        0.26894093124870816,
+        0.49973138820969365,
+        0.49549917714782815
+      ],
+      "coarse_choices": [
+        {
+          "entry": 7,
+          "frame": 33.25,
+          "inverse": false,
+          "rms_degrees": 0.3395878564680082,
+          "max_degrees": 0.4992653286059698
+        },
+        {
+          "entry": 9,
+          "frame": 122.0,
+          "inverse": false,
+          "rms_degrees": 4.96104697153088,
+          "max_degrees": 11.425533643947286
+        },
+        {
+          "entry": 5,
+          "frame": 85.5,
+          "inverse": false,
+          "rms_degrees": 6.940805616473609,
+          "max_degrees": 13.356362811182297
+        },
+        {
+          "entry": 0,
+          "frame": 30.0,
+          "inverse": false,
+          "rms_degrees": 7.02768295112301,
+          "max_degrees": 13.938739727987977
+        },
+        {
+          "entry": 2,
+          "frame": 103.0,
+          "inverse": false,
+          "rms_degrees": 8.709208644357279,
+          "max_degrees": 13.200923865225489
+        },
+        {
+          "entry": 8,
+          "frame": 121.0,
+          "inverse": false,
+          "rms_degrees": 8.748535608078624,
+          "max_degrees": 13.344176893292541
+        }
+      ],
+      "refinement": {
+        "slerp": false,
+        "index": 760,
+        "frame": 33.05,
+        "loss": 9.400035693065899e-08,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 760,
+          "frame": 33.05,
+          "loss": 9.400035693065899e-08,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 760,
+          "frame": 33.05,
+          "loss": 9.400037189988658e-08,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -222.0690001002239,
+            104.37599298793391,
+            -12.847560222192365
+          ],
+          "predicted_world": [
+            [
+              0.1385303903638362,
+              0.0,
+              -0.9903581831568027,
+              17714.745537378058
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4352.373063300434
+            ],
+            [
+              0.9903581831568027,
+              0.0,
+              0.1385303903638362,
+              -22391.03966025751
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.04917408045720108,
+          "rotation_error_degrees": 3.1945284701301985e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -222.0690001002239,
+            104.37599298793391,
+            -12.847560222192365
+          ],
+          "predicted_world": [
+            [
+              0.1385303903638362,
+              0.0,
+              -0.9903581831568027,
+              17714.745537378058
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4352.373063300434
+            ],
+            [
+              0.9903581831568027,
+              0.0,
+              0.1385303903638362,
+              -22391.03966025751
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.04917408045720108,
+          "rotation_error_degrees": 3.1945284701301985e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          29.25,
+          37.25
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.001586891085842767,
+            "max_position_error": 0.33151230859788494
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.001586891085842767,
+            "max_position_error": 0.33151230859788494
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.001586891085842767,
+            "max_position_error": 0.33151230859788494
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.001586891085842767,
+            "max_position_error": 0.33151230859788494
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 1927641,
+      "entry": 7,
+      "source_frame": 89.22,
+      "matched_draws": 15,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.35320259097132994,
+      "unique_arm_degrees": [
+        0.017646293250073972,
+        0.3201382228217733,
+        0.32005468954403077,
+        0.3941892648480596,
+        0.011067871160181132,
+        0.3381582345847489,
+        0.5572355064907625,
+        0.4608813392510542
+      ],
+      "coarse_choices": [
+        {
+          "entry": 7,
+          "frame": 89.0,
+          "inverse": false,
+          "rms_degrees": 0.3536230658598193,
+          "max_degrees": 0.5484438238997268
+        },
+        {
+          "entry": 9,
+          "frame": 122.0,
+          "inverse": false,
+          "rms_degrees": 4.928695357453028,
+          "max_degrees": 10.608949074360753
+        },
+        {
+          "entry": 5,
+          "frame": 83.5,
+          "inverse": false,
+          "rms_degrees": 7.073881247737251,
+          "max_degrees": 13.563293182954013
+        },
+        {
+          "entry": 0,
+          "frame": 0.0,
+          "inverse": false,
+          "rms_degrees": 7.081668913867692,
+          "max_degrees": 11.601312985516405
+        },
+        {
+          "entry": 2,
+          "frame": 103.25,
+          "inverse": false,
+          "rms_degrees": 8.467094255608236,
+          "max_degrees": 14.505551199475418
+        },
+        {
+          "entry": 8,
+          "frame": 121.0,
+          "inverse": false,
+          "rms_degrees": 8.86965518671185,
+          "max_degrees": 13.042377393094352
+        }
+      ],
+      "refinement": {
+        "slerp": false,
+        "index": 844,
+        "frame": 89.22,
+        "loss": 1.4685586626464872e-08,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 844,
+          "frame": 89.22,
+          "loss": 1.4685586626464872e-08,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 844,
+          "frame": 89.22,
+          "loss": 1.468558682077415e-08,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -219.57767563438284,
+            103.54045667705796,
+            -11.582061413185855
+          ],
+          "predicted_world": [
+            [
+              0.1385303903638362,
+              0.0,
+              -0.9903581831568027,
+              17713.83736442756
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4351.537526989558
+            ],
+            [
+              0.9903581831568027,
+              0.0,
+              0.1385303903638362,
+              -22388.397046641847
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.02806546956673564,
+          "rotation_error_degrees": 3.1945284701301985e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -219.57767563438284,
+            103.54045667705796,
+            -11.582061413185855
+          ],
+          "predicted_world": [
+            [
+              0.1385303903638362,
+              0.0,
+              -0.9903581831568027,
+              17713.83736442756
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4351.537526989558
+            ],
+            [
+              0.9903581831568027,
+              0.0,
+              0.1385303903638362,
+              -22388.397046641847
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.02806546956673564,
+          "rotation_error_degrees": 3.1945284701301985e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          85.0,
+          93.0
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.0015218626046079882,
+            "max_position_error": 1.3985587780669104
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.0015218626046079882,
+            "max_position_error": 1.3985587780669104
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.0015218626046079882,
+            "max_position_error": 1.3985587780669104
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.0015218626046079882,
+            "max_position_error": 1.3985587780669104
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 1927937,
+      "entry": 7,
+      "source_frame": 132.79,
+      "matched_draws": 15,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.3541093280254833,
+      "unique_arm_degrees": [
+        0.031191326613633524,
+        0.25026255055964425,
+        0.3019306989406545,
+        0.4158922974071192,
+        0.029174534329946423,
+        0.339124981017003,
+        0.5852690646381868,
+        0.46585164189660644
+      ],
+      "coarse_choices": [
+        {
+          "entry": 7,
+          "frame": 132.75,
+          "inverse": false,
+          "rms_degrees": 0.35403508397815553,
+          "max_degrees": 0.5911183501820659
+        },
+        {
+          "entry": 9,
+          "frame": 120.0,
+          "inverse": false,
+          "rms_degrees": 5.37495642841028,
+          "max_degrees": 9.969891753811659
+        },
+        {
+          "entry": 0,
+          "frame": 29.5,
+          "inverse": false,
+          "rms_degrees": 7.070727575726284,
+          "max_degrees": 13.40503055363745
+        },
+        {
+          "entry": 2,
+          "frame": 100.75,
+          "inverse": false,
+          "rms_degrees": 8.034310303918536,
+          "max_degrees": 13.732318133340518
+        },
+        {
+          "entry": 5,
+          "frame": 83.75,
+          "inverse": false,
+          "rms_degrees": 8.27612037656286,
+          "max_degrees": 18.216780521391655
+        },
+        {
+          "entry": 8,
+          "frame": 121.0,
+          "inverse": false,
+          "rms_degrees": 9.310295316582785,
+          "max_degrees": 14.439644584654495
+        }
+      ],
+      "refinement": {
+        "slerp": false,
+        "index": 808,
+        "frame": 132.79,
+        "loss": 6.17375661318296e-08,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 808,
+          "frame": 132.79,
+          "loss": 6.17375661318296e-08,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 808,
+          "frame": 132.79,
+          "loss": 6.173756660325179e-08,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -223.6138683161824,
+            102.97642941857418,
+            9.760087845529672
+          ],
+          "predicted_world": [
+            [
+              0.1385303903638362,
+              0.0,
+              -0.9903581831568027,
+              17692.14185691524
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4350.973499731074
+            ],
+            [
+              0.9903581831568027,
+              0.0,
+              0.1385303903638362,
+              -22389.437786825052
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.011594490928102616,
+          "rotation_error_degrees": 3.1945284701301985e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -223.6138683161824,
+            102.97642941857418,
+            9.760087845529672
+          ],
+          "predicted_world": [
+            [
+              0.1385303903638362,
+              0.0,
+              -0.9903581831568027,
+              17692.14185691524
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4350.973499731074
+            ],
+            [
+              0.9903581831568027,
+              0.0,
+              0.1385303903638362,
+              -22389.437786825052
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.011594490928102616,
+          "rotation_error_degrees": 3.1945284701301985e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          128.75,
+          136.75
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.0014682557060821527,
+            "max_position_error": 0.9931414507289661
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.0014682557060821527,
+            "max_position_error": 0.9931414507289661
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.0014682557060821527,
+            "max_position_error": 0.9931414507289661
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.0014682557060821527,
+            "max_position_error": 0.9931414507289661
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 2087326,
+      "entry": 0,
+      "source_frame": 126.225,
+      "matched_draws": 15,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 2.3519092581844623,
+      "unique_arm_degrees": [
+        0.019970292070301814,
+        3.866066018555618,
+        3.8373631822589678,
+        2.3325965409921063,
+        0.004984586761643962,
+        1.697320022223088,
+        2.33101848177265,
+        0.9077565287890706
+      ],
+      "coarse_choices": [
+        {
+          "entry": 0,
+          "frame": 130.0,
+          "inverse": false,
+          "rms_degrees": 0.3345312847947621,
+          "max_degrees": 0.46150047053094934
+        },
+        {
+          "entry": 5,
+          "frame": 40.25,
+          "inverse": false,
+          "rms_degrees": 6.749182298218934,
+          "max_degrees": 15.122907440748591
+        },
+        {
+          "entry": 2,
+          "frame": 21.75,
+          "inverse": false,
+          "rms_degrees": 8.873828250639738,
+          "max_degrees": 14.075605433214761
+        },
+        {
+          "entry": 7,
+          "frame": 160.0,
+          "inverse": false,
+          "rms_degrees": 10.756025767464122,
+          "max_degrees": 24.394157719321296
+        },
+        {
+          "entry": 9,
+          "frame": 24.0,
+          "inverse": false,
+          "rms_degrees": 11.134077923045231,
+          "max_degrees": 26.69218294275334
+        },
+        {
+          "entry": 6,
+          "frame": 391.0,
+          "inverse": false,
+          "rms_degrees": 11.690584106540669,
+          "max_degrees": 25.86176671855595
+        }
+      ],
+      "refinement": {
+        "slerp": true,
+        "index": 45,
+        "frame": 126.225,
+        "loss": 1.4339312344018534e-08,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 45,
+          "frame": 126.225,
+          "loss": 1.4339312414592793e-08,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 45,
+          "frame": 126.225,
+          "loss": 1.4339312344018534e-08,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            23.751798057556158,
+            99.62845211029052,
+            -416.7720245361328
+          ],
+          "predicted_world": [
+            [
+              0.99976202708679,
+              0.0,
+              0.021814884719213567,
+              18027.812222259778
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4102.520078086854
+            ],
+            [
+              -0.021814884719213567,
+              0.0,
+              0.99976202708679,
+              -21998.918428226058
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 8.038372767874556,
+          "rotation_error_degrees": 1.2074182697257333e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            23.751798057556158,
+            99.62845211029052,
+            -416.7720245361328
+          ],
+          "predicted_world": [
+            [
+              0.99976202708679,
+              0.0,
+              0.021814884719213567,
+              18027.812222259778
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4102.520078086854
+            ],
+            [
+              -0.021814884719213567,
+              0.0,
+              0.99976202708679,
+              -21998.918428226058
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 8.038372767874556,
+          "rotation_error_degrees": 1.2074182697257333e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          126.0,
+          134.0
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.002312837870846383,
+            "max_position_error": 8.539631932503752
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.002312837870846383,
+            "max_position_error": 8.539631932503752
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.002312837870846383,
+            "max_position_error": 8.539631932503752
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.002312837870846383,
+            "max_position_error": 8.539631932503752
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 2087572,
+      "entry": 0,
+      "source_frame": 164.0125,
+      "matched_draws": 15,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 2.448092049757289,
+      "unique_arm_degrees": [
+        0.01060408145543795,
+        3.2236074183966985,
+        5.531972409538963,
+        1.0369440421687302,
+        0.009795339362555305,
+        1.537096879955189,
+        1.845025851726551,
+        0.32958366331323935
+      ],
+      "coarse_choices": [
+        {
+          "entry": 0,
+          "frame": 166.0,
+          "inverse": false,
+          "rms_degrees": 0.314430095636749,
+          "max_degrees": 0.47710599614923765
+        },
+        {
+          "entry": 2,
+          "frame": 8.5,
+          "inverse": false,
+          "rms_degrees": 5.9148464619346734,
+          "max_degrees": 11.703699002282086
+        },
+        {
+          "entry": 9,
+          "frame": 0.0,
+          "inverse": false,
+          "rms_degrees": 8.856277230577204,
+          "max_degrees": 15.574853872877352
+        },
+        {
+          "entry": 5,
+          "frame": 25.75,
+          "inverse": false,
+          "rms_degrees": 9.201811955093891,
+          "max_degrees": 21.63160330471079
+        },
+        {
+          "entry": 7,
+          "frame": 20.0,
+          "inverse": false,
+          "rms_degrees": 10.625526005195844,
+          "max_degrees": 19.661203530740163
+        },
+        {
+          "entry": 4,
+          "frame": 61.25,
+          "inverse": false,
+          "rms_degrees": 11.095041701574123,
+          "max_degrees": 21.15077219950778
+        }
+      ],
+      "refinement": {
+        "slerp": true,
+        "index": 644,
+        "frame": 164.0125,
+        "loss": 7.0534237298141665e-09,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 644,
+          "frame": 164.0125,
+          "loss": 7.053423816606112e-09,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 644,
+          "frame": 164.0125,
+          "loss": 7.0534237298141665e-09,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            14.628455781936648,
+            99.11590089797974,
+            -487.81820526123045
+          ],
+          "predicted_world": [
+            [
+              0.99976202708679,
+              0.0,
+              0.021814884719213567,
+              18020.651953451805
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4128.541181659699
+            ],
+            [
+              -0.021814884719213567,
+              0.0,
+              0.99976202708679,
+              -22069.825947732374
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 4.2226461613350965,
+          "rotation_error_degrees": 1.2074182697257333e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            14.628455781936648,
+            99.11590089797974,
+            -487.81820526123045
+          ],
+          "predicted_world": [
+            [
+              0.99976202708679,
+              0.0,
+              0.021814884719213567,
+              18020.651953451805
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4128.541181659699
+            ],
+            [
+              -0.021814884719213567,
+              0.0,
+              0.99976202708679,
+              -22069.825947732374
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 4.2226461613350965,
+          "rotation_error_degrees": 1.2074182697257333e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          162.0,
+          167.0
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.0024988520877826134,
+            "max_position_error": 8.757478255064347
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.0024988520877826134,
+            "max_position_error": 8.757478255064347
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.0024988520877826134,
+            "max_position_error": 8.757478255064347
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.0024988520877826134,
+            "max_position_error": 8.757478255064347
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 2090629,
+      "entry": 1,
+      "source_frame": 42.055,
+      "matched_draws": 18,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.39497471072322515,
+      "unique_arm_degrees": [
+        0.0040113813158529806,
+        0.48241342769917694,
+        0.6207278170835222,
+        0.34413062210457485,
+        0.005427390251348671,
+        0.23409568279999127,
+        0.5326465549814179,
+        0.41596858620233507
+      ],
+      "coarse_choices": [
+        {
+          "entry": 1,
+          "frame": 42.25,
+          "inverse": false,
+          "rms_degrees": 0.3757200741256739,
+          "max_degrees": 0.6113234883803619
+        },
+        {
+          "entry": 4,
+          "frame": 31.0,
+          "inverse": false,
+          "rms_degrees": 7.971984668380637,
+          "max_degrees": 15.690421040662061
+        },
+        {
+          "entry": 6,
+          "frame": 0.0,
+          "inverse": false,
+          "rms_degrees": 11.823496774773488,
+          "max_degrees": 22.061861887394418
+        },
+        {
+          "entry": 9,
+          "frame": 0.0,
+          "inverse": false,
+          "rms_degrees": 12.395297042473802,
+          "max_degrees": 22.638392202896508
+        },
+        {
+          "entry": 14,
+          "frame": 71.0,
+          "inverse": false,
+          "rms_degrees": 14.33332091556814,
+          "max_degrees": 21.370209199903414
+        },
+        {
+          "entry": 2,
+          "frame": 40.25,
+          "inverse": false,
+          "rms_degrees": 14.403319864764823,
+          "max_degrees": 24.94298926085721
+        }
+      ],
+      "refinement": {
+        "slerp": false,
+        "index": 761,
+        "frame": 42.055,
+        "loss": 1.5416264927115118e-09,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 761,
+          "frame": 42.055,
+          "loss": 1.5416264927115118e-09,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 761,
+          "frame": 42.055,
+          "loss": 1.5416269727284368e-09,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -13.987477817535401,
+            118.752527885437,
+            319.1992530822754
+          ],
+          "predicted_world": [
+            [
+              -0.7044200876422166,
+              -0.01156248459734005,
+              -0.7096891214299879,
+              19097.369301328858
+            ],
+            [
+              0.015231126661314334,
+              0.9993908269422621,
+              -0.0314004427403274,
+              3717.5374571177153
+            ],
+            [
+              0.7096198650733776,
+              -0.03292846752580286,
+              -0.703814864236074,
+              -21854.85951102391
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.17479655135968444,
+          "rotation_error_degrees": 4.353408482428142e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -13.987477817535401,
+            118.752527885437,
+            319.1992530822754
+          ],
+          "predicted_world": [
+            [
+              -0.7044200876422166,
+              -0.01156248459734005,
+              -0.7096891214299879,
+              19097.369301328858
+            ],
+            [
+              0.015231126661314334,
+              0.9993908269422621,
+              -0.0314004427403274,
+              3717.5374571177153
+            ],
+            [
+              0.7096198650733776,
+              -0.03292846752580286,
+              -0.703814864236074,
+              -21854.85951102391
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.17479655135968444,
+          "rotation_error_degrees": 4.353408482428142e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          38.25,
+          46.25
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.002361252207642296,
+            "max_position_error": 8.456165801093002
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.002361252207642296,
+            "max_position_error": 8.456165801093002
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.002361252207642296,
+            "max_position_error": 8.456165801093002
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.002361252207642296,
+            "max_position_error": 8.456165801093002
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 2094725,
+      "entry": 1,
+      "source_frame": 172.86,
+      "matched_draws": 18,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.4929906559725788,
+      "unique_arm_degrees": [
+        0.012267346529368839,
+        0.19644472947526775,
+        0.2733515138914766,
+        0.40894043068185754,
+        0.015437813628990778,
+        0.6629741308934273,
+        0.9945974275873517,
+        0.4843829912380947
+      ],
+      "coarse_choices": [
+        {
+          "entry": 1,
+          "frame": 173.0,
+          "inverse": false,
+          "rms_degrees": 0.49342155272192123,
+          "max_degrees": 1.0390688568508313
+        },
+        {
+          "entry": 4,
+          "frame": 73.25,
+          "inverse": false,
+          "rms_degrees": 6.3086099282848185,
+          "max_degrees": 11.020858568549059
+        },
+        {
+          "entry": 9,
+          "frame": 122.0,
+          "inverse": false,
+          "rms_degrees": 9.58968432894544,
+          "max_degrees": 17.75769081874056
+        },
+        {
+          "entry": 7,
+          "frame": 122.0,
+          "inverse": false,
+          "rms_degrees": 10.637708866574883,
+          "max_degrees": 19.192386326448993
+        },
+        {
+          "entry": 5,
+          "frame": 84.5,
+          "inverse": false,
+          "rms_degrees": 10.983297125261473,
+          "max_degrees": 22.234776394415178
+        },
+        {
+          "entry": 0,
+          "frame": 28.5,
+          "inverse": false,
+          "rms_degrees": 11.228715106670288,
+          "max_degrees": 26.703469558494067
+        }
+      ],
+      "refinement": {
+        "slerp": true,
+        "index": 772,
+        "frame": 172.86,
+        "loss": 1.3159941999159968e-08,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 772,
+          "frame": 172.86,
+          "loss": 1.3160535448322466e-08,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 772,
+          "frame": 172.86,
+          "loss": 1.3159941999159968e-08,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -12.780368423461915,
+            205.1308303833008,
+            545.5833605957032
+          ],
+          "predicted_world": [
+            [
+              -0.7044200876422166,
+              -0.01156248459734005,
+              -0.7096891214299879,
+              18934.16818626772
+            ],
+            [
+              0.015231126661314334,
+              0.9993908269422621,
+              -0.0314004427403274,
+              3856.350608754673
+            ],
+            [
+              0.7096198650733776,
+              -0.03292846752580286,
+              -0.703814864236074,
+              -22018.14395575769
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.026613791871687144,
+          "rotation_error_degrees": 4.353408482428142e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -12.780368423461915,
+            205.1308303833008,
+            545.5833605957032
+          ],
+          "predicted_world": [
+            [
+              -0.7044200876422166,
+              -0.01156248459734005,
+              -0.7096891214299879,
+              18934.16818626772
+            ],
+            [
+              0.015231126661314334,
+              0.9993908269422621,
+              -0.0314004427403274,
+              3856.350608754673
+            ],
+            [
+              0.7096198650733776,
+              -0.03292846752580286,
+              -0.703814864236074,
+              -22018.14395575769
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.026613791871687144,
+          "rotation_error_degrees": 4.353408482428142e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          169.0,
+          177.0
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.0016838154909422358,
+            "max_position_error": 10.0829284564974
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.0016838154909422358,
+            "max_position_error": 10.0829284564974
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.0016838154909422358,
+            "max_position_error": 10.0829284564974
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.0016838154909422358,
+            "max_position_error": 10.0829284564974
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 2096743,
+      "entry": 2,
+      "source_frame": 180.585,
+      "matched_draws": 15,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.2623089209342392,
+      "unique_arm_degrees": [
+        0.0366889153353168,
+        0.2347445464923921,
+        0.2754435323576576,
+        0.4080389668151871,
+        0.049466633171928,
+        0.20545115424416574,
+        0.18717577098849214,
+        0.41465630299929945
+      ],
+      "coarse_choices": [
+        {
+          "entry": 2,
+          "frame": 184.25,
+          "inverse": false,
+          "rms_degrees": 0.2623089209345866,
+          "max_degrees": 0.41465630299929945
+        },
+        {
+          "entry": 5,
+          "frame": 63.0,
+          "inverse": false,
+          "rms_degrees": 10.385371618642447,
+          "max_degrees": 20.73443250708356
+        },
+        {
+          "entry": 7,
+          "frame": 141.0,
+          "inverse": false,
+          "rms_degrees": 10.641338844405178,
+          "max_degrees": 20.406852409134235
+        },
+        {
+          "entry": 9,
+          "frame": 7.5,
+          "inverse": false,
+          "rms_degrees": 11.075038106745781,
+          "max_degrees": 22.372079701357553
+        },
+        {
+          "entry": 8,
+          "frame": 30.0,
+          "inverse": false,
+          "rms_degrees": 11.238437264176728,
+          "max_degrees": 22.81024880157916
+        },
+        {
+          "entry": 0,
+          "frame": 0.0,
+          "inverse": false,
+          "rms_degrees": 11.274481739188595,
+          "max_degrees": 21.130710449908896
+        }
+      ],
+      "refinement": {
+        "slerp": false,
+        "index": 67,
+        "frame": 180.585,
+        "loss": 1.283801351535944e-07,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 67,
+          "frame": 180.585,
+          "loss": 1.283801351535944e-07,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 67,
+          "frame": 180.585,
+          "loss": 1.283801351535944e-07,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            2.7580032348632812,
+            102.714111328125,
+            -576.2193603515625
+          ],
+          "predicted_world": [
+            [
+              0.7815071187301154,
+              0.20907650105209236,
+              0.5878210953019362,
+              18308.37364188065
+            ],
+            [
+              -0.06449223909577571,
+              0.9642022697298114,
+              -0.25720562619097864,
+              4057.371102515023
+            ],
+            [
+              -0.6205540866601128,
+              0.1630981292219336,
+              0.7670147493847421,
+              -22043.464868421797
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.0005955814369777215,
+          "rotation_error_degrees": 1.2074182697257333e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            2.7580032348632812,
+            102.714111328125,
+            -576.2193603515625
+          ],
+          "predicted_world": [
+            [
+              0.7815071187301154,
+              0.20907650105209236,
+              0.5878210953019362,
+              18308.37364188065
+            ],
+            [
+              -0.06449223909577571,
+              0.9642022697298114,
+              -0.25720562619097864,
+              4057.371102515023
+            ],
+            [
+              -0.6205540866601128,
+              0.1630981292219336,
+              0.7670147493847421,
+              -22043.464868421797
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.0005955814369777215,
+          "rotation_error_degrees": 1.2074182697257333e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          180.25,
+          188.25
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.0005955814369777215,
+            "max_position_error": 0.0005955814369777215
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.0005955814369777215,
+            "max_position_error": 0.0005955814369777215
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.0005955814369777215,
+            "max_position_error": 0.0005955814369777215
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.0005955814369777215,
+            "max_position_error": 0.0005955814369777215
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 2103967,
+      "entry": 4,
+      "source_frame": 60.435,
+      "matched_draws": 18,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.6039752953250248,
+      "unique_arm_degrees": [
+        0.02125079368410946,
+        0.25659856473783754,
+        0.8755383126877981,
+        0.3170121339224111,
+        0.009138380181380346,
+        0.9166173416666333,
+        1.0006982649197218,
+        0.378500899282895
+      ],
+      "coarse_choices": [
+        {
+          "entry": 4,
+          "frame": 61.0,
+          "inverse": false,
+          "rms_degrees": 0.43143228792476257,
+          "max_degrees": 0.7287073346913524
+        },
+        {
+          "entry": 1,
+          "frame": 84.5,
+          "inverse": false,
+          "rms_degrees": 7.332450926705141,
+          "max_degrees": 12.975634199721625
+        },
+        {
+          "entry": 0,
+          "frame": 162.5,
+          "inverse": false,
+          "rms_degrees": 10.91388676549733,
+          "max_degrees": 21.82469041548537
+        },
+        {
+          "entry": 2,
+          "frame": 46.0,
+          "inverse": false,
+          "rms_degrees": 11.199826311012794,
+          "max_degrees": 15.973365009902329
+        },
+        {
+          "entry": 9,
+          "frame": 0.0,
+          "inverse": false,
+          "rms_degrees": 11.69077963760416,
+          "max_degrees": 23.62355331365729
+        },
+        {
+          "entry": 8,
+          "frame": 88.25,
+          "inverse": false,
+          "rms_degrees": 13.76769425963078,
+          "max_degrees": 26.95200882501014
+        }
+      ],
+      "refinement": {
+        "slerp": false,
+        "index": 687,
+        "frame": 60.435,
+        "loss": 1.8111408443056442e-08,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 687,
+          "frame": 60.435,
+          "loss": 1.8111408443056442e-08,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 687,
+          "frame": 60.435,
+          "loss": 1.8111408445547655e-08,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 2,
+          "body0_translation": [
+            -9.150421285629273,
+            182.95185340881346,
+            523.4526971435547
+          ],
+          "predicted_world": [
+            [
+              -0.7691819972005047,
+              0.0,
+              -0.6390297764444487,
+              17941.464213659816
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4315.203764681135
+            ],
+            [
+              0.6390297764444487,
+              0.0,
+              -0.7691819972005047,
+              -22397.1691889474
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.6533249554715963,
+          "rotation_error_degrees": 1.2074182697257333e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 2,
+          "body0_translation": [
+            -9.150421285629273,
+            182.95185340881346,
+            523.4526971435547
+          ],
+          "predicted_world": [
+            [
+              -0.7691819972005047,
+              0.0,
+              -0.6390297764444487,
+              17941.464213659816
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4315.203764681135
+            ],
+            [
+              0.6390297764444487,
+              0.0,
+              -0.7691819972005047,
+              -22397.1691889474
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.6533249554715963,
+          "rotation_error_degrees": 1.2074182697257333e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          57.0,
+          65.0
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.004057435114728063,
+            "max_position_error": 9.588357143046238
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.004057435114728063,
+            "max_position_error": 9.588357143046238
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.004057435114728063,
+            "max_position_error": 9.588357143046238
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.004057435114728063,
+            "max_position_error": 9.588357143046238
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 2104513,
+      "entry": 4,
+      "source_frame": 96.075,
+      "matched_draws": 18,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.35816525761508083,
+      "unique_arm_degrees": [
+        0.027898250038378286,
+        0.34777846770119386,
+        0.4290054519468903,
+        0.4039272560356407,
+        0.001715128620986005,
+        0.23694677730073585,
+        0.5348237453734304,
+        0.4638368006365286
+      ],
+      "coarse_choices": [
+        {
+          "entry": 4,
+          "frame": 96.0,
+          "inverse": false,
+          "rms_degrees": 0.35748959430799837,
+          "max_degrees": 0.5143795067390687
+        },
+        {
+          "entry": 1,
+          "frame": 191.0,
+          "inverse": false,
+          "rms_degrees": 5.410927051595063,
+          "max_degrees": 11.602209023301263
+        },
+        {
+          "entry": 7,
+          "frame": 119.0,
+          "inverse": false,
+          "rms_degrees": 12.287324210030647,
+          "max_degrees": 29.020305442661655
+        },
+        {
+          "entry": 0,
+          "frame": 47.0,
+          "inverse": false,
+          "rms_degrees": 12.397144632546551,
+          "max_degrees": 28.592829124813257
+        },
+        {
+          "entry": 9,
+          "frame": 43.0,
+          "inverse": false,
+          "rms_degrees": 12.937989523683356,
+          "max_degrees": 31.68480819624024
+        },
+        {
+          "entry": 2,
+          "frame": 124.5,
+          "inverse": false,
+          "rms_degrees": 12.989415473202573,
+          "max_degrees": 32.467968818171805
+        }
+      ],
+      "refinement": {
+        "slerp": false,
+        "index": 815,
+        "frame": 96.075,
+        "loss": 2.6442619910309182e-08,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 815,
+          "frame": 96.075,
+          "loss": 2.6442619910309182e-08,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 815,
+          "frame": 96.075,
+          "loss": 2.6442619913479322e-08,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 2,
+          "body0_translation": [
+            -14.735600233078003,
+            209.4087921142578,
+            572.5368865966797
+          ],
+          "predicted_world": [
+            [
+              -0.7691819972005047,
+              0.0,
+              -0.6390297764444487,
+              17914.39397414415
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4353.194157627651
+            ],
+            [
+              0.6390297764444487,
+              0.0,
+              -0.7691819972005047,
+              -22438.492959476112
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.0013180569125962242,
+          "rotation_error_degrees": 1.2074182697257333e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 2,
+          "body0_translation": [
+            -14.735600233078003,
+            209.4087921142578,
+            572.5368865966797
+          ],
+          "predicted_world": [
+            [
+              -0.7691819972005047,
+              0.0,
+              -0.6390297764444487,
+              17914.39397414415
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4353.194157627651
+            ],
+            [
+              0.6390297764444487,
+              0.0,
+              -0.7691819972005047,
+              -22438.492959476112
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.0013180569125962242,
+          "rotation_error_degrees": 1.2074182697257333e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          92.0,
+          100.0
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.001318056912596224,
+            "max_position_error": 6.37735085194413
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.001318056912596224,
+            "max_position_error": 6.37735085194413
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.001318056912596224,
+            "max_position_error": 6.37735085194413
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.001318056912596224,
+            "max_position_error": 6.37735085194413
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 2105260,
+      "entry": 4,
+      "source_frame": 126.885,
+      "matched_draws": 18,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.3514899345433061,
+      "unique_arm_degrees": [
+        0.027914215200292657,
+        0.16086549509637704,
+        0.31822251254630124,
+        0.39292476973617385,
+        0.0019967978751017,
+        0.3412669687775818,
+        0.6093574098861473,
+        0.46718888624640553
+      ],
+      "coarse_choices": [
+        {
+          "entry": 4,
+          "frame": 126.75,
+          "inverse": false,
+          "rms_degrees": 0.3383667197701279,
+          "max_degrees": 0.5916392035386546
+        },
+        {
+          "entry": 1,
+          "frame": 141.5,
+          "inverse": false,
+          "rms_degrees": 7.845057581645379,
+          "max_degrees": 13.44751804972214
+        },
+        {
+          "entry": 0,
+          "frame": 153.5,
+          "inverse": false,
+          "rms_degrees": 12.212044687216725,
+          "max_degrees": 23.005063196329928
+        },
+        {
+          "entry": 2,
+          "frame": 45.75,
+          "inverse": false,
+          "rms_degrees": 13.080785824854887,
+          "max_degrees": 22.39753895060733
+        },
+        {
+          "entry": 16,
+          "frame": 26.25,
+          "inverse": false,
+          "rms_degrees": 13.276082959465898,
+          "max_degrees": 25.12206690345347
+        },
+        {
+          "entry": 9,
+          "frame": 0.0,
+          "inverse": false,
+          "rms_degrees": 13.42272335860525,
+          "max_degrees": 26.93795079055085
+        }
+      ],
+      "refinement": {
+        "slerp": true,
+        "index": 827,
+        "frame": 126.885,
+        "loss": 2.650816652857115e-08,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 827,
+          "frame": 126.885,
+          "loss": 2.6508166528948013e-08,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 827,
+          "frame": 126.885,
+          "loss": 2.650816652857115e-08,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 2,
+          "body0_translation": [
+            -12.850674400329588,
+            231.33188217163087,
+            618.0590786743164
+          ],
+          "predicted_world": [
+            [
+              -0.7691819972005047,
+              0.0,
+              -0.6390297764444487,
+              17883.85408690091
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4385.087839202881
+            ],
+            [
+              0.6390297764444487,
+              0.0,
+              -0.7691819972005047,
+              -22472.303286361817
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.026660753599091487,
+          "rotation_error_degrees": 1.2074182697257333e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 2,
+          "body0_translation": [
+            -12.850674400329588,
+            231.33188217163087,
+            618.0590786743164
+          ],
+          "predicted_world": [
+            [
+              -0.7691819972005047,
+              0.0,
+              -0.6390297764444487,
+              17883.85408690091
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4385.087839202881
+            ],
+            [
+              0.6390297764444487,
+              0.0,
+              -0.7691819972005047,
+              -22472.303286361817
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.026660753599091487,
+          "rotation_error_degrees": 1.2074182697257333e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          122.75,
+          130.75
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.0029875368242165395,
+            "max_position_error": 6.360597178668327
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.0029875368242165395,
+            "max_position_error": 6.360597178668327
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.0029875368242165395,
+            "max_position_error": 6.360597178668327
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.0029875368242165395,
+            "max_position_error": 6.360597178668327
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 2106793,
+      "entry": 5,
+      "source_frame": 97.99921875,
+      "matched_draws": 15,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.4003937804784737,
+      "unique_arm_degrees": [
+        0.01314833660391069,
+        0.36172311249014943,
+        0.3054668040006076,
+        0.4586790105354613,
+        0.004262256611729161,
+        0.4499372861668888,
+        0.6757471583907352,
+        0.4344106274733669
+      ],
+      "coarse_choices": [
+        {
+          "entry": 5,
+          "frame": 97.75,
+          "inverse": false,
+          "rms_degrees": 0.39770140581225366,
+          "max_degrees": 0.6921539555069377
+        },
+        {
+          "entry": 0,
+          "frame": 138.75,
+          "inverse": false,
+          "rms_degrees": 4.853651823287252,
+          "max_degrees": 9.539392100792497
+        },
+        {
+          "entry": 7,
+          "frame": 68.0,
+          "inverse": false,
+          "rms_degrees": 7.269354862606975,
+          "max_degrees": 14.455950199789218
+        },
+        {
+          "entry": 9,
+          "frame": 29.0,
+          "inverse": false,
+          "rms_degrees": 9.009679759183781,
+          "max_degrees": 19.598153292000475
+        },
+        {
+          "entry": 2,
+          "frame": 16.5,
+          "inverse": false,
+          "rms_degrees": 10.125511119764077,
+          "max_degrees": 16.459023812391663
+        },
+        {
+          "entry": 6,
+          "frame": 211.0,
+          "inverse": false,
+          "rms_degrees": 10.232569802176494,
+          "max_degrees": 16.848497122314527
+        }
+      ],
+      "refinement": {
+        "slerp": false,
+        "index": 1295,
+        "frame": 97.99921875,
+        "loss": 6.466201375735184e-09,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 1295,
+          "frame": 97.99921875,
+          "loss": 6.466201375735184e-09,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 1295,
+          "frame": 97.99921875,
+          "loss": 6.466201376893967e-09,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -5.420209700514587,
+            304.10681582668644,
+            811.9738575795736
+          ],
+          "predicted_world": [
+            [
+              -0.9895082592106472,
+              0.0,
+              0.144476312777959,
+              17710.68326978903
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4433.359745515407
+            ],
+            [
+              -0.144476312777959,
+              0.0,
+              -0.9895082592106472,
+              -22543.097473762882
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.06405553915782394,
+          "rotation_error_degrees": 2.4148365394514667e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -5.420209700514587,
+            304.10681582668644,
+            811.9738575795736
+          ],
+          "predicted_world": [
+            [
+              -0.9895082592106472,
+              0.0,
+              0.144476312777959,
+              17710.68326978903
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4433.359745515407
+            ],
+            [
+              -0.144476312777959,
+              0.0,
+              -0.9895082592106472,
+              -22543.097473762882
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.06405553915782394,
+          "rotation_error_degrees": 2.4148365394514667e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          93.75,
+          99.0
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.0029798549501332573,
+            "max_position_error": 0.6971028042442692
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.0029798549501332573,
+            "max_position_error": 0.6971028042442692
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.0029798549501332573,
+            "max_position_error": 0.6971028042442692
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.0029798549501332573,
+            "max_position_error": 0.6971028042442692
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 2111101,
+      "entry": 7,
+      "source_frame": 164.065,
+      "matched_draws": 15,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.42244214539708796,
+      "unique_arm_degrees": [
+        0.022480826034354633,
+        0.30139427912385625,
+        0.38252286767963245,
+        0.3979022470611391,
+        0.01145943895276647,
+        0.49569523276597666,
+        0.7774918733694066,
+        0.4258243680628535
+      ],
+      "coarse_choices": [
+        {
+          "entry": 7,
+          "frame": 164.25,
+          "inverse": false,
+          "rms_degrees": 0.42219245108245373,
+          "max_degrees": 0.7632599821052439
+        },
+        {
+          "entry": 9,
+          "frame": 120.0,
+          "inverse": false,
+          "rms_degrees": 5.503571573169003,
+          "max_degrees": 11.68208269865159
+        },
+        {
+          "entry": 0,
+          "frame": 31.25,
+          "inverse": false,
+          "rms_degrees": 6.839114524227854,
+          "max_degrees": 10.362354798298382
+        },
+        {
+          "entry": 5,
+          "frame": 85.75,
+          "inverse": false,
+          "rms_degrees": 7.508274529109701,
+          "max_degrees": 15.697016168941142
+        },
+        {
+          "entry": 2,
+          "frame": 102.25,
+          "inverse": false,
+          "rms_degrees": 8.144373379854175,
+          "max_degrees": 14.974044813614789
+        },
+        {
+          "entry": 8,
+          "frame": 121.0,
+          "inverse": false,
+          "rms_degrees": 8.916288230612928,
+          "max_degrees": 12.9674373422561
+        }
+      ],
+      "refinement": {
+        "slerp": true,
+        "index": 763,
+        "frame": 164.065,
+        "loss": 2.155020249564038e-08,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 763,
+          "frame": 164.065,
+          "loss": 2.155020491299107e-08,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 763,
+          "frame": 164.065,
+          "loss": 2.155020249564038e-08,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -219.2982318201907,
+            104.0141132979314,
+            6.292384016439064
+          ],
+          "predicted_world": [
+            [
+              0.1385303903638362,
+              0.0,
+              -0.9903581831568027,
+              17696.173972587603
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4352.0111836104315
+            ],
+            [
+              0.9903581831568027,
+              0.0,
+              0.1385303903638362,
+              -22385.644143270827
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.17547645055300062,
+          "rotation_error_degrees": 3.1945284701301985e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -219.2982318201907,
+            104.0141132979314,
+            6.292384016439064
+          ],
+          "predicted_world": [
+            [
+              0.1385303903638362,
+              0.0,
+              -0.9903581831568027,
+              17696.173972587603
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4352.0111836104315
+            ],
+            [
+              0.9903581831568027,
+              0.0,
+              0.1385303903638362,
+              -22385.644143270827
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.17547645055300062,
+          "rotation_error_degrees": 3.1945284701301985e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          160.25,
+          168.25
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.002198781935577984,
+            "max_position_error": 1.8129919668918832
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.002198781935577984,
+            "max_position_error": 1.8129919668918832
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.002198781935577984,
+            "max_position_error": 1.8129919668918832
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.002198781935577984,
+            "max_position_error": 1.8129919668918832
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 2111416,
+      "entry": 7,
+      "source_frame": 211.985,
+      "matched_draws": 15,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.35886231834842236,
+      "unique_arm_degrees": [
+        0.01000985313377813,
+        0.2791108068944441,
+        0.29301958313629417,
+        0.4234379452318534,
+        0.011113181472507254,
+        0.3471562071511251,
+        0.595363895552208,
+        0.46042914319314127
+      ],
+      "coarse_choices": [
+        {
+          "entry": 7,
+          "frame": 211.5,
+          "inverse": false,
+          "rms_degrees": 0.35378757498049423,
+          "max_degrees": 0.578965168743609
+        },
+        {
+          "entry": 9,
+          "frame": 122.0,
+          "inverse": false,
+          "rms_degrees": 5.775371497395388,
+          "max_degrees": 12.834020203679144
+        },
+        {
+          "entry": 0,
+          "frame": 31.5,
+          "inverse": false,
+          "rms_degrees": 6.984071714116818,
+          "max_degrees": 12.469384851508572
+        },
+        {
+          "entry": 5,
+          "frame": 86.0,
+          "inverse": false,
+          "rms_degrees": 7.534262602772845,
+          "max_degrees": 15.346515712917736
+        },
+        {
+          "entry": 2,
+          "frame": 100.5,
+          "inverse": false,
+          "rms_degrees": 8.08765397032612,
+          "max_degrees": 13.840909970725216
+        },
+        {
+          "entry": 8,
+          "frame": 121.0,
+          "inverse": false,
+          "rms_degrees": 8.900657688424301,
+          "max_degrees": 12.878184800230184
+        }
+      ],
+      "refinement": {
+        "slerp": true,
+        "index": 897,
+        "frame": 211.985,
+        "loss": 7.57143367832856e-09,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 897,
+          "frame": 211.985,
+          "loss": 7.571443849797662e-09,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 897,
+          "frame": 211.985,
+          "loss": 7.57143367832856e-09,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -206.21307704711273,
+            103.12019825643229,
+            -5.155394141150277
+          ],
+          "predicted_world": [
+            [
+              0.1385303903638362,
+              0.0,
+              -0.9903581831568027,
+              17709.32406496362
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4351.117268568933
+            ],
+            [
+              0.9903581831568027,
+              0.0,
+              0.1385303903638362,
+              -22374.271018340405
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.0898209962018578,
+          "rotation_error_degrees": 3.1945284701301985e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -206.21307704711273,
+            103.12019825643229,
+            -5.155394141150277
+          ],
+          "predicted_world": [
+            [
+              0.1385303903638362,
+              0.0,
+              -0.9903581831568027,
+              17709.32406496362
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4351.117268568933
+            ],
+            [
+              0.9903581831568027,
+              0.0,
+              0.1385303903638362,
+              -22374.271018340405
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.0898209962018578,
+          "rotation_error_degrees": 3.1945284701301985e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          207.5,
+          215.5
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.002681108361485615,
+            "max_position_error": 1.3195035500310832
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.002681108361485615,
+            "max_position_error": 1.3195035500310832
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.002681108361485615,
+            "max_position_error": 1.3195035500310832
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.002681108361485615,
+            "max_position_error": 1.3195035500310832
+          }
+        ]
+      }
+    },
+    {
+      "render_frame": 2114005,
+      "entry": 8,
+      "source_frame": 1.9153125000000002,
+      "matched_draws": 18,
+      "within_capture_bit_identical": true,
+      "unique_arm_rms_degrees": 0.4340840051499201,
+      "unique_arm_degrees": [
+        0.061423892046840144,
+        0.30616599802620964,
+        0.2666384863949006,
+        0.3432970955881298,
+        0.041370288310929315,
+        0.5687976436753529,
+        0.7796302468967061,
+        0.536569021661155
+      ],
+      "coarse_choices": [
+        {
+          "entry": 8,
+          "frame": 2.75,
+          "inverse": false,
+          "rms_degrees": 0.4073774053510983,
+          "max_degrees": 0.6877759834869462
+        },
+        {
+          "entry": 2,
+          "frame": 15.0,
+          "inverse": false,
+          "rms_degrees": 9.495136575827175,
+          "max_degrees": 15.651620437133346
+        },
+        {
+          "entry": 9,
+          "frame": 60.0,
+          "inverse": false,
+          "rms_degrees": 10.362037488525331,
+          "max_degrees": 27.22749204799589
+        },
+        {
+          "entry": 7,
+          "frame": 58.0,
+          "inverse": false,
+          "rms_degrees": 10.57684455091516,
+          "max_degrees": 26.015692495887212
+        },
+        {
+          "entry": 0,
+          "frame": 30.0,
+          "inverse": false,
+          "rms_degrees": 11.110753214503848,
+          "max_degrees": 23.294648069983893
+        },
+        {
+          "entry": 5,
+          "frame": 56.0,
+          "inverse": false,
+          "rms_degrees": 11.341219083123262,
+          "max_degrees": 22.0248115193579
+        }
+      ],
+      "refinement": {
+        "slerp": false,
+        "index": 454,
+        "frame": 1.9153125000000002,
+        "loss": 1.8562691148249894e-07,
+        "hit_bound": false
+      },
+      "alternative_refinements": [
+        {
+          "slerp": false,
+          "index": 454,
+          "frame": 1.9153125000000002,
+          "loss": 1.8562691148249894e-07,
+          "hit_bound": false
+        },
+        {
+          "slerp": true,
+          "index": 454,
+          "frame": 1.9153125000000002,
+          "loss": 1.856269143300757e-07,
+          "hit_bound": false
+        }
+      ],
+      "duplicate_body_translation": false,
+      "candidates": [
+        {
+          "choice": "first",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -192.2299898940925,
+            107.41038192112241,
+            -25.29605386438135
+          ],
+          "predicted_world": [
+            [
+              0.4614157348821505,
+              0.0,
+              -0.8871840393081725,
+              17810.17790694381
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4416.591743979564
+            ],
+            [
+              0.8871840393081725,
+              0.0,
+              0.4614157348821505,
+              -22511.09428220544
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.20082536812590202,
+          "rotation_error_degrees": 2.4148365394514667e-06
+        },
+        {
+          "choice": "last",
+          "body0_translation_slot": 15,
+          "body0_translation": [
+            -192.2299898940925,
+            107.41038192112241,
+            -25.29605386438135
+          ],
+          "predicted_world": [
+            [
+              0.4614157348821505,
+              0.0,
+              -0.8871840393081725,
+              17810.17790694381
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              4416.591743979564
+            ],
+            [
+              0.8871840393081725,
+              0.0,
+              0.4614157348821505,
+              -22511.09428220544
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "position_error": 0.20082536812590202,
+          "rotation_error_degrees": 2.4148365394514667e-06
+        }
+      ],
+      "sensitivity": {
+        "time_range": [
+          0.0,
+          6.75
+        ],
+        "sample_count": 1601,
+        "candidates": [
+          {
+            "slerp": false,
+            "choice": "first",
+            "min_position_error": 0.006711266647898185,
+            "max_position_error": 1.2468164029547215
+          },
+          {
+            "slerp": false,
+            "choice": "last",
+            "min_position_error": 0.006711266647898185,
+            "max_position_error": 1.2468164029547215
+          },
+          {
+            "slerp": true,
+            "choice": "first",
+            "min_position_error": 0.006711266647898185,
+            "max_position_error": 1.2468164029547215
+          },
+          {
+            "slerp": true,
+            "choice": "last",
+            "min_position_error": 0.006711266647898185,
+            "max_position_error": 1.2468164029547215
+          }
+        ]
+      }
+    }
+  ],
+  "scene_visibility": {
+    "status": "complete",
+    "catalogue_sha256": "e17b68d51ee812cf0dd578af9c2deb3af797db818106e0ce84ce870d51feabd8",
+    "sources": {
+      "event/evc0008/pl000_00/pl000_00.lmt": "076082e14a49af0c3e21aa310e33416cfb5856cd8cc553bd2255a6d44e5f3fbd",
+      "event/evc0008/evc0008.sdl": "b8dc5cd0e1d3cbc80de10d723187bf6afacc9ba15c1f252f605b7a1507d248bc",
+      "event/evc0014/pl000_00/pl000_00.lmt": "8555c1a347e1839bb7e5c047f8d83799e2ca906f7a58fcc4beac1e9c44aed74a",
+      "event/evc0014/evc0014.sdl": "27035b3064fefe9629bef84e31f43dd8f28c87d877da276aebc0d40c85974b3c",
+      "event/evc0019/pl000_00/pl000_00.lmt": "a966580c39bdd0d76dba213f7402efc9dc62cd9f1ba41d60bc4c48133ad5bbb9",
+      "event/evc0019/evc0019.sdl": "491c2e19fbb9094099630f68b9e59082a89e78ee44aae4f094c5ef4d98d605b9",
+      "event/evc0021/pl000_00/pl000_00.lmt": "81edd99962722dd3cb460d33da7c47cd97102b9f8e5529db6daee74c39873f1e",
+      "event/evc0021/evc0021.sdl": "50eb2aa61645c9044587656ff91fd6f78413d4dac0cfd2d57ce6f95641fb3605",
+      "event/evc0032/pl000_00/pl000_00.lmt": "fc8d9e88e4153031d165a336e98e3898fb50fc6d131e1b08fc12b35241d7eded",
+      "event/evc0032/evc0032.sdl": "c00f5804286a191c2c07ae510db5bd8d88fb064d4e330ae80f7d8d0005ce5309",
+      "event/evc0034/pl000_00/pl000_00.lmt": "db0fba34294e47e0539d81bc36d919f7f8ba160922e389c92516df08da70b5bc",
+      "event/evc0034/evc0034.sdl": "afee565681718cdb4dd1d63ab80d36528a0b367f4f33e8d4c189f3392db7d7a7",
+      "event/evc0035/pl000_00/pl000_00.lmt": "11ff17925b189bb236487b39548cf0f6f10eea9e0d81e706c3444b1823c1181d",
+      "event/evc0035/evc0035.sdl": "9e1f722ff6c44772b277f6448bbab49f66d436d9dd31ff941a3cbab0fa1ec9a2",
+      "event/evc0074/pl000_00/pl000_00.lmt": "b5d1f5664cbbf9efcda4720966301ab851477f5d708baaba0d9a35116dc128c4",
+      "event/evc0074/evc0074.sdl": "4d8a6f132846d08b87fdf842272ef44c4cd4819c51dc0e36ef5be96ea43b4769"
+    },
+    "sources_unchanged": true,
+    "banks": [
+      {
+        "bank": "event/evc0008/pl000_00/pl000_00.lmt",
+        "sdl": "event/evc0008/evc0008.sdl",
+        "tracks": {
+          "pl000_00/Draw": {
+            "index": 46,
+            "type": 11,
+            "property": 3,
+            "count": 25,
+            "parent": 41,
+            "parent_flags": 38,
+            "name": "Draw",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 67032,
+            "data_address": 67136,
+            "path": "pl000_00/Draw",
+            "times": [
+              0,
+              168,
+              368,
+              582,
+              882,
+              1027,
+              1127,
+              1519,
+              1831,
+              1953,
+              2076,
+              2186,
+              2594,
+              2774,
+              2861,
+              3081,
+              3282,
+              3352,
+              3418,
+              3458,
+              3541,
+              4065,
+              4183,
+              4269,
+              4409
+            ],
+            "packed_frames": [
+              0,
+              168,
+              368,
+              582,
+              882,
+              1027,
+              1127,
+              1519,
+              1831,
+              1953,
+              2076,
+              2186,
+              2594,
+              2774,
+              2861,
+              3081,
+              3282,
+              3352,
+              3418,
+              3458,
+              3541,
+              4065,
+              4183,
+              4269,
+              4409
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              0,
+              0,
+              0,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          "pl000_00/mpMotionList": {
+            "index": 47,
+            "type": 13,
+            "property": 128,
+            "count": 1,
+            "parent": 41,
+            "parent_flags": 38,
+            "name": "mpMotionList",
+            "tag": 14,
+            "group": 0,
+            "frame_address": 67164,
+            "data_address": 67168,
+            "path": "pl000_00/mpMotionList",
+            "times": [
+              0
+            ],
+            "packed_frames": [
+              0
+            ],
+            "frame_modes": [
+              0
+            ],
+            "values": [
+              {
+                "resource_hash": 1988234625,
+                "path": "event\\evc0008\\pl000_00\\pl000_00"
+              }
+            ]
+          },
+          "pl000_00/LayerWork/MotionWork/mMotionNoHex": {
+            "index": 50,
+            "type": 6,
+            "property": 6,
+            "count": 25,
+            "parent": 49,
+            "parent_flags": 38,
+            "name": "mMotionNoHex",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 67176,
+            "data_address": 67280,
+            "path": "pl000_00/LayerWork/MotionWork/mMotionNoHex",
+            "times": [
+              0,
+              168,
+              368,
+              582,
+              882,
+              1027,
+              1127,
+              1519,
+              1831,
+              1953,
+              2076,
+              2186,
+              2594,
+              2774,
+              2861,
+              3081,
+              3282,
+              3352,
+              3418,
+              3458,
+              3541,
+              4065,
+              4183,
+              4269,
+              4409
+            ],
+            "packed_frames": [
+              0,
+              168,
+              368,
+              582,
+              882,
+              1027,
+              1127,
+              1519,
+              1831,
+              1953,
+              2076,
+              2186,
+              2594,
+              2774,
+              2861,
+              3081,
+              3282,
+              3352,
+              3418,
+              3458,
+              3541,
+              4065,
+              4183,
+              4269,
+              4409
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              57344,
+              57345,
+              57346,
+              57347,
+              57348,
+              57349,
+              57350,
+              57351,
+              57352,
+              57353,
+              57354,
+              57355,
+              57356,
+              57357,
+              57358,
+              57359,
+              57360,
+              57361,
+              57362,
+              57363,
+              57364,
+              57365,
+              57366,
+              57367,
+              57368
+            ]
+          }
+        },
+        "intervals": [
+          {
+            "entry": 6,
+            "selector_hex": "0xe006",
+            "start_tick": 1127,
+            "next_selector_tick": 1519,
+            "source_frames": 392,
+            "conflicting_groups": 1,
+            "identical_groups": 0,
+            "draw_at_start": 0,
+            "draw_changes": [],
+            "classification": "draw_disabled"
+          }
+        ]
+      },
+      {
+        "bank": "event/evc0014/pl000_00/pl000_00.lmt",
+        "sdl": "event/evc0014/evc0014.sdl",
+        "tracks": {
+          "pl000_00/Draw": {
+            "index": 20,
+            "type": 11,
+            "property": 3,
+            "count": 47,
+            "parent": 15,
+            "parent_flags": 38,
+            "name": "Draw",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 146296,
+            "data_address": 146496,
+            "path": "pl000_00/Draw",
+            "times": [
+              0,
+              275,
+              609,
+              719,
+              1097,
+              1327,
+              1387,
+              1467,
+              1639,
+              1771,
+              1931,
+              2081,
+              2166,
+              2276,
+              2373,
+              2438,
+              2634,
+              2720,
+              2760,
+              2858,
+              2878,
+              2892,
+              2956,
+              3088,
+              3329,
+              3479,
+              3559,
+              3739,
+              3919,
+              4029,
+              4236,
+              4336,
+              4659,
+              4860,
+              5000,
+              5070,
+              5406,
+              5531,
+              5631,
+              5741,
+              5911,
+              6412,
+              6892,
+              7492,
+              7847,
+              8046,
+              8246
+            ],
+            "packed_frames": [
+              0,
+              275,
+              609,
+              719,
+              1097,
+              1327,
+              1387,
+              1467,
+              1639,
+              1771,
+              1931,
+              2081,
+              2166,
+              2276,
+              2373,
+              2438,
+              2634,
+              2720,
+              2760,
+              2858,
+              2878,
+              2892,
+              2956,
+              3088,
+              3329,
+              3479,
+              3559,
+              3739,
+              3919,
+              4029,
+              4236,
+              4336,
+              4659,
+              4860,
+              5000,
+              5070,
+              5406,
+              5531,
+              5631,
+              5741,
+              5911,
+              6412,
+              6892,
+              7492,
+              7847,
+              8046,
+              8246
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              1,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          "pl000_00/mpMotionList": {
+            "index": 21,
+            "type": 13,
+            "property": 128,
+            "count": 1,
+            "parent": 15,
+            "parent_flags": 38,
+            "name": "mpMotionList",
+            "tag": 14,
+            "group": 0,
+            "frame_address": 146544,
+            "data_address": 146560,
+            "path": "pl000_00/mpMotionList",
+            "times": [
+              0
+            ],
+            "packed_frames": [
+              0
+            ],
+            "frame_modes": [
+              0
+            ],
+            "values": [
+              {
+                "resource_hash": 1988234625,
+                "path": "event\\evc0014\\pl000_00\\pl000_00"
+              }
+            ]
+          },
+          "pl000_00/LayerWork/MotionWork/mMotionNoHex": {
+            "index": 24,
+            "type": 6,
+            "property": 6,
+            "count": 47,
+            "parent": 23,
+            "parent_flags": 38,
+            "name": "mMotionNoHex",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 146568,
+            "data_address": 146768,
+            "path": "pl000_00/LayerWork/MotionWork/mMotionNoHex",
+            "times": [
+              0,
+              275,
+              609,
+              719,
+              1097,
+              1327,
+              1387,
+              1467,
+              1639,
+              1771,
+              1931,
+              2081,
+              2166,
+              2276,
+              2373,
+              2438,
+              2634,
+              2720,
+              2760,
+              2858,
+              2878,
+              2892,
+              2956,
+              3088,
+              3329,
+              3479,
+              3559,
+              3739,
+              3919,
+              4029,
+              4236,
+              4336,
+              4659,
+              4860,
+              5000,
+              5070,
+              5406,
+              5531,
+              5631,
+              5741,
+              5911,
+              6412,
+              6892,
+              7492,
+              7847,
+              8046,
+              8246
+            ],
+            "packed_frames": [
+              0,
+              275,
+              609,
+              719,
+              1097,
+              1327,
+              1387,
+              1467,
+              1639,
+              1771,
+              1931,
+              2081,
+              2166,
+              2276,
+              2373,
+              2438,
+              2634,
+              2720,
+              2760,
+              2858,
+              2878,
+              2892,
+              2956,
+              3088,
+              3329,
+              3479,
+              3559,
+              3739,
+              3919,
+              4029,
+              4236,
+              4336,
+              4659,
+              4860,
+              5000,
+              5070,
+              5406,
+              5531,
+              5631,
+              5741,
+              5911,
+              6412,
+              6892,
+              7492,
+              7847,
+              8046,
+              8246
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              57344,
+              57345,
+              57346,
+              57347,
+              57348,
+              57349,
+              57350,
+              57351,
+              57352,
+              57353,
+              57354,
+              57355,
+              57356,
+              57357,
+              57358,
+              57359,
+              57360,
+              57361,
+              57362,
+              57363,
+              57364,
+              57365,
+              57366,
+              57367,
+              57368,
+              57369,
+              57370,
+              57371,
+              57372,
+              57373,
+              57374,
+              57375,
+              57376,
+              57377,
+              57378,
+              57379,
+              57380,
+              57381,
+              57382,
+              57383,
+              57384,
+              57385,
+              57386,
+              57387,
+              57388,
+              57389,
+              57390
+            ]
+          }
+        },
+        "intervals": [
+          {
+            "entry": 14,
+            "selector_hex": "0xe00e",
+            "start_tick": 2373,
+            "next_selector_tick": 2438,
+            "source_frames": 65,
+            "conflicting_groups": 2,
+            "identical_groups": 2,
+            "draw_at_start": 0,
+            "draw_changes": [],
+            "classification": "draw_disabled"
+          }
+        ]
+      },
+      {
+        "bank": "event/evc0019/pl000_00/pl000_00.lmt",
+        "sdl": "event/evc0019/evc0019.sdl",
+        "tracks": {
+          "pl000_00/Draw": {
+            "index": 17,
+            "type": 11,
+            "property": 3,
+            "count": 25,
+            "parent": 12,
+            "parent_flags": 38,
+            "name": "Draw",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 77576,
+            "data_address": 77680,
+            "path": "pl000_00/Draw",
+            "times": [
+              0,
+              648,
+              881,
+              1202,
+              1403,
+              1524,
+              1754,
+              1856,
+              1897,
+              1973,
+              2044,
+              2130,
+              2348,
+              2679,
+              2870,
+              3061,
+              3212,
+              3483,
+              3718,
+              3834,
+              4092,
+              4217,
+              4349,
+              4610,
+              5056
+            ],
+            "packed_frames": [
+              0,
+              648,
+              881,
+              1202,
+              1403,
+              1524,
+              1754,
+              1856,
+              1897,
+              1973,
+              2044,
+              2130,
+              2348,
+              2679,
+              2870,
+              3061,
+              3212,
+              3483,
+              3718,
+              3834,
+              4092,
+              4217,
+              4349,
+              4610,
+              5056
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1
+            ]
+          },
+          "pl000_00/mpMotionList": {
+            "index": 18,
+            "type": 13,
+            "property": 128,
+            "count": 1,
+            "parent": 12,
+            "parent_flags": 38,
+            "name": "mpMotionList",
+            "tag": 14,
+            "group": 0,
+            "frame_address": 77708,
+            "data_address": 77712,
+            "path": "pl000_00/mpMotionList",
+            "times": [
+              0
+            ],
+            "packed_frames": [
+              0
+            ],
+            "frame_modes": [
+              0
+            ],
+            "values": [
+              {
+                "resource_hash": 1988234625,
+                "path": "event\\evc0019\\pl000_00\\pl000_00"
+              }
+            ]
+          },
+          "pl000_00/LayerWork/MotionWork/mMotionNoHex": {
+            "index": 21,
+            "type": 6,
+            "property": 6,
+            "count": 25,
+            "parent": 20,
+            "parent_flags": 38,
+            "name": "mMotionNoHex",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 77720,
+            "data_address": 77824,
+            "path": "pl000_00/LayerWork/MotionWork/mMotionNoHex",
+            "times": [
+              0,
+              648,
+              881,
+              1202,
+              1403,
+              1524,
+              1754,
+              1856,
+              1897,
+              1973,
+              2044,
+              2130,
+              2348,
+              2679,
+              2870,
+              3061,
+              3212,
+              3483,
+              3718,
+              3834,
+              4092,
+              4217,
+              4349,
+              4610,
+              5056
+            ],
+            "packed_frames": [
+              0,
+              648,
+              881,
+              1202,
+              1403,
+              1524,
+              1754,
+              1856,
+              1897,
+              1973,
+              2044,
+              2130,
+              2348,
+              2679,
+              2870,
+              3061,
+              3212,
+              3483,
+              3718,
+              3834,
+              4092,
+              4217,
+              4349,
+              4610,
+              5056
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              57344,
+              57345,
+              57346,
+              57347,
+              57348,
+              57349,
+              57350,
+              57351,
+              57352,
+              57353,
+              57354,
+              57355,
+              57356,
+              57357,
+              57358,
+              57359,
+              57360,
+              57361,
+              57362,
+              57363,
+              57364,
+              57365,
+              57366,
+              57367,
+              57368
+            ]
+          }
+        },
+        "intervals": [
+          {
+            "entry": 2,
+            "selector_hex": "0xe002",
+            "start_tick": 881,
+            "next_selector_tick": 1202,
+            "source_frames": 321,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          }
+        ]
+      },
+      {
+        "bank": "event/evc0021/pl000_00/pl000_00.lmt",
+        "sdl": "event/evc0021/evc0021.sdl",
+        "tracks": {
+          "pl000_00/Draw": {
+            "index": 17,
+            "type": 11,
+            "property": 3,
+            "count": 33,
+            "parent": 12,
+            "parent_flags": 38,
+            "name": "Draw",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 93672,
+            "data_address": 93808,
+            "path": "pl000_00/Draw",
+            "times": [
+              0,
+              191,
+              406,
+              519,
+              1120,
+              1331,
+              1546,
+              1709,
+              1780,
+              2094,
+              2199,
+              2345,
+              2706,
+              2986,
+              3116,
+              3190,
+              3707,
+              3836,
+              4023,
+              4134,
+              4225,
+              4313,
+              4454,
+              4543,
+              4610,
+              4666,
+              4777,
+              4928,
+              5474,
+              6105,
+              6396,
+              6647,
+              6801
+            ],
+            "packed_frames": [
+              0,
+              191,
+              406,
+              519,
+              1120,
+              1331,
+              1546,
+              1709,
+              1780,
+              2094,
+              2199,
+              2345,
+              2706,
+              2986,
+              3116,
+              3190,
+              3707,
+              3836,
+              4023,
+              4134,
+              4225,
+              4313,
+              4454,
+              4543,
+              4610,
+              4666,
+              4777,
+              4928,
+              5474,
+              6105,
+              6396,
+              6647,
+              6801
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              0,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "pl000_00/mpMotionList": {
+            "index": 18,
+            "type": 13,
+            "property": 128,
+            "count": 1,
+            "parent": 12,
+            "parent_flags": 38,
+            "name": "mpMotionList",
+            "tag": 14,
+            "group": 0,
+            "frame_address": 93844,
+            "data_address": 93856,
+            "path": "pl000_00/mpMotionList",
+            "times": [
+              0
+            ],
+            "packed_frames": [
+              0
+            ],
+            "frame_modes": [
+              0
+            ],
+            "values": [
+              {
+                "resource_hash": 1988234625,
+                "path": "event\\evc0021\\pl000_00\\pl000_00"
+              }
+            ]
+          },
+          "pl000_00/LayerWork/MotionWork/mMotionNoHex": {
+            "index": 21,
+            "type": 6,
+            "property": 6,
+            "count": 32,
+            "parent": 20,
+            "parent_flags": 38,
+            "name": "mMotionNoHex",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 93864,
+            "data_address": 94000,
+            "path": "pl000_00/LayerWork/MotionWork/mMotionNoHex",
+            "times": [
+              0,
+              191,
+              406,
+              519,
+              1120,
+              1331,
+              1546,
+              1709,
+              1780,
+              2094,
+              2199,
+              2345,
+              2706,
+              2986,
+              3116,
+              3190,
+              3707,
+              3836,
+              4023,
+              4134,
+              4225,
+              4313,
+              4454,
+              4543,
+              4610,
+              4666,
+              4777,
+              4928,
+              5474,
+              6105,
+              6396,
+              6647
+            ],
+            "packed_frames": [
+              0,
+              191,
+              406,
+              519,
+              1120,
+              1331,
+              1546,
+              1709,
+              1780,
+              2094,
+              2199,
+              2345,
+              2706,
+              2986,
+              3116,
+              3190,
+              3707,
+              3836,
+              4023,
+              4134,
+              4225,
+              4313,
+              4454,
+              4543,
+              4610,
+              4666,
+              4777,
+              4928,
+              5474,
+              6105,
+              6396,
+              6647
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              57344,
+              57345,
+              57346,
+              57347,
+              57348,
+              57349,
+              57350,
+              57351,
+              57352,
+              57353,
+              57354,
+              57355,
+              57356,
+              57357,
+              57358,
+              57359,
+              57360,
+              57361,
+              57362,
+              57363,
+              57364,
+              57365,
+              57366,
+              57367,
+              57368,
+              57369,
+              57370,
+              57371,
+              57372,
+              57373,
+              57374,
+              57375
+            ]
+          }
+        },
+        "intervals": [
+          {
+            "entry": 20,
+            "selector_hex": "0xe014",
+            "start_tick": 4225,
+            "next_selector_tick": 4313,
+            "source_frames": 88,
+            "conflicting_groups": 2,
+            "identical_groups": 0,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          }
+        ]
+      },
+      {
+        "bank": "event/evc0032/pl000_00/pl000_00.lmt",
+        "sdl": "event/evc0032/evc0032.sdl",
+        "tracks": {
+          "pl000_00/Draw": {
+            "index": 18,
+            "type": 11,
+            "property": 3,
+            "count": 65,
+            "parent": 13,
+            "parent_flags": 38,
+            "name": "Draw",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 161800,
+            "data_address": 162064,
+            "path": "pl000_00/Draw",
+            "times": [
+              0,
+              430,
+              589,
+              825,
+              931,
+              1096,
+              1368,
+              1587,
+              1797,
+              2038,
+              2394,
+              2516,
+              2694,
+              2814,
+              3148,
+              3390,
+              3627,
+              4103,
+              4315,
+              4745,
+              5015,
+              5315,
+              5515,
+              5784,
+              6057,
+              6264,
+              7404,
+              7586,
+              7805,
+              8095,
+              8195,
+              8341,
+              8755,
+              8969,
+              9197,
+              9337,
+              9438,
+              9635,
+              9963,
+              10083,
+              10143,
+              10203,
+              10263,
+              10323,
+              10423,
+              10493,
+              10576,
+              10666,
+              10786,
+              10916,
+              11066,
+              11416,
+              11720,
+              11821,
+              11939,
+              12019,
+              12129,
+              12359,
+              12679,
+              12959,
+              13229,
+              13439,
+              13729,
+              14252,
+              14386
+            ],
+            "packed_frames": [
+              0,
+              430,
+              589,
+              825,
+              931,
+              1096,
+              1368,
+              1587,
+              1797,
+              2038,
+              2394,
+              2516,
+              2694,
+              2814,
+              3148,
+              3390,
+              3627,
+              4103,
+              4315,
+              4745,
+              5015,
+              5315,
+              5515,
+              5784,
+              6057,
+              6264,
+              7404,
+              7586,
+              7805,
+              8095,
+              8195,
+              8341,
+              8755,
+              8969,
+              9197,
+              9337,
+              9438,
+              9635,
+              9963,
+              10083,
+              10143,
+              10203,
+              10263,
+              10323,
+              10423,
+              10493,
+              10576,
+              10666,
+              10786,
+              10916,
+              11066,
+              11416,
+              11720,
+              11821,
+              11939,
+              12019,
+              12129,
+              12359,
+              12679,
+              12959,
+              13229,
+              13439,
+              13729,
+              14252,
+              14386
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              1,
+              0,
+              0,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              0,
+              1,
+              0,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              0,
+              0,
+              1,
+              0,
+              1,
+              1,
+              0,
+              0,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              0,
+              0,
+              0,
+              1,
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          "pl000_00/mpMotionList": {
+            "index": 19,
+            "type": 13,
+            "property": 128,
+            "count": 1,
+            "parent": 13,
+            "parent_flags": 38,
+            "name": "mpMotionList",
+            "tag": 14,
+            "group": 0,
+            "frame_address": 162132,
+            "data_address": 162144,
+            "path": "pl000_00/mpMotionList",
+            "times": [
+              0
+            ],
+            "packed_frames": [
+              0
+            ],
+            "frame_modes": [
+              0
+            ],
+            "values": [
+              {
+                "resource_hash": 1988234625,
+                "path": "event\\evc0032\\pl000_00\\pl000_00"
+              }
+            ]
+          },
+          "pl000_00/LayerWork/MotionWork/mMotionNoHex": {
+            "index": 22,
+            "type": 6,
+            "property": 6,
+            "count": 65,
+            "parent": 21,
+            "parent_flags": 38,
+            "name": "mMotionNoHex",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 162152,
+            "data_address": 162416,
+            "path": "pl000_00/LayerWork/MotionWork/mMotionNoHex",
+            "times": [
+              0,
+              430,
+              589,
+              825,
+              931,
+              1096,
+              1368,
+              1587,
+              1797,
+              2038,
+              2394,
+              2516,
+              2694,
+              2814,
+              3148,
+              3390,
+              3627,
+              4103,
+              4315,
+              4745,
+              5015,
+              5315,
+              5515,
+              5784,
+              6057,
+              6264,
+              7404,
+              7586,
+              7805,
+              8095,
+              8195,
+              8341,
+              8755,
+              8969,
+              9197,
+              9337,
+              9438,
+              9635,
+              9963,
+              10083,
+              10143,
+              10203,
+              10263,
+              10323,
+              10423,
+              10493,
+              10576,
+              10666,
+              10786,
+              10916,
+              11066,
+              11416,
+              11720,
+              11821,
+              11939,
+              12019,
+              12129,
+              12359,
+              12679,
+              12959,
+              13229,
+              13439,
+              13729,
+              14252,
+              14386
+            ],
+            "packed_frames": [
+              0,
+              430,
+              589,
+              825,
+              931,
+              1096,
+              1368,
+              1587,
+              1797,
+              2038,
+              2394,
+              2516,
+              2694,
+              2814,
+              3148,
+              3390,
+              3627,
+              4103,
+              4315,
+              4745,
+              5015,
+              5315,
+              5515,
+              5784,
+              6057,
+              6264,
+              7404,
+              7586,
+              7805,
+              8095,
+              8195,
+              8341,
+              8755,
+              8969,
+              9197,
+              9337,
+              9438,
+              9635,
+              9963,
+              10083,
+              10143,
+              10203,
+              10263,
+              10323,
+              10423,
+              10493,
+              10576,
+              10666,
+              10786,
+              10916,
+              11066,
+              11416,
+              11720,
+              11821,
+              11939,
+              12019,
+              12129,
+              12359,
+              12679,
+              12959,
+              13229,
+              13439,
+              13729,
+              14252,
+              14386
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              57344,
+              57345,
+              57346,
+              57347,
+              57348,
+              57349,
+              57350,
+              57351,
+              57352,
+              57353,
+              57354,
+              57355,
+              57356,
+              57357,
+              57358,
+              57359,
+              57360,
+              57361,
+              57362,
+              57363,
+              57364,
+              57365,
+              57366,
+              57367,
+              57368,
+              57369,
+              57370,
+              57371,
+              57372,
+              57373,
+              57374,
+              57375,
+              57376,
+              57377,
+              57378,
+              57379,
+              57380,
+              57381,
+              57382,
+              57383,
+              57384,
+              57385,
+              57386,
+              57387,
+              57388,
+              57389,
+              57390,
+              57391,
+              57392,
+              57393,
+              57394,
+              57395,
+              57396,
+              57397,
+              57398,
+              57399,
+              57400,
+              57401,
+              57402,
+              57403,
+              57404,
+              57405,
+              57406,
+              57407,
+              57408
+            ]
+          }
+        },
+        "intervals": [
+          {
+            "entry": 0,
+            "selector_hex": "0xe000",
+            "start_tick": 0,
+            "next_selector_tick": 430,
+            "source_frames": 430,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 4,
+            "selector_hex": "0xe004",
+            "start_tick": 931,
+            "next_selector_tick": 1096,
+            "source_frames": 165,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 5,
+            "selector_hex": "0xe005",
+            "start_tick": 1096,
+            "next_selector_tick": 1368,
+            "source_frames": 272,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 6,
+            "selector_hex": "0xe006",
+            "start_tick": 1368,
+            "next_selector_tick": 1587,
+            "source_frames": 219,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 8,
+            "selector_hex": "0xe008",
+            "start_tick": 1797,
+            "next_selector_tick": 2038,
+            "source_frames": 241,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 9,
+            "selector_hex": "0xe009",
+            "start_tick": 2038,
+            "next_selector_tick": 2394,
+            "source_frames": 356,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 18,
+            "selector_hex": "0xe012",
+            "start_tick": 4315,
+            "next_selector_tick": 4745,
+            "source_frames": 430,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 20,
+            "selector_hex": "0xe014",
+            "start_tick": 5015,
+            "next_selector_tick": 5315,
+            "source_frames": 300,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 22,
+            "selector_hex": "0xe016",
+            "start_tick": 5515,
+            "next_selector_tick": 5784,
+            "source_frames": 269,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 23,
+            "selector_hex": "0xe017",
+            "start_tick": 5784,
+            "next_selector_tick": 6057,
+            "source_frames": 273,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 24,
+            "selector_hex": "0xe018",
+            "start_tick": 6057,
+            "next_selector_tick": 6264,
+            "source_frames": 207,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 25,
+            "selector_hex": "0xe019",
+            "start_tick": 6264,
+            "next_selector_tick": 7404,
+            "source_frames": 1140,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 29,
+            "selector_hex": "0xe01d",
+            "start_tick": 8095,
+            "next_selector_tick": 8195,
+            "source_frames": 100,
+            "conflicting_groups": 0,
+            "identical_groups": 77,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          }
+        ]
+      },
+      {
+        "bank": "event/evc0034/pl000_00/pl000_00.lmt",
+        "sdl": "event/evc0034/evc0034.sdl",
+        "tracks": {
+          "pl000_00/Draw": {
+            "index": 16,
+            "type": 11,
+            "property": 3,
+            "count": 31,
+            "parent": 11,
+            "parent_flags": 38,
+            "name": "Draw",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 115240,
+            "data_address": 115376,
+            "path": "pl000_00/Draw",
+            "times": [
+              0,
+              270,
+              410,
+              670,
+              1040,
+              1310,
+              1490,
+              1670,
+              1910,
+              2120,
+              2360,
+              2620,
+              2820,
+              3090,
+              3421,
+              3551,
+              3761,
+              3901,
+              4231,
+              4481,
+              4981,
+              5221,
+              5391,
+              5911,
+              6241,
+              6401,
+              6661,
+              6791,
+              6911,
+              7231,
+              7471
+            ],
+            "packed_frames": [
+              0,
+              270,
+              410,
+              670,
+              1040,
+              1310,
+              1490,
+              1670,
+              1910,
+              2120,
+              2360,
+              2620,
+              2820,
+              3090,
+              3421,
+              3551,
+              3761,
+              3901,
+              4231,
+              4481,
+              4981,
+              5221,
+              5391,
+              5911,
+              6241,
+              6401,
+              6661,
+              6791,
+              6911,
+              7231,
+              7471
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              1,
+              1,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              1,
+              1,
+              0,
+              1,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1,
+              1,
+              1
+            ]
+          },
+          "pl000_00/mpMotionList": {
+            "index": 17,
+            "type": 13,
+            "property": 128,
+            "count": 1,
+            "parent": 11,
+            "parent_flags": 38,
+            "name": "mpMotionList",
+            "tag": 14,
+            "group": 0,
+            "frame_address": 115408,
+            "data_address": 115424,
+            "path": "pl000_00/mpMotionList",
+            "times": [
+              0
+            ],
+            "packed_frames": [
+              0
+            ],
+            "frame_modes": [
+              0
+            ],
+            "values": [
+              {
+                "resource_hash": 1988234625,
+                "path": "event\\evc0034\\pl000_00\\pl000_00"
+              }
+            ]
+          },
+          "pl000_00/LayerWork/MotionWork/mMotionNoHex": {
+            "index": 20,
+            "type": 6,
+            "property": 6,
+            "count": 31,
+            "parent": 19,
+            "parent_flags": 38,
+            "name": "mMotionNoHex",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 115432,
+            "data_address": 115568,
+            "path": "pl000_00/LayerWork/MotionWork/mMotionNoHex",
+            "times": [
+              0,
+              270,
+              410,
+              670,
+              1040,
+              1310,
+              1490,
+              1670,
+              1910,
+              2120,
+              2360,
+              2620,
+              2820,
+              3090,
+              3421,
+              3551,
+              3761,
+              3901,
+              4231,
+              4481,
+              4981,
+              5221,
+              5391,
+              5911,
+              6241,
+              6401,
+              6661,
+              6791,
+              6911,
+              7231,
+              7471
+            ],
+            "packed_frames": [
+              0,
+              270,
+              410,
+              670,
+              1040,
+              1310,
+              1490,
+              1670,
+              1910,
+              2120,
+              2360,
+              2620,
+              2820,
+              3090,
+              3421,
+              3551,
+              3761,
+              3901,
+              4231,
+              4481,
+              4981,
+              5221,
+              5391,
+              5911,
+              6241,
+              6401,
+              6661,
+              6791,
+              6911,
+              7231,
+              7471
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              57344,
+              57345,
+              57346,
+              57347,
+              57348,
+              57349,
+              57350,
+              57351,
+              57352,
+              57353,
+              57354,
+              57355,
+              57356,
+              57357,
+              57358,
+              57359,
+              57360,
+              57361,
+              57362,
+              57363,
+              57364,
+              57365,
+              57366,
+              57367,
+              57368,
+              57369,
+              57370,
+              57371,
+              57372,
+              57373,
+              57374
+            ]
+          }
+        },
+        "intervals": [
+          {
+            "entry": 0,
+            "selector_hex": "0xe000",
+            "start_tick": 0,
+            "next_selector_tick": 270,
+            "source_frames": 270,
+            "conflicting_groups": 33,
+            "identical_groups": 1,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 1,
+            "selector_hex": "0xe001",
+            "start_tick": 270,
+            "next_selector_tick": 410,
+            "source_frames": 140,
+            "conflicting_groups": 33,
+            "identical_groups": 1,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 4,
+            "selector_hex": "0xe004",
+            "start_tick": 1040,
+            "next_selector_tick": 1310,
+            "source_frames": 268,
+            "conflicting_groups": 33,
+            "identical_groups": 1,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 14,
+            "selector_hex": "0xe00e",
+            "start_tick": 3421,
+            "next_selector_tick": 3551,
+            "source_frames": 130,
+            "conflicting_groups": 33,
+            "identical_groups": 1,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          }
+        ]
+      },
+      {
+        "bank": "event/evc0035/pl000_00/pl000_00.lmt",
+        "sdl": "event/evc0035/evc0035.sdl",
+        "tracks": {
+          "pl000_00/Draw": {
+            "index": 16,
+            "type": 11,
+            "property": 3,
+            "count": 62,
+            "parent": 11,
+            "parent_flags": 38,
+            "name": "Draw",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 200776,
+            "data_address": 201024,
+            "path": "pl000_00/Draw",
+            "times": [
+              0,
+              1121,
+              1395,
+              1776,
+              1977,
+              2238,
+              2694,
+              2935,
+              3356,
+              3727,
+              3908,
+              4069,
+              4219,
+              4420,
+              4881,
+              5032,
+              5540,
+              5671,
+              5752,
+              5913,
+              6074,
+              6203,
+              6414,
+              6545,
+              6966,
+              7467,
+              7768,
+              7999,
+              8215,
+              8596,
+              8899,
+              9300,
+              9431,
+              9922,
+              10213,
+              10364,
+              10575,
+              10676,
+              11476,
+              12082,
+              12203,
+              12474,
+              12595,
+              12787,
+              13047,
+              13198,
+              13479,
+              13930,
+              14181,
+              14302,
+              14783,
+              14916,
+              15067,
+              15388,
+              15709,
+              16510,
+              16821,
+              17032,
+              17273,
+              17814,
+              17935,
+              18256
+            ],
+            "packed_frames": [
+              0,
+              1121,
+              1395,
+              1776,
+              1977,
+              2238,
+              2694,
+              2935,
+              3356,
+              3727,
+              3908,
+              4069,
+              4219,
+              4420,
+              4881,
+              5032,
+              5540,
+              5671,
+              5752,
+              5913,
+              6074,
+              6203,
+              6414,
+              6545,
+              6966,
+              7467,
+              7768,
+              7999,
+              8215,
+              8596,
+              8899,
+              9300,
+              9431,
+              9922,
+              10213,
+              10364,
+              10575,
+              10676,
+              11476,
+              12082,
+              12203,
+              12474,
+              12595,
+              12787,
+              13047,
+              13198,
+              13479,
+              13930,
+              14181,
+              14302,
+              14783,
+              14916,
+              15067,
+              15388,
+              15709,
+              16510,
+              16821,
+              17032,
+              17273,
+              17814,
+              17935,
+              18256
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              1,
+              1,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              0,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1,
+              1,
+              0,
+              1,
+              1,
+              0,
+              0,
+              1,
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          "pl000_00/mpMotionList": {
+            "index": 17,
+            "type": 13,
+            "property": 128,
+            "count": 1,
+            "parent": 11,
+            "parent_flags": 38,
+            "name": "mpMotionList",
+            "tag": 14,
+            "group": 0,
+            "frame_address": 201088,
+            "data_address": 201104,
+            "path": "pl000_00/mpMotionList",
+            "times": [
+              0
+            ],
+            "packed_frames": [
+              0
+            ],
+            "frame_modes": [
+              0
+            ],
+            "values": [
+              {
+                "resource_hash": 1988234625,
+                "path": "event\\evc0035\\pl000_00\\pl000_00"
+              }
+            ]
+          },
+          "pl000_00/LayerWork/MotionWork/mMotionNoHex": {
+            "index": 20,
+            "type": 6,
+            "property": 6,
+            "count": 62,
+            "parent": 19,
+            "parent_flags": 38,
+            "name": "mMotionNoHex",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 201112,
+            "data_address": 201360,
+            "path": "pl000_00/LayerWork/MotionWork/mMotionNoHex",
+            "times": [
+              0,
+              1121,
+              1395,
+              1776,
+              1977,
+              2238,
+              2694,
+              2935,
+              3356,
+              3727,
+              3908,
+              4069,
+              4219,
+              4420,
+              4881,
+              5032,
+              5540,
+              5671,
+              5752,
+              5913,
+              6074,
+              6203,
+              6414,
+              6545,
+              6966,
+              7467,
+              7768,
+              7999,
+              8215,
+              8596,
+              8899,
+              9300,
+              9431,
+              9922,
+              10213,
+              10364,
+              10575,
+              10676,
+              11476,
+              12082,
+              12203,
+              12474,
+              12595,
+              12787,
+              13047,
+              13198,
+              13479,
+              13930,
+              14181,
+              14302,
+              14783,
+              14916,
+              15067,
+              15388,
+              15709,
+              16510,
+              16821,
+              17032,
+              17273,
+              17814,
+              17935,
+              18256
+            ],
+            "packed_frames": [
+              0,
+              1121,
+              1395,
+              1776,
+              1977,
+              2238,
+              2694,
+              2935,
+              3356,
+              3727,
+              3908,
+              4069,
+              4219,
+              4420,
+              4881,
+              5032,
+              5540,
+              5671,
+              5752,
+              5913,
+              6074,
+              6203,
+              6414,
+              6545,
+              6966,
+              7467,
+              7768,
+              7999,
+              8215,
+              8596,
+              8899,
+              9300,
+              9431,
+              9922,
+              10213,
+              10364,
+              10575,
+              10676,
+              11476,
+              12082,
+              12203,
+              12474,
+              12595,
+              12787,
+              13047,
+              13198,
+              13479,
+              13930,
+              14181,
+              14302,
+              14783,
+              14916,
+              15067,
+              15388,
+              15709,
+              16510,
+              16821,
+              17032,
+              17273,
+              17814,
+              17935,
+              18256
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              57344,
+              57345,
+              57346,
+              57347,
+              57348,
+              57349,
+              57350,
+              57351,
+              57352,
+              57353,
+              57354,
+              57355,
+              57356,
+              57357,
+              57358,
+              57359,
+              57360,
+              57361,
+              57362,
+              57363,
+              57364,
+              57365,
+              57366,
+              57367,
+              57368,
+              57369,
+              57370,
+              57371,
+              57372,
+              57373,
+              57374,
+              57375,
+              57376,
+              57377,
+              57378,
+              57379,
+              57380,
+              57381,
+              57382,
+              57383,
+              57384,
+              57385,
+              57386,
+              57387,
+              57388,
+              57389,
+              57390,
+              57391,
+              57392,
+              57393,
+              57394,
+              57395,
+              57396,
+              57397,
+              57398,
+              57399,
+              57400,
+              57401,
+              57402,
+              57403,
+              57404,
+              57405
+            ]
+          }
+        },
+        "intervals": [
+          {
+            "entry": 33,
+            "selector_hex": "0xe021",
+            "start_tick": 9922,
+            "next_selector_tick": 10213,
+            "source_frames": 291,
+            "conflicting_groups": 2,
+            "identical_groups": 78,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          }
+        ]
+      },
+      {
+        "bank": "event/evc0074/pl000_00/pl000_00.lmt",
+        "sdl": "event/evc0074/evc0074.sdl",
+        "tracks": {
+          "pl000_00/Draw": {
+            "index": 20,
+            "type": 11,
+            "property": 3,
+            "count": 35,
+            "parent": 15,
+            "parent_flags": 38,
+            "name": "Draw",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 59240,
+            "data_address": 59392,
+            "path": "pl000_00/Draw",
+            "times": [
+              0,
+              278,
+              487,
+              582,
+              716,
+              930,
+              986,
+              1217,
+              1418,
+              1509,
+              1615,
+              1664,
+              1800,
+              1941,
+              2011,
+              2116,
+              2236,
+              2718,
+              2785,
+              2874,
+              2925,
+              3110,
+              3286,
+              3395,
+              3486,
+              3624,
+              3686,
+              3748,
+              3959,
+              4038,
+              4280,
+              4491,
+              4598,
+              4769,
+              4938
+            ],
+            "packed_frames": [
+              0,
+              278,
+              487,
+              582,
+              716,
+              930,
+              986,
+              1217,
+              1418,
+              1509,
+              1615,
+              1664,
+              1800,
+              1941,
+              2011,
+              2116,
+              2236,
+              2718,
+              2785,
+              2874,
+              2925,
+              3110,
+              3286,
+              3395,
+              3486,
+              3624,
+              3686,
+              3748,
+              3959,
+              4038,
+              4280,
+              4491,
+              4598,
+              4769,
+              4938
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1
+            ]
+          },
+          "pl000_00/mpMotionList": {
+            "index": 21,
+            "type": 13,
+            "property": 128,
+            "count": 1,
+            "parent": 15,
+            "parent_flags": 38,
+            "name": "mpMotionList",
+            "tag": 14,
+            "group": 0,
+            "frame_address": 59428,
+            "data_address": 59440,
+            "path": "pl000_00/mpMotionList",
+            "times": [
+              0
+            ],
+            "packed_frames": [
+              0
+            ],
+            "frame_modes": [
+              0
+            ],
+            "values": [
+              {
+                "resource_hash": 1988234625,
+                "path": "event\\evc0074\\pl000_00\\pl000_00"
+              }
+            ]
+          },
+          "pl000_00/LayerWork/MotionWork/mMotionNoHex": {
+            "index": 24,
+            "type": 6,
+            "property": 6,
+            "count": 35,
+            "parent": 23,
+            "parent_flags": 38,
+            "name": "mMotionNoHex",
+            "tag": 0,
+            "group": 0,
+            "frame_address": 59448,
+            "data_address": 59600,
+            "path": "pl000_00/LayerWork/MotionWork/mMotionNoHex",
+            "times": [
+              0,
+              278,
+              487,
+              582,
+              716,
+              930,
+              986,
+              1217,
+              1418,
+              1509,
+              1615,
+              1664,
+              1800,
+              1941,
+              2011,
+              2116,
+              2236,
+              2718,
+              2785,
+              2874,
+              2925,
+              3110,
+              3286,
+              3395,
+              3486,
+              3624,
+              3686,
+              3748,
+              3959,
+              4038,
+              4280,
+              4491,
+              4598,
+              4769,
+              4938
+            ],
+            "packed_frames": [
+              0,
+              278,
+              487,
+              582,
+              716,
+              930,
+              986,
+              1217,
+              1418,
+              1509,
+              1615,
+              1664,
+              1800,
+              1941,
+              2011,
+              2116,
+              2236,
+              2718,
+              2785,
+              2874,
+              2925,
+              3110,
+              3286,
+              3395,
+              3486,
+              3624,
+              3686,
+              3748,
+              3959,
+              4038,
+              4280,
+              4491,
+              4598,
+              4769,
+              4938
+            ],
+            "frame_modes": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "values": [
+              57344,
+              57345,
+              57346,
+              57347,
+              57348,
+              57349,
+              57350,
+              57351,
+              57352,
+              57353,
+              57354,
+              57355,
+              57356,
+              57357,
+              57358,
+              57359,
+              57360,
+              57361,
+              57362,
+              57363,
+              57364,
+              57365,
+              57366,
+              57367,
+              57368,
+              57369,
+              57370,
+              57371,
+              57372,
+              57373,
+              57374,
+              57375,
+              57376,
+              57377,
+              57378
+            ]
+          }
+        },
+        "intervals": [
+          {
+            "entry": 2,
+            "selector_hex": "0xe002",
+            "start_tick": 487,
+            "next_selector_tick": 582,
+            "source_frames": 131,
+            "conflicting_groups": 1,
+            "identical_groups": 0,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 3,
+            "selector_hex": "0xe003",
+            "start_tick": 582,
+            "next_selector_tick": 716,
+            "source_frames": 134,
+            "conflicting_groups": 2,
+            "identical_groups": 0,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          },
+          {
+            "entry": 5,
+            "selector_hex": "0xe005",
+            "start_tick": 930,
+            "next_selector_tick": 986,
+            "source_frames": 56,
+            "conflicting_groups": 1,
+            "identical_groups": 0,
+            "draw_at_start": 1,
+            "draw_changes": [],
+            "classification": "draw_enabled"
+          }
+        ]
+      }
+    ],
+    "affected_player_actions": 25,
+    "draw_disabled": [
+      {
+        "bank": "event/evc0008/pl000_00/pl000_00.lmt",
+        "entry": 6,
+        "selector_hex": "0xe006",
+        "start_tick": 1127,
+        "next_selector_tick": 1519,
+        "source_frames": 392,
+        "conflicting_groups": 1,
+        "identical_groups": 0,
+        "draw_at_start": 0,
+        "draw_changes": [],
+        "classification": "draw_disabled"
+      },
+      {
+        "bank": "event/evc0014/pl000_00/pl000_00.lmt",
+        "entry": 14,
+        "selector_hex": "0xe00e",
+        "start_tick": 2373,
+        "next_selector_tick": 2438,
+        "source_frames": 65,
+        "conflicting_groups": 2,
+        "identical_groups": 2,
+        "draw_at_start": 0,
+        "draw_changes": [],
+        "classification": "draw_disabled"
+      }
+    ],
+    "limitations": "Authored scene schedule, not a runtime visibility/evaluation proof. Low 12 selector bits interpreted as entry IDs. Draw enabled does not guarantee camera/frustum/LOD visibility. Scene ticks and captured render frames are different clocks; hidden clips retain unresolved duplicate semantics."
+  },
+  "previous_hazards_pass": {
+    "captures": 30,
+    "replayed": 10,
+    "matched_draws": 162,
+    "recovered_poses": 10,
+    "entries": [
+      0,
+      5,
+      7,
+      8,
+      9,
+      14,
+      20,
+      24
+    ]
+  },
+  "scripts": {
+    "tools/inspect_duplicate_scene_visibility.py": "3c630c0be91073327dc304f05749f370a578ad160c773babc80ac0f6916c6bab",
+    "corpus_scans/duplicate_rules/hazards_20260915/analyze_new_poses.py": "ee4ec1ce1f12f79f01ff8fc77159897ae59706c656fc174bedde464014d3f0a8",
+    "corpus_scans/duplicate_rules/hazards_20260915/replay_new_selection.py": "74e9cd28fc9de41742a930c09292fbd2c5b5c18f00b33df3cde0a13f92a0acb2",
+    "corpus_scans/duplicate_rules/hazards_20260915/replay_new_remaining.py": "825bef44e17ed9360046ee7a536d28633d032b801e0e8cf04f59da114522618b"
+  },
+  "addon_behavior_changed": false,
+  "game_control_used": false,
+  "next_candidate": {
+    "event": "evc0074",
+    "gallery": "A Visitor from Eorzea",
+    "entries": [
+      2,
+      3,
+      5
+    ],
+    "scope": "Draw enabled in authored SDL; runtime pose/reference not yet captured."
+  }
+}

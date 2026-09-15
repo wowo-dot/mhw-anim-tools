@@ -380,7 +380,7 @@ def import_lmt_action_to_armature(
         for bone_id, usage, count in duplicate_track_identities
     }
     action_name = _action_name_for_import(source_path, source_action.id)
-    blender_action = ensure_action(action_name)
+    blender_action = ensure_action(action_name, reuse_existing=False)
     existing_import_track_bindings = load_lmt_import_track_bindings(blender_action)
     clear_lmt_import_track_bindings(blender_action)
     cleared_duplicate_slot_count = _clear_existing_raw_duplicate_slots(armature_object, existing_import_track_bindings)
@@ -658,7 +658,7 @@ def import_empty_lmt_entry_to_armature(
         return result
 
     action_name = _action_name_for_import(source_path, int(entry_id))
-    blender_action = ensure_action(action_name)
+    blender_action = ensure_action(action_name, reuse_existing=False)
     existing_import_track_bindings = load_lmt_import_track_bindings(blender_action)
     clear_lmt_import_track_bindings(blender_action)
     cleared_duplicate_slot_count = _clear_existing_raw_duplicate_slots(armature_object, existing_import_track_bindings)

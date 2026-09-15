@@ -16,8 +16,14 @@ It is meant to be read alongside:
 
 Automated coverage:
 
-- `292 / 292` unit tests pass
-- full LMT writer-readiness replay:
+- `318 / 318` unit tests pass under Python 3.10 and Blender's Python 3.11
+- v1.1.0 native helper qualification: 2,583 native binding comparisons across
+  773 duplicate-bearing actions and 88 ordinary controls; 14 Blender fixtures
+  pass sampling, source preservation and edited-slot readback checks
+- incomplete raw duplicate channels now block export; tests cover a removed
+  component and refusal to write an analysis containing errors
+- earlier full LMT writer-readiness replay (raw read/write coverage, not full
+  native pose or cinematic-context qualification):
   - `5774 / 5774` extracted `.lmt` files processed
   - `105040 / 105040` actions fully supported in the read-only replay probe
   - `0` replay-planning failures
@@ -107,6 +113,17 @@ Those tracks are imported as raw custom-property FCurves:
 
 They are still editable and source-backed exportable, but they are not ordinary
 pose preview lanes. Treat them as technical/raw channels in the Graph Editor.
+
+In v1.1.0, **Build Evaluated Helper** creates a separate pose snapshot following
+the confirmed native last-applicable-record rule. It requires an explicit base
+for missing components and blocks unsupported mirrored contexts. The remaining
+Eorzea arm residual is about 1.62–1.74 degrees RMS; complete cinematic pose
+agreement is not claimed. See [supported rules](repeated-track-support.md).
+
+Incomplete raw duplicate components are blocking export errors. Exact source
+bytes and explicit encoded slot edits use the source snapshot/slot APIs; normal
+UI export does not promise byte-identical preservation for every edited/raw
+duplicate action. Evaluated helper actions cannot be exported over source slots.
 
 ## 4. Blender preview is not the same thing as source structure
 

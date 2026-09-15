@@ -16,13 +16,17 @@ The add-on can still inspect LMT files without `Blender MHW Model Editor`, but
 the main supported LMT import/edit/export path depends on MHW-style armatures
 imported through that toolchain.
 
-For `v1.0.2`, Blender 4.5 LTS is the supported and tested release target.
+For `v1.1.0`, Blender 4.5 LTS is the supported release target, tested on 4.5.10.
 Later Blender versions may work, but they are not the current compatibility
 promise.
 
+The add-on and native pose helper run on the CPU with Blender's bundled Python.
+No NVIDIA GPU, CUDA, PyTorch or research-tool installation is required.
+
 ## Install from zip
 
-Use the packaged release asset zip such as `mhw_anim_tools-v1.0.2.zip`.
+Use [the v1.1.0 packaged release](https://github.com/wowo-dot/mhw-anim-tools/releases/tag/v1.1.0),
+`mhw_anim_tools-v1.1.0.zip`.
 Do not use GitHub's auto-generated `Source code (zip)` download for Blender
 installation, because that archive unwraps to a hyphenated folder name that
 Blender may treat as an invalid addon module name.
@@ -32,6 +36,26 @@ Blender may treat as an invalid addon module name.
 3. Choose the `mhw_anim_tools` zip
 4. Enable the `MHW Anim Tools` add-on
 5. Open the 3D View sidebar and confirm the `MHW Anim Tools` panel appears
+
+## Update an existing installation
+
+1. Open `Edit > Preferences > Add-ons > MHW Anim Tools`.
+2. Click **Check for Updates**. The available version should be `v1.1.0`.
+3. Click **Install Update**, then restart Blender or use **Reload Scripts**.
+
+Automatic checking follows the configured interval (one day by default); it
+does not install a release without the install action. A manual check refreshes
+the result immediately. If this version was ignored, clear the ignored update.
+
+The existing updater reads GitHub's latest published release and downloads its
+tagged source archive. It locates the add-on root and copies its contents into
+the existing valid module folder, so the manual-install folder-name restriction
+above does not apply to this updater path. It makes a backup before replacing
+the installed folder and refuses to overwrite a git checkout.
+
+Updating the add-on does not integrate the separate production baking caller.
+See [baking throughput](bake-throughput.md) and
+[native helper integration](duplicate-track-baking-integration.md).
 
 ## Install from a local folder
 

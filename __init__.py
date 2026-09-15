@@ -6,6 +6,7 @@ import bpy
 from .ui import addon_preferences
 from .ui import operators_export
 from .ui import operators_import
+from .ui import operators_pose
 from .ui import operators_timl
 from .ui import operators_tools
 from .ui import lists
@@ -18,7 +19,7 @@ bl_info = {
     "description": "Monster Hunter World animation tools for Blender 4.5 LTS",
     "category": "Import-Export",
     "author": "wowo",
-    "version": (1, 0, 2),
+    "version": (1, 1, 0),
     "blender": (4, 5, 0),
     "location": "View3D > Sidebar > MHW Anim",
     "doc_url": "https://github.com/wowo-dot/mhw-anim-tools",
@@ -32,6 +33,7 @@ MODULES = (
     lists,
     operators_tools,
     operators_import,
+    operators_pose,
     operators_timl,
     operators_export,
     panels,

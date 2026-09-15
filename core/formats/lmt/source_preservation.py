@@ -99,18 +99,27 @@ def identify_preservable_decoded_track_identities(
 ) -> frozenset[tuple[int, int]]:
     """Return track identities whose sampled motion still matches the source."""
 
-    sampled_map = {
-        (int(track.bone_id), int(track.usage)): {
-            int(sample.frame): tuple(float(component) for component in sample.value)
-            for sample in track.frames
-        }
-        for track in sampled_tracks
-    }
+    # An identity can own multiple independent raw slots. Never let a last-wins
+    # dictionary make an edit to an earlier slot disappear during preservation.
+    source_groups = {}
+    for track in decoded_action.tracks:
+        source_groups.setdefault((int(track.bone_id), int(track.usage)), []).append(track)
+    sampled_groups = {}
+    for track in sampled_tracks:
+        sampled_groups.setdefault((int(track.bone_id), int(track.usage)), []).append(track)
+    matched_indices = set()
 
     preservable: set[tuple[int, int]] = set()
     for decoded_track in _supported_decoded_tracks(decoded_action):
         identity = (int(decoded_track.bone_id), int(decoded_track.usage))
-        sampled_frames = sampled_map.get(identity)
+        candidates = sampled_groups.get(identity, ())
+        if len(source_groups[identity]) > 1:
+            candidates = [track for track in candidates
+                          if getattr(track, "source_track_index", None) == decoded_track.track_index]
+        if len(candidates) != 1:
+            continue
+        sampled_frames = {int(sample.frame): tuple(float(component) for component in sample.value)
+                          for sample in candidates[0].frames}
         if not sampled_frames:
             continue
 
@@ -122,7 +131,7 @@ def identify_preservable_decoded_track_identities(
         matches = True
         for frame, expected_value in expected_frames.items():
             actual_value = sampled_frames.get(frame)
-            if actual_value is None:
+            if actual_value is None or len(actual_value) != len(expected_value):
                 matches = False
                 break
             if usage.is_quaternion:
@@ -134,6 +143,10 @@ def identify_preservable_decoded_track_identities(
                     matches = False
                     break
         if matches:
+            matched_indices.add(decoded_track.track_index)
+
+    for identity, tracks in source_groups.items():
+        if all(track.track_index in matched_indices for track in tracks):
             preservable.add(identity)
 
     return frozenset(preservable)

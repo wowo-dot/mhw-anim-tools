@@ -1,0 +1,1399 @@
+{
+  "date": "2026-09-13",
+  "baseline_revision": "5243bfc291dc89b6acf78c2a29ce104fbbfaff1e",
+  "blender": "4.5.10 LTS",
+  "python": "3.11.11",
+  "hardware": "Ryzen 9 9950X3D; 64 GiB RAM; RTX 5090 (unused)",
+  "source_frames": 466,
+  "paired_frames": 932,
+  "clips": [
+    "3:150",
+    "3:151",
+    "0:363",
+    "2:67"
+  ],
+  "repetitions": 3,
+  "timing_boundary": "Complete four-clip worker including setup, solve, import, analysis/export, bank assembly, readback, original validation, compressed arrays and compact storage. Excludes process startup, Python bootstrap and post-run reference comparison. Bootstrap+worker times also recorded. Stage timers overlap.",
+  "summary": {
+    "baseline": {
+      "combined_seconds": [
+        60.52421939999476,
+        49.8949436000039,
+        50.029746199994406
+      ],
+      "median_seconds": 50.029746199994406,
+      "minimum_seconds": 49.8949436000039,
+      "maximum_seconds": 60.52421939999476,
+      "speedup_vs_baseline": 1.0,
+      "reduction_percent": 0.0
+    },
+    "addon_only": {
+      "combined_seconds": [
+        54.002662700004294,
+        49.14719669999613,
+        49.37564709999424
+      ],
+      "median_seconds": 49.37564709999424,
+      "minimum_seconds": 49.14719669999613,
+      "maximum_seconds": 54.002662700004294,
+      "speedup_vs_baseline": 1.0132474030907483,
+      "reduction_percent": 1.3074203842358134
+    },
+    "integrated": {
+      "combined_seconds": [
+        37.8554537999953,
+        37.70953719998943,
+        37.730267200000526
+      ],
+      "median_seconds": 37.730267200000526,
+      "minimum_seconds": 37.70953719998943,
+      "maximum_seconds": 37.8554537999953,
+      "speedup_vs_baseline": 1.325984412853395,
+      "reduction_percent": 24.58433219074626
+    }
+  },
+  "runs": {
+    "baseline": [
+      {
+        "G8F": {
+          "wall_seconds": 28.375567399998545,
+          "bootstrap_and_bake_seconds": 28.648911600001156,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.16855890000442741
+            },
+            "skin_evaluate": {
+              "calls": 1309,
+              "seconds": 1.5898172000452178
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.7627160000120057
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 4.235972199989192
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 7.872162899999239
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 5.686269599995285
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "2ea141fb5eab856e7f6698aa86ef424069336e4c7b620fcf585ff6cf8e452e4e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "a5d410eb2c04c37f2848459c4b12e7f75af854b1891a0a4f46505c480d8c6049",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "9401ee4c8c376a7cccf150a5d9b02f0f28a37dca90a8b989c4410087728b1a5c",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "fe375bb0e89206dda0a2d901a92319235e238f8b458742a988f1c28a2aa5e00e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false
+        },
+        "Lara": {
+          "wall_seconds": 32.14865199999622,
+          "bootstrap_and_bake_seconds": 32.39444010000443,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.6808347999976831
+            },
+            "skin_evaluate": {
+              "calls": 1110,
+              "seconds": 2.569601199844328
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.943558299994038
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 4.2938918999934685
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 8.553738400005386
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 6.241280800000823
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "bfff1e15e3c1ef06d5f1c380eb7e6cde4ce93614e04d9d7887f5fb96ea8d6f08",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "4f283c81de38e5dea8f11c608f0c92027feddee4b989cf9f5ab4642c2338d626",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "043596d6eb81b2373adcfa1adf7370c6cdf2de5b7686127a977b8dc55da14f0b",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "c0ad4b1f08127ec04bca6af285f0c93aafc303a37753129e77f28ac5412bf844",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false
+        }
+      },
+      {
+        "G8F": {
+          "wall_seconds": 24.084448599998723,
+          "bootstrap_and_bake_seconds": 24.317566400000942,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.1485887000017101
+            },
+            "skin_evaluate": {
+              "calls": 1309,
+              "seconds": 1.2235632998781512
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.095680300000822
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 3.4697638000070583
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 6.616018900007475
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 4.878745300004084
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "2ea141fb5eab856e7f6698aa86ef424069336e4c7b620fcf585ff6cf8e452e4e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "a5d410eb2c04c37f2848459c4b12e7f75af854b1891a0a4f46505c480d8c6049",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "9401ee4c8c376a7cccf150a5d9b02f0f28a37dca90a8b989c4410087728b1a5c",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "fe375bb0e89206dda0a2d901a92319235e238f8b458742a988f1c28a2aa5e00e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false
+        },
+        "Lara": {
+          "wall_seconds": 25.810495000005176,
+          "bootstrap_and_bake_seconds": 26.050424300003215,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.6720224000018789
+            },
+            "skin_evaluate": {
+              "calls": 1110,
+              "seconds": 1.98113050005486
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.2752507999975933
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 3.463506199994299
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 6.715899100003298
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 4.707244000004721
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "bfff1e15e3c1ef06d5f1c380eb7e6cde4ce93614e04d9d7887f5fb96ea8d6f08",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "4f283c81de38e5dea8f11c608f0c92027feddee4b989cf9f5ab4642c2338d626",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "043596d6eb81b2373adcfa1adf7370c6cdf2de5b7686127a977b8dc55da14f0b",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "c0ad4b1f08127ec04bca6af285f0c93aafc303a37753129e77f28ac5412bf844",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false
+        }
+      },
+      {
+        "G8F": {
+          "wall_seconds": 24.035080800000287,
+          "bootstrap_and_bake_seconds": 24.269860199994582,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.1482973000020138
+            },
+            "skin_evaluate": {
+              "calls": 1309,
+              "seconds": 1.2187800997126033
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.082457299999078
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 3.463236699994013
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 6.560495400008222
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 4.823538600001484
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "2ea141fb5eab856e7f6698aa86ef424069336e4c7b620fcf585ff6cf8e452e4e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "a5d410eb2c04c37f2848459c4b12e7f75af854b1891a0a4f46505c480d8c6049",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "9401ee4c8c376a7cccf150a5d9b02f0f28a37dca90a8b989c4410087728b1a5c",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "fe375bb0e89206dda0a2d901a92319235e238f8b458742a988f1c28a2aa5e00e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false
+        },
+        "Lara": {
+          "wall_seconds": 25.99466539999412,
+          "bootstrap_and_bake_seconds": 26.228017200002796,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.6697277999992366
+            },
+            "skin_evaluate": {
+              "calls": 1110,
+              "seconds": 1.980958600041049
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.274118199995428
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 3.4923581999901216
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 6.730429399998684
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 4.7754721000019345
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "bfff1e15e3c1ef06d5f1c380eb7e6cde4ce93614e04d9d7887f5fb96ea8d6f08",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "4f283c81de38e5dea8f11c608f0c92027feddee4b989cf9f5ab4642c2338d626",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "043596d6eb81b2373adcfa1adf7370c6cdf2de5b7686127a977b8dc55da14f0b",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "c0ad4b1f08127ec04bca6af285f0c93aafc303a37753129e77f28ac5412bf844",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false
+        }
+      }
+    ],
+    "addon_only": [
+      {
+        "G8F": {
+          "wall_seconds": 28.37294760000077,
+          "bootstrap_and_bake_seconds": 28.539200899998832,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.15614569999888772
+            },
+            "skin_evaluate": {
+              "calls": 1309,
+              "seconds": 1.5044096001656726
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.60918639999727
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 4.148677299992414
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 7.784902099992905
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 5.792526199998974
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "2ea141fb5eab856e7f6698aa86ef424069336e4c7b620fcf585ff6cf8e452e4e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "a5d410eb2c04c37f2848459c4b12e7f75af854b1891a0a4f46505c480d8c6049",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "9401ee4c8c376a7cccf150a5d9b02f0f28a37dca90a8b989c4410087728b1a5c",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "fe375bb0e89206dda0a2d901a92319235e238f8b458742a988f1c28a2aa5e00e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false
+        },
+        "Lara": {
+          "wall_seconds": 25.629715100003523,
+          "bootstrap_and_bake_seconds": 25.80089769999904,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.731625599997642
+            },
+            "skin_evaluate": {
+              "calls": 1110,
+              "seconds": 1.989646500122035
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.295755300001474
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 3.358818099994096
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 6.596668999998656
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 4.519650300004287
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "bfff1e15e3c1ef06d5f1c380eb7e6cde4ce93614e04d9d7887f5fb96ea8d6f08",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "4f283c81de38e5dea8f11c608f0c92027feddee4b989cf9f5ab4642c2338d626",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "043596d6eb81b2373adcfa1adf7370c6cdf2de5b7686127a977b8dc55da14f0b",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "c0ad4b1f08127ec04bca6af285f0c93aafc303a37753129e77f28ac5412bf844",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false
+        }
+      },
+      {
+        "G8F": {
+          "wall_seconds": 23.674872799994773,
+          "bootstrap_and_bake_seconds": 23.831701699993573,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.1493354999984149
+            },
+            "skin_evaluate": {
+              "calls": 1309,
+              "seconds": 1.2213534000329673
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.0878201000014087
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 3.3172353000118164
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 6.450312499997381
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 4.661456599998928
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "2ea141fb5eab856e7f6698aa86ef424069336e4c7b620fcf585ff6cf8e452e4e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "a5d410eb2c04c37f2848459c4b12e7f75af854b1891a0a4f46505c480d8c6049",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "9401ee4c8c376a7cccf150a5d9b02f0f28a37dca90a8b989c4410087728b1a5c",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "fe375bb0e89206dda0a2d901a92319235e238f8b458742a988f1c28a2aa5e00e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false
+        },
+        "Lara": {
+          "wall_seconds": 25.472323900001356,
+          "bootstrap_and_bake_seconds": 25.629347300004156,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.6655835999990813
+            },
+            "skin_evaluate": {
+              "calls": 1110,
+              "seconds": 1.9798022001268691
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.2746816000071703
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 3.3859728000097675
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 6.604672800000117
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 4.524634599998535
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "bfff1e15e3c1ef06d5f1c380eb7e6cde4ce93614e04d9d7887f5fb96ea8d6f08",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "4f283c81de38e5dea8f11c608f0c92027feddee4b989cf9f5ab4642c2338d626",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "043596d6eb81b2373adcfa1adf7370c6cdf2de5b7686127a977b8dc55da14f0b",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "c0ad4b1f08127ec04bca6af285f0c93aafc303a37753129e77f28ac5412bf844",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false
+        }
+      },
+      {
+        "G8F": {
+          "wall_seconds": 23.660537399999157,
+          "bootstrap_and_bake_seconds": 23.82134170000063,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.15329529999871738
+            },
+            "skin_evaluate": {
+              "calls": 1309,
+              "seconds": 1.2185517000834807
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.0846141000001808
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 3.3235326999929384
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 6.388643900012539
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 4.6636579999976675
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "2ea141fb5eab856e7f6698aa86ef424069336e4c7b620fcf585ff6cf8e452e4e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "a5d410eb2c04c37f2848459c4b12e7f75af854b1891a0a4f46505c480d8c6049",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "9401ee4c8c376a7cccf150a5d9b02f0f28a37dca90a8b989c4410087728b1a5c",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "fe375bb0e89206dda0a2d901a92319235e238f8b458742a988f1c28a2aa5e00e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false
+        },
+        "Lara": {
+          "wall_seconds": 25.715109699995082,
+          "bootstrap_and_bake_seconds": 25.869492000005266,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.6720611999990069
+            },
+            "skin_evaluate": {
+              "calls": 1110,
+              "seconds": 1.9826624997658655
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.292261700000381
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 3.386798399995314
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 6.6712530000004335
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 4.6021704000013415
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "bfff1e15e3c1ef06d5f1c380eb7e6cde4ce93614e04d9d7887f5fb96ea8d6f08",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "4f283c81de38e5dea8f11c608f0c92027feddee4b989cf9f5ab4642c2338d626",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "043596d6eb81b2373adcfa1adf7370c6cdf2de5b7686127a977b8dc55da14f0b",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "c0ad4b1f08127ec04bca6af285f0c93aafc303a37753129e77f28ac5412bf844",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false
+        }
+      }
+    ],
+    "integrated": [
+      {
+        "G8F": {
+          "wall_seconds": 17.903327299995,
+          "bootstrap_and_bake_seconds": 18.06298390000302,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.14957820000563515
+            },
+            "skin_evaluate": {
+              "calls": 1309,
+              "seconds": 1.2217264999417239
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.08733329999086
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 2.5511941999939154
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 5.0598803000102635
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 0.9426765000025625
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "2ea141fb5eab856e7f6698aa86ef424069336e4c7b620fcf585ff6cf8e452e4e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "a5d410eb2c04c37f2848459c4b12e7f75af854b1891a0a4f46505c480d8c6049",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "9401ee4c8c376a7cccf150a5d9b02f0f28a37dca90a8b989c4410087728b1a5c",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "fe375bb0e89206dda0a2d901a92319235e238f8b458742a988f1c28a2aa5e00e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false,
+          "cache": {
+            "hits": 13,
+            "misses": 7,
+            "evictions": 5,
+            "banks": 2,
+            "charged_bytes": 84037708,
+            "max_banks": 2,
+            "max_bytes": 536870912
+          }
+        },
+        "Lara": {
+          "wall_seconds": 19.952126500000304,
+          "bootstrap_and_bake_seconds": 20.109963900002185,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.6724787999992259
+            },
+            "skin_evaluate": {
+              "calls": 1110,
+              "seconds": 1.9968043998887879
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.3074113999900874
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 2.57940540000709
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 5.142740200004482
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 0.9321181999985129
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "bfff1e15e3c1ef06d5f1c380eb7e6cde4ce93614e04d9d7887f5fb96ea8d6f08",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "4f283c81de38e5dea8f11c608f0c92027feddee4b989cf9f5ab4642c2338d626",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "043596d6eb81b2373adcfa1adf7370c6cdf2de5b7686127a977b8dc55da14f0b",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "c0ad4b1f08127ec04bca6af285f0c93aafc303a37753129e77f28ac5412bf844",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false,
+          "cache": {
+            "hits": 13,
+            "misses": 7,
+            "evictions": 5,
+            "banks": 2,
+            "charged_bytes": 84036212,
+            "max_banks": 2,
+            "max_bytes": 536870912
+          }
+        }
+      },
+      {
+        "G8F": {
+          "wall_seconds": 18.008793199995125,
+          "bootstrap_and_bake_seconds": 18.183096900000237,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.15227260000392562
+            },
+            "skin_evaluate": {
+              "calls": 1309,
+              "seconds": 1.2288900001221919
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.0983557000072324
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 2.5633833999818307
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 5.039181600004667
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 0.9387624000009964
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "2ea141fb5eab856e7f6698aa86ef424069336e4c7b620fcf585ff6cf8e452e4e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "a5d410eb2c04c37f2848459c4b12e7f75af854b1891a0a4f46505c480d8c6049",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "9401ee4c8c376a7cccf150a5d9b02f0f28a37dca90a8b989c4410087728b1a5c",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "fe375bb0e89206dda0a2d901a92319235e238f8b458742a988f1c28a2aa5e00e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false,
+          "cache": {
+            "hits": 13,
+            "misses": 7,
+            "evictions": 5,
+            "banks": 2,
+            "charged_bytes": 84037708,
+            "max_banks": 2,
+            "max_bytes": 536870912
+          }
+        },
+        "Lara": {
+          "wall_seconds": 19.7007439999943,
+          "bootstrap_and_bake_seconds": 19.852796099999978,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.6708835999961593
+            },
+            "skin_evaluate": {
+              "calls": 1110,
+              "seconds": 1.9992112002219073
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.282755400003225
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 2.5536724000048707
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 5.052891100000124
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 0.9447799999979907
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "bfff1e15e3c1ef06d5f1c380eb7e6cde4ce93614e04d9d7887f5fb96ea8d6f08",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "4f283c81de38e5dea8f11c608f0c92027feddee4b989cf9f5ab4642c2338d626",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "043596d6eb81b2373adcfa1adf7370c6cdf2de5b7686127a977b8dc55da14f0b",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "c0ad4b1f08127ec04bca6af285f0c93aafc303a37753129e77f28ac5412bf844",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false,
+          "cache": {
+            "hits": 13,
+            "misses": 7,
+            "evictions": 5,
+            "banks": 2,
+            "charged_bytes": 84036212,
+            "max_banks": 2,
+            "max_bytes": 536870912
+          }
+        }
+      },
+      {
+        "G8F": {
+          "wall_seconds": 17.9044298000008,
+          "bootstrap_and_bake_seconds": 18.061525500001153,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.14945959999749903
+            },
+            "skin_evaluate": {
+              "calls": 1309,
+              "seconds": 1.2228249999679974
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.089346499997191
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 2.5587949000037042
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 5.034099600001355
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 0.9224393999902532
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "2ea141fb5eab856e7f6698aa86ef424069336e4c7b620fcf585ff6cf8e452e4e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "a5d410eb2c04c37f2848459c4b12e7f75af854b1891a0a4f46505c480d8c6049",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "9401ee4c8c376a7cccf150a5d9b02f0f28a37dca90a8b989c4410087728b1a5c",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "fe375bb0e89206dda0a2d901a92319235e238f8b458742a988f1c28a2aa5e00e",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false,
+          "cache": {
+            "hits": 13,
+            "misses": 7,
+            "evictions": 5,
+            "banks": 2,
+            "charged_bytes": 84037708,
+            "max_banks": 2,
+            "max_bytes": 536870912
+          }
+        },
+        "Lara": {
+          "wall_seconds": 19.825837399999727,
+          "bootstrap_and_bake_seconds": 19.981126600003336,
+          "stages": {
+            "setup": {
+              "calls": 1,
+              "seconds": 0.6665647999980138
+            },
+            "skin_evaluate": {
+              "calls": 1110,
+              "seconds": 1.9909001998094027
+            },
+            "solve_sequence": {
+              "calls": 4,
+              "seconds": 2.298199200005911
+            },
+            "import": {
+              "calls": 8,
+              "seconds": 2.570536000013817
+            },
+            "encode": {
+              "calls": 4,
+              "seconds": 5.120264100005443
+            },
+            "merge_and_preservation": {
+              "calls": 4,
+              "seconds": 0.9276355000038166
+            }
+          },
+          "reference_checks": [
+            {
+              "clip": "bank3_entry150",
+              "output_sha256": "bfff1e15e3c1ef06d5f1c380eb7e6cde4ce93614e04d9d7887f5fb96ea8d6f08",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank3_entry151",
+              "output_sha256": "4f283c81de38e5dea8f11c608f0c92027feddee4b989cf9f5ab4642c2338d626",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank0_entry363",
+              "output_sha256": "043596d6eb81b2373adcfa1adf7370c6cdf2de5b7686127a977b8dc55da14f0b",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            },
+            {
+              "clip": "bank2_entry067",
+              "output_sha256": "c0ad4b1f08127ec04bca6af285f0c93aafc303a37753129e77f28ac5412bf844",
+              "full_lmt_bytes_identical": true,
+              "all_pose_arrays_identical": true
+            }
+          ],
+          "profiled": false,
+          "cache": {
+            "hits": 13,
+            "misses": 7,
+            "evictions": 5,
+            "banks": 2,
+            "charged_bytes": 84036212,
+            "max_banks": 2,
+            "max_bytes": 536870912
+          }
+        }
+      }
+    ]
+  },
+  "readback_maximum_mm": {
+    "joint_readback_mm": 0.8266093200440584,
+    "surface_readback_mm": 0.8306702288510207,
+    "half_frame_surface_mm": 0.5939801602549278,
+    "foot_target_mm": 0.7480846734742189,
+    "driver_axis_mm": 0.0007041163703667479
+  },
+  "profile_counts": {
+    "G8F": {
+      "provided_baseline": {
+        "read_lmt_bytes": {
+          "calls": 24,
+          "profiled_cumulative_seconds": 7.7362181
+        },
+        "_read_track": {
+          "calls": 690354,
+          "profiled_cumulative_seconds": 7.284464300000001
+        },
+        "asdict": {
+          "calls": 231132,
+          "profiled_cumulative_seconds": 9.6903035
+        },
+        "deepcopy": {
+          "calls": 3040068,
+          "profiled_cumulative_seconds": 2.5771671
+        },
+        "_serialize_source_track": {
+          "calls": 115943,
+          "profiled_cumulative_seconds": 0.8464756000000001
+        },
+        "sample_action_for_lmt_export": {
+          "calls": 4,
+          "profiled_cumulative_seconds": 5.4807487
+        }
+      },
+      "after_integration": {
+        "read_lmt_bytes": {
+          "calls": 11,
+          "profiled_cumulative_seconds": 1.3634966000000002
+        },
+        "_read_track": {
+          "calls": 195530,
+          "profiled_cumulative_seconds": 1.2674393000000002
+        },
+        "asdict": {
+          "calls": 0,
+          "profiled_cumulative_seconds": 0
+        },
+        "deepcopy": {
+          "calls": 0,
+          "profiled_cumulative_seconds": 0
+        },
+        "_serialize_source_track": {
+          "calls": 1886,
+          "profiled_cumulative_seconds": 0.0058054000000000005
+        },
+        "sample_action_for_lmt_export": {
+          "calls": 4,
+          "profiled_cumulative_seconds": 4.5873515000000005
+        }
+      }
+    },
+    "Lara": {
+      "provided_baseline": {
+        "read_lmt_bytes": {
+          "calls": 24,
+          "profiled_cumulative_seconds": 7.0451309
+        },
+        "_read_track": {
+          "calls": 690354,
+          "profiled_cumulative_seconds": 6.647252600000001
+        },
+        "asdict": {
+          "calls": 231132,
+          "profiled_cumulative_seconds": 8.7412043
+        },
+        "deepcopy": {
+          "calls": 3040068,
+          "profiled_cumulative_seconds": 2.3489399
+        },
+        "_serialize_source_track": {
+          "calls": 115941,
+          "profiled_cumulative_seconds": 0.6896783000000001
+        },
+        "sample_action_for_lmt_export": {
+          "calls": 4,
+          "profiled_cumulative_seconds": 4.723295
+        }
+      },
+      "after_integration": {
+        "read_lmt_bytes": {
+          "calls": 11,
+          "profiled_cumulative_seconds": 1.3657979
+        },
+        "_read_track": {
+          "calls": 195530,
+          "profiled_cumulative_seconds": 1.2707768000000002
+        },
+        "asdict": {
+          "calls": 0,
+          "profiled_cumulative_seconds": 0
+        },
+        "deepcopy": {
+          "calls": 0,
+          "profiled_cumulative_seconds": 0
+        },
+        "_serialize_source_track": {
+          "calls": 1884,
+          "profiled_cumulative_seconds": 0.0057951
+        },
+        "sample_action_for_lmt_export": {
+          "calls": 4,
+          "profiled_cumulative_seconds": 4.5033129
+        }
+      }
+    }
+  },
+  "validation": {
+    "unit_tests_passed": 306,
+    "python_versions": [
+      "3.10.6",
+      "3.11.11"
+    ],
+    "clip_body_reference_cases": 72,
+    "optimized_reference_cases": 24,
+    "all_full_lmt_bytes_identical": true,
+    "all_pose_arrays_identical": true,
+    "postprofile_reference_cases": 8,
+    "production_writes": false,
+    "caller_files_unchanged": true
+  },
+  "implementation_hashes": {
+    "core\\__init__.py": "cb2a5767453924a3b96d96e99942026b060afd88c3e93cda92d3b550678d847c",
+    "core\\animation\\__init__.py": "a516a9466114d9810fc43c03917ea6a2921559821150e760992af44606e4cc2c",
+    "core\\animation\\compression.py": "bff8eb73e87bbd41e94d1ddd866f80f3fa87dd8760309ac43c371a277512bffa",
+    "core\\animation\\curves.py": "5d22a9a3fe6f9d2e4ce8487ebf285d7fc453a856ae7d1a5029b56479bf5014f3",
+    "core\\animation\\sampling.py": "98c012643ccbf2de10ae5e935351d7f89a117398f4f7614d8a77517f59fb6734",
+    "core\\animation\\transforms.py": "c00b7fb2cf01bd90ee244aa1d190f455dc95aa6b0bd8939f5ca28d8555abd5fc",
+    "core\\binary\\__init__.py": "7ba47fceb757fe696558aeecd75be4c01ac61eb4a9a494826833dddc6d33e158",
+    "core\\binary\\reader.py": "d754f83003c4f368cdb81351b2e49157cf039f16011908286290acbd9475f4c0",
+    "core\\diagnostics\\__init__.py": "ca691e16e76fcdaa5591bf5e04a078427172c4d76d0cc8f4b180372bf6a2ffb9",
+    "core\\diagnostics\\collections.py": "4e7de55c90a8043fc3bf246b769420cf34d2b9f3f73f5889749d6a81d7d59310",
+    "core\\diagnostics\\errors.py": "55e2531878cf582a54abfebbbb631a96e6ea59d66280afc6dca7572d4456822c",
+    "core\\diagnostics\\reports.py": "4801c66aef2d644c86e1bd115a73b1f20807ffa4efdc2b4df20af9f265ad07d9",
+    "core\\formats\\__init__.py": "1f9be3ca0f7910eae660d5e79f63fd8a48ba6b7c5d0ab65716378265e3cf192d",
+    "core\\formats\\lmt\\__init__.py": "632e98b1fe318b9b2c0cdb91bf6878604adf50e1e735e2ee314c6c31b1a9fa13",
+    "core\\formats\\lmt\\content_signature.py": "e531b23fea35fcd441eb4fb63ba6fe33263a0360fee35f947513e855c0c63ee6",
+    "core\\formats\\lmt\\decoded.py": "dcdaf0fc7136abaec5443183044f12239927aa50d0ae1e616e32fc2809c1e98a",
+    "core\\formats\\lmt\\decoder.py": "ca9f9096f782d4f9e0b8be20dfba05f041eb5f52cb4b5c4012acc2d1547ce564",
+    "core\\formats\\lmt\\encoding.py": "d83dd288e84c4d9fb11873459b8d6b604b381a2c4fe8d2867f41fd2ce8413953",
+    "core\\formats\\lmt\\export_context.py": "07e7086f4d0381863eb6f687b9cd858c38ad1d5305f935bd49e65508204013c1",
+    "core\\formats\\lmt\\export_plan.py": "84faa80d43f15d20244929c391e238355f2f11d54e643376726b60332500c5d4",
+    "core\\formats\\lmt\\merge_writer.py": "833080cdddce7a13d8473f88341fdf5b1861fb0eb6659c86c32da6a470c13d3b",
+    "core\\formats\\lmt\\model.py": "554e1badc81777b13b4869e0b779175790c3a81d1901a065427d25e0c418faef",
+    "core\\formats\\lmt\\quantized.py": "9b7e525c4daf807fdea1f8ce9c59c7e1dc3f45c02c751935d97cac8aec08f150",
+    "core\\formats\\lmt\\quaternion_source_diagnostics.py": "43991f96c618a1a8f286aef1e8f768332d38b8bd9157ded9b44c7f475fd6a709",
+    "core\\formats\\lmt\\reader.py": "d7e0fbf819214e7f72f53a5aedb5e6f03b02f9d12133d309dbabe64b453ee690",
+    "core\\formats\\lmt\\reconstructed.py": "cc29a687f22ae8cdcb1ff17f9ecd0ae81743dc8b4a0fb9f8f823ce3c261a62bd",
+    "core\\formats\\lmt\\reconstruction.py": "5bf8f312839c4e5212ce978d297dda2905b5a48b9bd7b13cab6b35513402bdd6",
+    "core\\formats\\lmt\\semantics.py": "b55d9dcc2dc831f7d34953c2b91bc0c7f6a25fd9c9ab30ec6dfa009c6402e039",
+    "core\\formats\\lmt\\source_bank.py": "d4c638a0ae00fd7bfc02687f9ced8c0fbc89eb253f3f11eb06690a68aaabc974",
+    "core\\formats\\lmt\\source_preservation.py": "1e28d60c622012c4f57ddfd14071faeae02c9d39be31277acec0c34a37b3d196",
+    "core\\formats\\lmt\\validation.py": "b972d1f6201b47382e7e43e37c13d1c8546a23aba5818b5a97764b2fa9dfee5f",
+    "core\\formats\\lmt\\writer.py": "12f8abf6ae3f6c3c76e0ec985db7a3e2a98997dd44ddd541e10816ae73482e73",
+    "core\\formats\\timl\\__init__.py": "87882397dec88f0cb6c4da4aea29048de273cb976b98e2c5ea482845ed1c3033",
+    "core\\formats\\timl\\channels.py": "6f5f323a41207b8e3c002bf28d74778192d145c6c06c30922860b35ac038a19b",
+    "core\\formats\\timl\\editor_model.py": "98ff57a0a2b2c42f3ead7050fddbde8ce0e533ca00443f37273d70f2b6bb7faa",
+    "core\\formats\\timl\\embedded_writer.py": "eed31b87f8ca4e40f56c06eeb29e8ed8e653f223978e9919b74026190c46ffb4",
+    "core\\formats\\timl\\model.py": "438e625771433469de8094f9ab39dbe7a0f550b9ea4e64d01379adc6bee6b1c4",
+    "core\\formats\\timl\\reader.py": "9a0ee45a826e66f6fd4397e094f20e90e98780170b8b2af3c52456fc21b84244",
+    "core\\formats\\timl\\semantics.py": "0f89a724f563910972f3a117bef441aef1fd49da93e455598b38ea5e4325c030",
+    "core\\formats\\timl\\summary.py": "a58e5c5526269a81686c3319adcc86499a83d222941b5b18b87a0283444c4201",
+    "core\\formats\\timl\\validation.py": "944e48b80f5c5f0474c9e6c6fd5349502e72a123a34b6d2e67c23d786e0f0afb",
+    "core\\formats\\timl\\writer.py": "c6660034943e177cddfc6fbb5bcd6522a2d8c763bdeca95b92665d73516020af",
+    "core\\updater_support.py": "c566884cc5a252efd2bad1d4fcea2884fa5ad6e26b3e99b804f0154c56abc305",
+    "blender_adapter\\__init__.py": "3ef4e682aff33775aed4228bf113060ff09398ac3e74e1f529110f45641046ca",
+    "blender_adapter\\actions.py": "2ca176c58f8984b3b444ea5e8ad219328d185efa358033e42cf8b431479ef961",
+    "blender_adapter\\armature.py": "90f27ff9dc51421f970402358b8434552eaa99e5b141f24163ae731711635b60",
+    "blender_adapter\\constraints.py": "a8f5e3698cff6cad794b521f597bf84465e0090068491a0073a22c2d574f0a2d",
+    "blender_adapter\\export_impact.py": "b04ff1a7d0192ac3cafd5e1b3155c60e52840ac073f13170fa27697c11bc6a0e",
+    "blender_adapter\\export_sampling.py": "36dadaa66ac6f3b12abc4503831606edf1828d8f8cad0b70c3fcf8502175953d",
+    "blender_adapter\\export_workflow.py": "0bcd6e878d9f3bd1f56b030a234555692d80a9bd7060a29e99c647deaac04ef8",
+    "blender_adapter\\fcurves.py": "a41dd93184ba0f599713d242c859c467478e4fa8cf449809cd1eb0ac96745ae7",
+    "blender_adapter\\import_batch.py": "d3d61f48b1838e03d945df960218fd31c4fe890cc326fe16962dfd0e95cc139e",
+    "blender_adapter\\lmt_session.py": "8f914d69c2e77f56effee2117dd4c607368329bfb760c55c29b78fbec585ef56",
+    "blender_adapter\\lmt_track_authoring.py": "f417a945c63d04483c71bd6563dc872701866d008e257da50a2fa0614381daed",
+    "blender_adapter\\lmt_track_metadata.py": "af327725a44fafeb0c473a1ca4b36e2c2b5fd441cd26785aa81e18350925530a",
+    "blender_adapter\\scene.py": "473ac415be00bfd106008a4a0ab7f6583fa9495bbe795c2977a0bf3283b9db1e",
+    "blender_adapter\\source_identity.py": "38f5224073fac5b8af4d82dddae34ee86a8c44f851f9379ad2b15fb05e8d249f",
+    "blender_adapter\\space.py": "150bfa5062c7f43e6327c54ec5de77430ab1bb6942a498d3d5542c2fcbcc436f",
+    "blender_adapter\\timl_actions.py": "4e2ace1507a72043659034837074a50912c49e221522086fb7fd144df5e268f4",
+    "blender_adapter\\timl_authoring.py": "7ff4ccf5ec48da8fb45c2ee2c3b0649220c684a6211f5ccb1626f3537e6bb8eb",
+    "blender_adapter\\timl_export.py": "e9047ab2942a5cfd4b4efc02e154ed0558129ea7d430c62acc99e6d910266529",
+    "blender_adapter\\timl_file_export.py": "2d329da17a72d89ebc7b75d567e87ec14f191b2ec51bda45e5a7c761fd5228a5",
+    "blender_adapter\\timl_metadata.py": "3ce4a4e8ba07b08419806e7f078091ece90f8dcd6b424e28cd17a78815be4842",
+    "blender_adapter\\timl_preview_state.py": "8d4396f2b0d09e4431928acae55e9931e46dcded806186aa83473e0dd738b069",
+    "blender_adapter\\timl_sampling.py": "e2e8176742dc6a432fd5a2d119006e2aa6708682c991eebf04627170a2494fa7",
+    "blender_adapter\\timl_templates.py": "fe9b7e3ca6e01dc1fd34b1aab245074fe2f1271533b2857f69c3a9b787233302",
+    "blender_adapter\\timl_writeback.py": "98927db3f405adb2b1535a549e579ab83d4ec82d4ff762bac80f944d60a52ab7",
+    "blender_adapter\\timl_writeback_plan.py": "d4f46e1a65f1f336789eb3da1b62866246d3e157bd3bdeede844c74b1c7f1f04",
+    "tools\\bake_throughput_integration.py": "e43b4d6749583ef8df772fb93e8d8faac0897b9a0b330d5f47bdaea0cf559ae9",
+    "tools\\benchmark_bake_throughput.py": "f1b83e22e54048c72e407e14c84beac76d5e9997680e14f5ca74f02562dd63af",
+    "tools\\compare_legacy_lmt.py": "ba7f667930f2084ed97e46f48255c5e6aeb7e042caca6a0e5d603a15ce78ade9",
+    "tools\\run_bake_throughput_suite.py": "607790161d78f5225609ec9941072ed10b660dd778019ff2b1ac5f3b6044a60e",
+    "tools\\run_timl_shared_payload_suite.py": "aaba440d767c0c9ba0392c066c82a6944d5f669c579f7233c68751b69c68fb30",
+    "tools\\run_timl_simple_structural_suite.py": "3bbfbc63d3567258e96fbc4354f26b5fe2038462316ac22f668d6f5922111cae",
+    "tools\\scan_embedded_timl_corpus.py": "02a2ca89ccdc66e4b0a63f36c4d519dc59f6b2fabfe27853619a31c291d7db00",
+    "tools\\scan_lmt_export_safety.py": "e3268974a363e37c920e58ae64bc9295a9a37e9f80a47a0b9204f6805528d049",
+    "tools\\scan_lmt_parity.py": "6c5233179a119ceffb5a83af8b95e6b9daecb62c5a9d46b8cdfc6f3b94988722",
+    "tools\\scan_lmt_writer_readiness.py": "12e6482ab101b1ae3ae3ad32ba8261848b44a70cc7005cee785e08f9ff4e99d5",
+    "tools\\scan_timl_corpus.py": "26df02f967e6b2c7691c7266fb64acbbf1fc0b7dc16dafdce0b75c3de78b786b",
+    "tools\\smoke_analyze_timl_controller.py": "d1d6d7ffe4945c7fe8ec40e4218d86b9058341203a9498a45658cdc13009ea76",
+    "tools\\smoke_import_all_actions.py": "d275b52451a137749c911fdba5d5e9b2a85d5de081550da78f307bc7648d6e1f",
+    "tools\\smoke_import_attached_timl.py": "31f6cc3678391a5a18ec8e44c8c9571c1df4078e352e80a58bd81e3bed90d572",
+    "tools\\smoke_import_selected_action.py": "e75f1790c300b05e9832d3e5fe90c6826b63986743044c0953a8fd9232a30549",
+    "tools\\smoke_merge_export_selected_action.py": "37882316dd892c0440d2666d4ad9a0f6858d5c2b683062e6da669603d5301a34",
+    "tools\\smoke_merge_export_with_shared_timl_value_edit.py": "e54608d298c6cf795309cd232b7827b9c413ad9f3bab4b0d99bd0d03aa0bdf9f",
+    "tools\\smoke_merge_export_with_timl_bezier_edit.py": "3ca9861e69a0c069e8db647c55d91259d5af015c38a0a204bdfa2da42dfc089f",
+    "tools\\smoke_merge_export_with_timl_edit.py": "aff1c209ec25490c9661b95a6e10a446161213d8dad843e0b6d3a3654f7b8a9e",
+    "tools\\smoke_merge_export_with_timl_integer_quantization_block.py": "b313a931c6d92f0e74d5c941b7fd54144f1ba89a9dde15b209753428bffade44",
+    "tools\\smoke_merge_export_with_timl_simple_structural_edit.py": "653a1a0c682b152af7c4664558b44f1c8313a7dd82e90a44bc714bba316b9d25",
+    "tools\\smoke_merge_export_with_timl_structural_edit.py": "2239689d7f523d34dfee76180e21e566374641e929e98d3d33148aca5fb92181",
+    "tools\\smoke_merge_export_with_untouched_timl_controller.py": "f10434fef7111c3c8dc05e0db0e990d0d4c55e9dc1781ffa0e6624c1388abe3d",
+    "tools\\smoke_sample_export_action.py": "24fd6bbc5a4083acb81de31bf73ecb99db80a11a69585d9e4ec851ea6897a060",
+    "tools\\smoke_timl_export_readiness.py": "262bf42885fa61883bb20ce1242be6ed9c8912099061bba295acfe7046bc7830",
+    "tools\\smoke_write_lmt_roundtrip.py": "4808d14248058ed3170d26a2f9d33f49aa84841deef9c6c3dda3aedf237d47bf"
+  },
+  "caller_hashes": {
+    "bake_common.py": "caa9ce768181eba116702f767e7909b3c259aee4975e19e0c05ac702b42abc67",
+    "bake_shard.py": "89ebec5e33ed658282abdc78db738757b2d890d865fa81119711683ac0a931f7"
+  },
+  "limitations": [
+    "Four representative clips, not a full corpus or concurrency benchmark.",
+    "Baseline/add-on-only measurements show appreciable variability; use medians and reported ranges.",
+    "Larger savings require explicit caller integration; regular full-bank UI behavior is unchanged.",
+    "No CUDA acceleration or new runtime dependencies. Profiled timings are not throughput measurements.",
+    "Retained cache charge is bounded; transient reads/caller-held snapshots and total process RSS are not covered."
+  ]
+}

@@ -264,6 +264,8 @@ class ExportSamplingTests(unittest.TestCase):
         self.assertEqual(track.source_kind, "raw_duplicate")
         self.assertEqual(track.source_track_index, 3)
         self.assertEqual(track.frames[2].value, (2.0, 3.0, 4.0))
+        action.fcurves.pop()
+        self.assertEqual(sample_action_for_lmt_export(action, armature).error_count, 1)
 
     def test_samples_pose_bone_attached_raw_duplicate_track_slots(self):
         root = FakeBone("Root")

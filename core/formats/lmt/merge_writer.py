@@ -14,7 +14,7 @@ It deliberately stays conservative:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 import struct
 
@@ -549,6 +549,7 @@ def write_multi_merged_lmt_bytes(
     target_entry_count: int | None = None,
     deleted_action_ids: set[int] | frozenset[int] | tuple[int, ...] | None = None,
     added_action_headers_by_id: dict[int, dict[str, object]] | None = None,
+    _first_action_offset: int = 0,
 ) -> bytes:
     normalized_reconstructed_actions_by_id = {
         int(action_id): reconstructed_action
@@ -671,7 +672,7 @@ def write_multi_merged_lmt_bytes(
 
     header_size = HEADER_STRUCT.size + (ENTRY_OFFSET_STRUCT.size * resolved_target_entry_count)
     entry_offsets = [0] * resolved_target_entry_count
-    cursor = _align(header_size, 16)
+    cursor = max(_align(header_size, 16), int(_first_action_offset))
     for entry_id in range(resolved_target_entry_count):
         action = action_records_by_id.get(entry_id)
         if action is None:
@@ -766,6 +767,65 @@ def write_merged_lmt_file(
         )
     )
     return output_path
+
+
+def write_source_action_lmt_bytes(
+    source_lmt,
+    source_bytes: bytes,
+    reconstructed_action,
+    *,
+    action_id: int,
+    version: int | None = None,
+    header_unknown: bytes | None = None,
+    track_metadata_by_identity=None,
+    track_metadata_by_index=None,
+    preserve_source_identities=None,
+    raw_quaternion_source_identities=None,
+    replacement_timl_payloads=None,
+) -> bytes:
+    """Encode one source-backed action as an intermediate LMT artifact.
+
+    Retains its original slot id, container header and attached TIML, rebasing
+    every payload address through the normal merge writer. Other slots are
+    holes. This is for callers that subsequently assemble their own full bank;
+    it must not be used as a replacement for Write Full LMT.
+
+    The selected action keeps the address it would have in a full merge. Zero
+    padding replaces preceding actions so downstream assemblers that order raw
+    chunks by their source addresses retain deterministic reference layout.
+    Planning, encoding and validation are identical to a full merge. No encoded
+    bytes, sampled animation or mutable export metadata are cached.
+    """
+    action_id = int(action_id)
+    source_action = _action_by_id(source_lmt, action_id)
+    cursor = _align(HEADER_STRUCT.size + ENTRY_OFFSET_STRUCT.size * source_lmt.header.entry_count, 16)
+    for action in sorted(source_lmt.actions, key=lambda item: item.id):
+        if action.id >= action_id:
+            break
+        # Sizes need only lengths, not serialized copies of every sibling track.
+        size = _align(ACTION_STRUCT.size + TRACK_STRUCT.size * len(action.tracks), 4)
+        for track in action.tracks:
+            if track.raw_buffer:
+                size = _align(size + len(track.raw_buffer), 4)
+            if track.lerp_basis is not None:
+                size = _align(size + LERP_BASIS_STRUCT.size, 4)
+        cursor = _align(cursor, 16) + size
+    isolated = replace(
+        source_lmt,
+        actions=(source_action,),
+        entry_offsets=tuple(offset if index == action_id else 0
+                            for index, offset in enumerate(source_lmt.entry_offsets)),
+    )
+    return write_multi_merged_lmt_bytes(
+        isolated, source_bytes, {action_id: reconstructed_action},
+        version=version, header_unknown=header_unknown,
+        track_metadata_by_action_id={action_id: track_metadata_by_identity},
+        track_metadata_by_index_by_action_id={action_id: track_metadata_by_index},
+        preserve_source_identities_by_action_id={action_id: preserve_source_identities},
+        raw_quaternion_source_identities_by_action_id={action_id: raw_quaternion_source_identities},
+        replacement_timl_payloads=replacement_timl_payloads,
+        _first_action_offset=_align(cursor, 16),
+    )
 
 
 def write_multi_merged_lmt_file(

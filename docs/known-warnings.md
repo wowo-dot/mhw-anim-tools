@@ -1,6 +1,6 @@
 # Known Warnings
 
-Last updated on `2026-06-20`.
+Last updated on `2026-09-15` for `v1.1.0`.
 
 This page is the short version of the current "what should I actually worry
 about?" story for `v1`.
@@ -31,6 +31,18 @@ Practical meaning:
 - you can still edit and export them
 - you should treat them as technical/raw channels, not as ordinary viewport
   motion controls
+
+**Build Evaluated Helper** now supplies a separate preview/retarget source using
+the native last-applicable-record rule. Identical copies and conflicts remain
+distinct source records. Incomplete raw duplicate components block export, and
+the writer refuses analyses containing errors. Evaluated helper actions also
+cannot overwrite the original raw slots through normal LMT export.
+
+The helper needs an explicit base for missing components. Mirrored contexts
+(149 entries in the binding qualification), specialized control logic and full
+cinematic layering/IK are not implemented. An Eorzea arm discrepancy of about
+1.62–1.74 degrees RMS remains unresolved. See
+[supported rules and limits](repeated-track-support.md).
 
 ## Writer-readiness scan status
 

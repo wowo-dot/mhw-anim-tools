@@ -223,6 +223,9 @@ def _draw_entry_import_section(panel_body, scene_props, entry):
     import_selected.enabled = entry_state in {"source", "added"} and entry_state != "deleted"
     import_selected.operator("mhw_anim_tools.import_selected_lmt_action", icon="ACTION", text="Import Selected")
     import_row.operator("mhw_anim_tools.import_all_lmt_actions", icon="ACTION_TWEAK", text="Import All")
+    pose_row = panel_body.row()
+    pose_row.enabled = entry_state == "source"
+    pose_row.operator("mhw_anim_tools.build_pose_helper", icon="ARMATURE_DATA")
     if entry_state in {"source", "added"} and entry.has_timl:
         timl_row = panel_body.row(align=True)
         timl_row.scale_y = 1.05
